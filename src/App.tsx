@@ -34,6 +34,10 @@ export default function App() {
   const [dueDate, setDueDate] = useState('');
   const [type, setType] = useState<EntryType>('debt');
 
+  // Quando o load do Supabase falha: persistir em localStorage nesta sessão e mostrar banner
+  const [useSupabaseSync, setUseSupabaseSync] = useState(true);
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+
   // Load data: Supabase first; fallback to localStorage. One-time migration from localStorage to Supabase when Supabase is empty.
   useEffect(() => {
     let cancelled = false;
@@ -63,13 +67,19 @@ export default function App() {
           }
         } catch (e) {
           console.error('Failed to load entries from Supabase', e);
+          if (!cancelled) {
+            setUseSupabaseSync(false);
+            setShowOfflineBanner(true);
+          }
           const saved = localStorage.getItem('personal-debts');
           if (saved) {
             try {
-              setEntries(JSON.parse(saved));
+              if (!cancelled) setEntries(JSON.parse(saved));
             } catch {
               console.error('Failed to parse localStorage entries', e);
             }
+          } else if (!cancelled) {
+            setEntries([]);
           }
         }
       } else {
@@ -87,12 +97,12 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  // Save to localStorage only when Supabase is not configured
+  // Save to localStorage when Supabase is not configured or when load failed (offline fallback)
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !useSupabaseSync) {
       localStorage.setItem('personal-debts', JSON.stringify(entries));
     }
-  }, [entries]);
+  }, [entries, useSupabaseSync]);
 
   const handleAddEntry = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +120,7 @@ export default function App() {
         entry.id === editingEntry.id ? updated : entry
       ));
       closeForm();
-      updateEntry(updated).catch((err) => console.error('Erro ao salvar no Supabase', err));
+      if (useSupabaseSync) updateEntry(updated).catch((err) => console.error('Erro ao salvar no Supabase', err));
     } else {
       const newEntry: Entry = {
         id: crypto.randomUUID(),
@@ -123,7 +133,7 @@ export default function App() {
       };
       setEntries([newEntry, ...entries]);
       closeForm();
-      insertEntry(newEntry).catch((err) => console.error('Erro ao salvar no Supabase', err));
+      if (useSupabaseSync) insertEntry(newEntry).catch((err) => console.error('Erro ao salvar no Supabase', err));
     }
   };
 
@@ -150,12 +160,12 @@ export default function App() {
     if (!entry) return;
     const nextPaid = !entry.isPaid;
     setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid } : e)));
-    updateEntryIsPaid(id, nextPaid).catch((err) => console.error('Erro ao atualizar no Supabase', err));
+    if (useSupabaseSync) updateEntryIsPaid(id, nextPaid).catch((err) => console.error('Erro ao atualizar no Supabase', err));
   };
 
   const deleteEntry = (id: string) => {
     setEntries(entries.filter((entry) => entry.id !== id));
-    deleteEntryDb(id).catch((err) => console.error('Erro ao excluir no Supabase', err));
+    if (useSupabaseSync) deleteEntryDb(id).catch((err) => console.error('Erro ao excluir no Supabase', err));
   };
 
   const filteredEntries = useMemo(() => {
@@ -246,6 +256,21 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {showOfflineBanner && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-4 max-w-5xl mx-auto">
+          <p className="text-sm text-amber-800">
+            Conexão com o servidor indisponível. Exibindo dados salvos neste dispositivo.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowOfflineBanner(false)}
+            className="text-amber-700 hover:text-amber-900 font-medium text-sm whitespace-nowrap"
+          >
+            Dispensar
+          </button>
+        </div>
+      )}
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         {/* Dashboard */}
