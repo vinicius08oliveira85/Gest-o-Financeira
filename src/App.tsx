@@ -1,20 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Plus, 
-  CheckCircle2, 
-  Circle, 
-  Trash2, 
+import {
+  Plus,
+  CheckCircle2,
+  Circle,
+  Trash2,
   Pencil,
-  Filter, 
-  TrendingDown, 
-  Calendar, 
+  Filter,
+  TrendingDown,
+  Calendar,
   DollarSign,
-  PieChart,
   ArrowUpRight,
-  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Entry, FilterType, EntryType } from './types';
+import { isSupabaseConfigured } from './lib/supabase';
+import {
+  fetchEntries,
+  insertEntry,
+  updateEntry,
+  updateEntryIsPaid,
+  deleteEntry as deleteEntryDb,
+} from './lib/entriesDb';
 
 export default function App() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -28,21 +34,64 @@ export default function App() {
   const [dueDate, setDueDate] = useState('');
   const [type, setType] = useState<EntryType>('debt');
 
-  // Load data from LocalStorage
+  // Load data: Supabase first; fallback to localStorage. One-time migration from localStorage to Supabase when Supabase is empty.
   useEffect(() => {
-    const savedEntries = localStorage.getItem('personal-debts');
-    if (savedEntries) {
-      try {
-        setEntries(JSON.parse(savedEntries));
-      } catch (e) {
-        console.error('Failed to parse entries', e);
+    let cancelled = false;
+    async function load() {
+      if (isSupabaseConfigured()) {
+        try {
+          const data = await fetchEntries();
+          if (!cancelled) setEntries(data);
+          // One-time migration: if Supabase empty and localStorage has data, insert and then reload
+          if (data.length === 0) {
+            const saved = localStorage.getItem('personal-debts');
+            if (saved) {
+              try {
+                const parsed = JSON.parse(saved) as Entry[];
+                if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) {
+                  for (const entry of parsed) {
+                    await insertEntry(entry);
+                  }
+                  const refetched = await fetchEntries();
+                  if (!cancelled) setEntries(refetched);
+                  localStorage.removeItem('personal-debts');
+                }
+              } catch {
+                // ignore migration parse errors
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load entries from Supabase', e);
+          const saved = localStorage.getItem('personal-debts');
+          if (saved) {
+            try {
+              setEntries(JSON.parse(saved));
+            } catch {
+              console.error('Failed to parse localStorage entries', e);
+            }
+          }
+        }
+      } else {
+        const saved = localStorage.getItem('personal-debts');
+        if (saved) {
+          try {
+            setEntries(JSON.parse(saved));
+          } catch (e) {
+            console.error('Failed to parse entries', e);
+          }
+        }
       }
     }
+    load();
+    return () => { cancelled = true; };
   }, []);
 
-  // Save data to LocalStorage
+  // Save to localStorage only when Supabase is not configured
   useEffect(() => {
-    localStorage.setItem('personal-debts', JSON.stringify(entries));
+    if (!isSupabaseConfigured()) {
+      localStorage.setItem('personal-debts', JSON.stringify(entries));
+    }
   }, [entries]);
 
   const handleAddEntry = (e: React.FormEvent) => {
@@ -50,11 +99,18 @@ export default function App() {
     if (!name || !amount || !dueDate) return;
 
     if (editingEntry) {
-      setEntries(entries.map(entry => 
-        entry.id === editingEntry.id 
-          ? { ...entry, name, amount: parseFloat(amount), dueDate, type } 
-          : entry
+      const updated: Entry = {
+        ...editingEntry,
+        name,
+        amount: parseFloat(amount),
+        dueDate,
+        type,
+      };
+      setEntries(entries.map(entry =>
+        entry.id === editingEntry.id ? updated : entry
       ));
+      closeForm();
+      updateEntry(updated).catch((err) => console.error('Erro ao salvar no Supabase', err));
     } else {
       const newEntry: Entry = {
         id: crypto.randomUUID(),
@@ -66,9 +122,9 @@ export default function App() {
         createdAt: Date.now(),
       };
       setEntries([newEntry, ...entries]);
+      closeForm();
+      insertEntry(newEntry).catch((err) => console.error('Erro ao salvar no Supabase', err));
     }
-
-    closeForm();
   };
 
   const closeForm = () => {
@@ -90,13 +146,16 @@ export default function App() {
   };
 
   const togglePaid = (id: string) => {
-    setEntries(entries.map(entry => 
-      entry.id === id ? { ...entry, isPaid: !entry.isPaid } : entry
-    ));
+    const entry = entries.find((e) => e.id === id);
+    if (!entry) return;
+    const nextPaid = !entry.isPaid;
+    setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid } : e)));
+    updateEntryIsPaid(id, nextPaid).catch((err) => console.error('Erro ao atualizar no Supabase', err));
   };
 
   const deleteEntry = (id: string) => {
-    setEntries(entries.filter(entry => entry.id !== id));
+    setEntries(entries.filter((entry) => entry.id !== id));
+    deleteEntryDb(id).catch((err) => console.error('Erro ao excluir no Supabase', err));
   };
 
   const filteredEntries = useMemo(() => {
