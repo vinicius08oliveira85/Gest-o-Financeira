@@ -23,15 +23,13 @@ export function rowToEntry(row: EntryRow): Entry {
   };
 }
 
-export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at'> & { created_at?: string } {
+export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
   return {
-    id: entry.id,
     name: entry.name,
     amount: entry.amount,
     due_date: entry.dueDate,
     is_paid: entry.isPaid,
     type: entry.type,
-    created_at: new Date(entry.createdAt).toISOString(),
   };
 }
 
@@ -47,18 +45,16 @@ export async function fetchEntries(): Promise<Entry[]> {
 
 export async function insertEntry(entry: Entry): Promise<void> {
   if (!supabase) return;
-  const row = entryToRow(entry);
-  const { error } = await supabase.from('entries').insert(row);
+  const { error } = await supabase.from('entries').insert({ ...entryToRow(entry), id: entry.id });
   if (error) throw error;
 }
 
 export async function updateEntry(entry: Entry): Promise<void> {
   if (!supabase) return;
-  const { id, ...rest } = entryToRow(entry);
   const { error } = await supabase
     .from('entries')
-    .update({ name: rest.name, amount: rest.amount, due_date: rest.due_date, is_paid: rest.is_paid, type: rest.type })
-    .eq('id', id);
+    .update(entryToRow(entry))
+    .eq('id', entry.id);
   if (error) throw error;
 }
 
