@@ -34,8 +34,8 @@ export default function App() {
   const [dueDate, setDueDate] = useState('');
   const [type, setType] = useState<EntryType>('debt');
 
-  // Quando o load do Supabase falha: persistir em localStorage nesta sessão e mostrar banner
-  const [useSupabaseSync, setUseSupabaseSync] = useState(true);
+  // Só habilitar sync com Supabase após GET bem-sucedido; senão só localStorage
+  const [useSupabaseSync, setUseSupabaseSync] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
 
   // Load data: Supabase first; fallback to localStorage. One-time migration from localStorage to Supabase when Supabase is empty.
@@ -45,7 +45,10 @@ export default function App() {
       if (isSupabaseConfigured()) {
         try {
           const data = await fetchEntries();
-          if (!cancelled) setEntries(data);
+          if (!cancelled) {
+            setEntries(data);
+            setUseSupabaseSync(true);
+          }
           // One-time migration: if Supabase empty and localStorage has data, insert and then reload
           if (data.length === 0) {
             const saved = localStorage.getItem('personal-debts');
