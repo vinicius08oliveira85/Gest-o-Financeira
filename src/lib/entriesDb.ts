@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase } from './supabase';
 import type { Entry, EntryType } from '../types';
 
 export type EntryRow = {
@@ -36,7 +36,7 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at'> & { creat
 }
 
 export async function fetchEntries(): Promise<Entry[]> {
-  if (!isSupabaseConfigured()) return [];
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('entries')
     .select('*')
@@ -46,14 +46,14 @@ export async function fetchEntries(): Promise<Entry[]> {
 }
 
 export async function insertEntry(entry: Entry): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!supabase) return;
   const row = entryToRow(entry);
   const { error } = await supabase.from('entries').insert(row);
   if (error) throw error;
 }
 
 export async function updateEntry(entry: Entry): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!supabase) return;
   const { id, ...rest } = entryToRow(entry);
   const { error } = await supabase
     .from('entries')
@@ -63,13 +63,13 @@ export async function updateEntry(entry: Entry): Promise<void> {
 }
 
 export async function updateEntryIsPaid(id: string, isPaid: boolean): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!supabase) return;
   const { error } = await supabase.from('entries').update({ is_paid: isPaid }).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteEntry(id: string): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!supabase) return;
   const { error } = await supabase.from('entries').delete().eq('id', id);
   if (error) throw error;
 }
