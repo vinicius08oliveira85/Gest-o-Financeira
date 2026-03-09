@@ -20,6 +20,16 @@ View your app in AI Studio: https://ai.studio/apps/6b1a159b-4885-4319-bd7b-bc9c9
 4. Run the app:
    `npm run dev`
 
+## Deploy na Vercel
+
+Para o app persistir dados no Supabase em produção, configure as variáveis de ambiente no projeto Vercel:
+
+1. Vercel Dashboard → seu projeto → **Settings** → **Environment Variables**.
+2. Adicione `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` com os mesmos valores do Supabase (Project Settings > API). Atribua a Production (e Preview, se quiser).
+3. Após alterar variáveis, faça um **redeploy** para o build incorporar os novos valores.
+
+Sem essas variáveis, o app em produção usará apenas `localStorage` (dados só no dispositivo).
+
 ## Instalar no celular (PWA)
 
 O app é um PWA (Progressive Web App). Para instalar no celular:

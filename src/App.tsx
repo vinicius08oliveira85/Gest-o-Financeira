@@ -37,6 +37,7 @@ export default function App() {
   // Só habilitar sync com Supabase após GET bem-sucedido; senão só localStorage
   const [useSupabaseSync, setUseSupabaseSync] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Load data: Supabase first; fallback to localStorage. One-time migration from localStorage to Supabase when Supabase is empty.
   useEffect(() => {
@@ -119,11 +120,18 @@ export default function App() {
         dueDate,
         type,
       };
+      const previousEntries = entries;
       setEntries(entries.map(entry =>
         entry.id === editingEntry.id ? updated : entry
       ));
       closeForm();
-      if (useSupabaseSync) updateEntry(updated).catch((err) => console.error('Erro ao salvar no Supabase', err));
+      if (useSupabaseSync) {
+        updateEntry(updated).catch((err) => {
+          console.error('Erro ao salvar no Supabase', err);
+          setSaveError('Falha ao salvar. Tente de novo.');
+          setEntries(previousEntries);
+        });
+      }
     } else {
       const newEntry: Entry = {
         id: crypto.randomUUID(),
@@ -136,7 +144,13 @@ export default function App() {
       };
       setEntries([newEntry, ...entries]);
       closeForm();
-      if (useSupabaseSync) insertEntry(newEntry).catch((err) => console.error('Erro ao salvar no Supabase', err));
+      if (useSupabaseSync) {
+        insertEntry(newEntry).catch((err) => {
+          console.error('Erro ao salvar no Supabase', err);
+          setSaveError('Falha ao salvar. Tente de novo.');
+          setEntries((prev) => prev.filter((e) => e.id !== newEntry.id));
+        });
+      }
     }
   };
 
@@ -162,13 +176,28 @@ export default function App() {
     const entry = entries.find((e) => e.id === id);
     if (!entry) return;
     const nextPaid = !entry.isPaid;
+    const previousEntries = entries;
     setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid } : e)));
-    if (useSupabaseSync) updateEntryIsPaid(id, nextPaid).catch((err) => console.error('Erro ao atualizar no Supabase', err));
+    if (useSupabaseSync) {
+      updateEntryIsPaid(id, nextPaid).catch((err) => {
+        console.error('Erro ao atualizar no Supabase', err);
+        setSaveError('Falha ao atualizar. Tente de novo.');
+        setEntries(previousEntries);
+      });
+    }
   };
 
   const deleteEntry = (id: string) => {
-    setEntries(entries.filter((entry) => entry.id !== id));
-    if (useSupabaseSync) deleteEntryDb(id).catch((err) => console.error('Erro ao excluir no Supabase', err));
+    const entry = entries.find((e) => e.id === id);
+    if (!entry) return;
+    setEntries(entries.filter((e) => e.id !== id));
+    if (useSupabaseSync) {
+      deleteEntryDb(id).catch((err) => {
+        console.error('Erro ao excluir no Supabase', err);
+        setSaveError('Falha ao excluir. Tente de novo.');
+        setEntries((prev) => [...prev, entry]);
+      });
+    }
   };
 
   const filteredEntries = useMemo(() => {
@@ -269,6 +298,19 @@ export default function App() {
             type="button"
             onClick={() => setShowOfflineBanner(false)}
             className="text-amber-700 hover:text-amber-900 font-medium text-sm whitespace-nowrap"
+          >
+            Dispensar
+          </button>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-center justify-between gap-4 max-w-5xl mx-auto">
+          <p className="text-sm text-red-800">{saveError}</p>
+          <button
+            type="button"
+            onClick={() => setSaveError(null)}
+            className="text-red-700 hover:text-red-900 font-medium text-sm whitespace-nowrap"
           >
             Dispensar
           </button>
