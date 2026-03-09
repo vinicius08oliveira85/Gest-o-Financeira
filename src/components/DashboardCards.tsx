@@ -1,0 +1,90 @@
+import { motion } from 'motion/react';
+import { TrendingDown, DollarSign, ArrowUpRight } from 'lucide-react';
+import { formatCurrency } from '../lib/format';
+
+type DashboardCardsProps = {
+  totalEntradasLancadas: number;
+  totalSaidasLancadas: number;
+  saldo: number;
+  entradasCount: number;
+  saidasCount: number;
+};
+
+export function DashboardCards({
+  totalEntradasLancadas,
+  totalSaidasLancadas,
+  saldo,
+  entradasCount,
+  saidasCount,
+}: DashboardCardsProps) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Total Entradas Lançadas
+          </span>
+          <div className="bg-emerald-50 p-2 rounded-full">
+            <ArrowUpRight className="text-emerald-500 w-4 h-4" />
+          </div>
+        </div>
+        <div className="text-3xl font-light tracking-tight text-emerald-600">
+          {formatCurrency(totalEntradasLancadas)}
+        </div>
+        <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
+          <span>{entradasCount} entradas lançadas</span>
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Total Saídas Lançadas
+          </span>
+          <div className="bg-red-50 p-2 rounded-full">
+            <TrendingDown className="text-red-500 w-4 h-4" />
+          </div>
+        </div>
+        <div className="text-3xl font-light tracking-tight text-red-600">
+          {formatCurrency(totalSaidasLancadas)}
+        </div>
+        <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
+          <span>{saidasCount} saídas lançadas</span>
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className={`p-6 rounded-2xl shadow-sm border ${
+          saldo >= 0 ? 'bg-slate-900 border-slate-800' : 'bg-red-900 border-red-800'
+        }`}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Saldo
+          </span>
+          <div className="bg-white/10 p-2 rounded-full">
+            <DollarSign className="text-white w-4 h-4" />
+          </div>
+        </div>
+        <div className="text-3xl font-light tracking-tight text-white">
+          {formatCurrency(saldo)}
+        </div>
+        <div className="mt-2 text-xs text-slate-400">
+          Só entradas e saídas finalizadas
+        </div>
+      </motion.div>
+    </div>
+  );
+}

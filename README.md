@@ -15,9 +15,8 @@ View your app in AI Studio: https://ai.studio/apps/6b1a159b-4885-4319-bd7b-bc9c9
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. (Opcional) Para sincronizar dados com Supabase: crie a tabela `entries` no SQL Editor (use o arquivo em `supabase/migrations/`) e defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em `.env.local` (veja [.env.example](.env.example)).
-4. Run the app:
+2. (Opcional) Para sincronizar dados com Supabase: crie a tabela `entries` no SQL Editor (use o arquivo em `supabase/migrations/`) e defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em `.env.local` (veja [.env.example](.env.example)).
+3. Run the app:
    `npm run dev`
 
 ## Deploy na Vercel
@@ -29,6 +28,15 @@ Para o app persistir dados no Supabase em produção, configure as variáveis de
 3. Após alterar variáveis, faça um **redeploy** para o build incorporar os novos valores.
 
 Sem essas variáveis, o app em produção usará apenas `localStorage` (dados só no dispositivo).
+
+## Solução de problemas (Supabase)
+
+Se o app em produção exibir **"Failed to load entries from Supabase"** e no console aparecer **net::ERR_NAME_NOT_RESOLVED** ao acessar `*.supabase.co`:
+
+- **Causa:** o hostname do projeto Supabase não está resolvendo. No plano gratuito, projetos são **pausados** após inatividade e o subdomínio deixa de responder.
+- **Correção:**  
+  1. Acesse o [Supabase Dashboard](https://supabase.com/dashboard), localize o projeto e, se estiver pausado, use **Restore project**.  
+  2. Ou crie/use outro projeto ativo, atualize `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` nas variáveis de ambiente da Vercel e faça **redeploy**.
 
 ## Instalar no celular (PWA)
 

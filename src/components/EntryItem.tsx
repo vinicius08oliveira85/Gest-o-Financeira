@@ -1,0 +1,107 @@
+import React from 'react';
+import { CheckCircle2, Circle, Calendar, Pencil, Trash2 } from 'lucide-react';
+import { motion } from 'motion/react';
+import type { Entry } from '../types';
+import { formatCurrency, formatDate } from '../lib/format';
+
+type EntryItemProps = {
+  entry: Entry;
+  onTogglePaid: (id: string) => void;
+  onEdit: (entry: Entry) => void;
+  onDeleteRequest: (id: string) => void;
+};
+
+export function EntryItem({
+  entry,
+  onTogglePaid,
+  onEdit,
+  onDeleteRequest,
+}: EntryItemProps) {
+  const isOverdue =
+    entry.type === 'debt' && !entry.isPaid && new Date(entry.dueDate) < new Date();
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      className="group flex items-center p-4 hover:bg-slate-50 transition-colors"
+    >
+      <button
+        type="button"
+        onClick={() => onTogglePaid(entry.id)}
+        title={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (abate no saldo)'}
+        className={`mr-4 transition-colors ${
+          entry.isPaid ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-400'
+        }`}
+      >
+        {entry.isPaid ? <CheckCircle2 size={24} /> : <Circle size={24} />}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3
+            className={`font-medium truncate ${
+              entry.isPaid ? 'text-slate-400 line-through' : 'text-slate-900'
+            }`}
+          >
+            {entry.name}
+          </h3>
+          {entry.type === 'cash' && (
+            <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded">
+              Entrada
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 mt-1">
+          <span className="text-xs text-slate-400 flex items-center gap-1">
+            <Calendar size={12} />
+            {entry.type === 'debt' ? 'Vence em' : 'Data:'} {formatDate(entry.dueDate)}
+          </span>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+              entry.isPaid
+                ? 'bg-emerald-50 text-emerald-600'
+                : isOverdue
+                  ? 'bg-red-50 text-red-600'
+                  : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {entry.isPaid ? 'Finalizado' : isOverdue ? 'Atrasado' : 'Pendente'}
+          </span>
+        </div>
+      </div>
+
+      <div className="text-right mr-4">
+        <div
+          className={`font-semibold ${
+            entry.isPaid
+              ? 'text-slate-400'
+              : entry.type === 'cash'
+                ? 'text-emerald-600'
+                : 'text-red-600'
+          }`}
+        >
+          {entry.type === 'cash' ? '+' : '-'}
+          {formatCurrency(entry.amount)}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+        <button
+          onClick={() => onEdit(entry)}
+          className="p-2 text-slate-300 hover:text-blue-500"
+        >
+          <Pencil size={18} />
+        </button>
+        <button
+          onClick={() => onDeleteRequest(entry.id)}
+          className="p-2 text-slate-300 hover:text-red-500"
+        >
+          <Trash2 size={18} />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
