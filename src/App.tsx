@@ -11,10 +11,18 @@ import {
   ModalForm,
   FloatingActionButton,
   LoadingSkeleton,
+  PasswordGate,
+  ChangePasswordModal,
 } from './components';
 
+const UNLOCK_KEY = 'gestao-financeira-unlocked';
+
 export default function App() {
+  const [unlocked, setUnlocked] = useState(
+    () => sessionStorage.getItem(UNLOCK_KEY) === '1'
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const {
     entries,
@@ -52,9 +60,22 @@ export default function App() {
     }
   };
 
+  const handleUnlock = () => {
+    setUnlocked(true);
+    sessionStorage.setItem(UNLOCK_KEY, '1');
+  };
+
+  if (!unlocked) {
+    return <PasswordGate onUnlock={handleUnlock} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F5F5] text-slate-900 font-sans selection:bg-emerald-100">
-      <Header onExportCSV={() => exportEntriesToCSV(entries)} onNewEntry={() => handleOpenForm()} />
+      <Header
+        onExportCSV={() => exportEntriesToCSV(entries)}
+        onNewEntry={() => handleOpenForm()}
+        onOpenChangePassword={() => setShowChangePasswordModal(true)}
+      />
 
       <Banners
         showOfflineBanner={showOfflineBanner}
@@ -107,6 +128,12 @@ export default function App() {
       />
 
       <FloatingActionButton onClick={() => handleOpenForm()} />
+
+      <ChangePasswordModal
+        open={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        onSuccess={() => setShowChangePasswordModal(false)}
+      />
     </div>
   );
 }
