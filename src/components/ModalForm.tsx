@@ -14,6 +14,14 @@ type ModalFormProps = {
   setDueDate: (v: string) => void;
   type: EntryType;
   setType: (v: EntryType) => void;
+  category: string;
+  setCategory: (v: string) => void;
+  tag: string;
+  setTag: (v: string) => void;
+  isInstallment: boolean;
+  setIsInstallment: (v: boolean) => void;
+  installmentsCount: string;
+  setInstallmentsCount: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 };
@@ -29,6 +37,14 @@ export function ModalForm({
   setDueDate,
   type,
   setType,
+  category,
+  setCategory,
+  tag,
+  setTag,
+  isInstallment,
+  setIsInstallment,
+  installmentsCount,
+  setInstallmentsCount,
   onSubmit,
   onClose,
 }: ModalFormProps) {
@@ -47,9 +63,9 @@ export function ModalForm({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+          className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 flex flex-col max-h-[90vh]"
         >
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
             <h2 className="text-xl font-semibold">
               {isEditing ? 'Editar Registro' : 'Novo Registro'}
             </h2>
@@ -58,7 +74,7 @@ export function ModalForm({
             </button>
           </div>
 
-          <form onSubmit={onSubmit} className="p-6 space-y-4">
+          <form onSubmit={onSubmit} className="p-6 space-y-4 overflow-y-auto">
             <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
               <button
                 type="button"
@@ -96,7 +112,7 @@ export function ModalForm({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                   Valor (R$)
@@ -123,6 +139,57 @@ export function ModalForm({
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Categoria
+                </label>
+                <input
+                  type="text"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Ex: Aluguel, Salário..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Tag (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={tag}
+                  onChange={(e) => setTag(e.target.value)}
+                  placeholder="Ex: Cartão Nubank, Cliente X..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isInstallment}
+                  onChange={(e) => setIsInstallment(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500/30"
+                />
+                <span>Lançamento parcelado</span>
+              </label>
+              {isInstallment && (
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <span className="text-xs text-slate-500">Nº de parcelas</span>
+                  <input
+                    type="number"
+                    min={2}
+                    value={installmentsCount}
+                    onChange={(e) => setInstallmentsCount(e.target.value)}
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="pt-4">

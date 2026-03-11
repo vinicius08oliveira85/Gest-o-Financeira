@@ -9,6 +9,11 @@ export type EntryRow = {
   is_paid: boolean;
   type: string;
   created_at: string;
+  category?: string | null;
+  tag?: string | null;
+  installments_count?: number | null;
+  installment_number?: number | null;
+  parent_installment_id?: string | null;
 };
 
 export function rowToEntry(row: EntryRow): Entry {
@@ -20,6 +25,11 @@ export function rowToEntry(row: EntryRow): Entry {
     isPaid: row.is_paid,
     type: row.type as EntryType,
     createdAt: new Date(row.created_at).getTime(),
+    category: row.category ?? undefined,
+    tag: row.tag ?? undefined,
+    installmentsCount: row.installments_count ?? undefined,
+    installmentNumber: row.installment_number ?? undefined,
+    parentInstallmentId: row.parent_installment_id ?? undefined,
   };
 }
 
@@ -30,6 +40,11 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
     due_date: entry.dueDate,
     is_paid: entry.isPaid,
     type: entry.type,
+    category: entry.category ?? null,
+    tag: entry.tag ?? null,
+    installments_count: entry.installmentsCount ?? null,
+    installment_number: entry.installmentNumber ?? null,
+    parent_installment_id: entry.parentInstallmentId ?? null,
   };
 }
 

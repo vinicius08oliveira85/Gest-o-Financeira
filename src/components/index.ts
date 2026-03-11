@@ -1,6 +1,9 @@
 export { Banners } from './Banners';
 export { ChangePasswordModal } from './ChangePasswordModal';
 export { DashboardCards } from './DashboardCards';
+export { GoalsCard } from './GoalsCard';
+export { AlertsPanel } from './AlertsPanel';
+export { GuidedTooltip } from './GuidedTooltip';
 export { EntryList } from './EntryList';
 export { FilterBar } from './FilterBar';
 export { FloatingActionButton } from './FloatingActionButton';
@@ -8,3 +11,4 @@ export { Header } from './Header';
 export { LoadingSkeleton } from './LoadingSkeleton';
 export { ModalForm } from './ModalForm';
 export { PasswordGate } from './PasswordGate';
+export { CalendarView } from './CalendarView';

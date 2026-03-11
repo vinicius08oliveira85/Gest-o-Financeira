@@ -9,6 +9,7 @@ type EntryListProps = {
   onTogglePaid: (id: string) => void;
   onEdit: (entry: Entry) => void;
   onDeleteRequest: (id: string) => void;
+  compact?: boolean;
 };
 
 export function EntryList({
@@ -16,6 +17,7 @@ export function EntryList({
   onTogglePaid,
   onEdit,
   onDeleteRequest,
+  compact = false,
 }: EntryListProps) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -29,6 +31,7 @@ export function EntryList({
                   onTogglePaid={onTogglePaid}
                   onEdit={onEdit}
                   onDeleteRequest={onDeleteRequest}
+                  compact={compact}
                 />
               </React.Fragment>
             ))}

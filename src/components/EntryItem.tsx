@@ -9,6 +9,7 @@ type EntryItemProps = {
   onTogglePaid: (id: string) => void;
   onEdit: (entry: Entry) => void;
   onDeleteRequest: (id: string) => void;
+  compact?: boolean;
 };
 
 export function EntryItem({
@@ -16,6 +17,7 @@ export function EntryItem({
   onTogglePaid,
   onEdit,
   onDeleteRequest,
+  compact = false,
 }: EntryItemProps) {
   const isOverdue =
     entry.type === 'debt' && !entry.isPaid && new Date(entry.dueDate) < new Date();
@@ -26,17 +28,23 @@ export function EntryItem({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="group flex items-center p-4 hover:bg-slate-50 transition-colors"
+      className={`group flex flex-wrap sm:flex-nowrap items-center hover:bg-slate-50 transition-colors ${
+        compact ? 'px-3 py-2.5 text-sm' : 'p-3 sm:p-4'
+      }`}
     >
       <button
         type="button"
         onClick={() => onTogglePaid(entry.id)}
         title={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (abate no saldo)'}
-        className={`mr-4 transition-colors ${
+        className={`mr-3 transition-colors self-start mt-1 sm:self-center sm:mt-0 ${
           entry.isPaid ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-400'
         }`}
       >
-        {entry.isPaid ? <CheckCircle2 size={24} /> : <Circle size={24} />}
+        {entry.isPaid ? (
+          <CheckCircle2 size={compact ? 18 : 22} />
+        ) : (
+          <Circle size={compact ? 18 : 22} />
+        )}
       </button>
 
       <div className="flex-1 min-w-0">
@@ -54,7 +62,7 @@ export function EntryItem({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 mt-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
           <span className="text-xs text-slate-400 flex items-center gap-1">
             <Calendar size={12} />
             {entry.type === 'debt' ? 'Vence em' : 'Data:'} {formatDate(entry.dueDate)}
@@ -70,37 +78,54 @@ export function EntryItem({
           >
             {entry.isPaid ? 'Finalizado' : isOverdue ? 'Atrasado' : 'Pendente'}
           </span>
+          {entry.category && (
+            <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full">
+              {entry.category}
+            </span>
+          )}
+          {entry.installmentsCount && entry.installmentNumber && (
+            <span className="bg-slate-900 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+              {entry.installmentNumber}/{entry.installmentsCount}
+            </span>
+          )}
+          {entry.tag && (
+            <span className="text-xs text-slate-400 truncate hidden sm:inline-block max-w-[120px] lg:max-w-[180px]">
+              {entry.tag}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="text-right mr-4">
-        <div
-          className={`font-semibold ${
-            entry.isPaid
-              ? 'text-slate-400'
-              : entry.type === 'cash'
-                ? 'text-emerald-600'
-                : 'text-red-600'
-          }`}
-        >
-          {entry.type === 'cash' ? '+' : '-'}
-          {formatCurrency(entry.amount)}
+      <div className="w-full sm:w-auto flex justify-between items-center mt-2 sm:mt-0">
+        <div className="text-right sm:mr-3 pl-8 sm:pl-0">
+          <div
+            className={`font-semibold ${
+              entry.isPaid
+                ? 'text-slate-400'
+                : entry.type === 'cash'
+                  ? 'text-emerald-600'
+                  : 'text-red-600'
+            }`}
+          >
+            {entry.type === 'cash' ? '+' : '-'}
+            {formatCurrency(entry.amount)}
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-        <button
-          onClick={() => onEdit(entry)}
-          className="p-2 text-slate-300 hover:text-blue-500"
-        >
-          <Pencil size={18} />
-        </button>
-        <button
-          onClick={() => onDeleteRequest(entry.id)}
-          className="p-2 text-slate-300 hover:text-red-500"
-        >
-          <Trash2 size={18} />
-        </button>
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
+          <button
+            onClick={() => onEdit(entry)}
+            className="p-2 text-slate-400 hover:text-blue-500"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={() => onDeleteRequest(entry.id)}
+            className="p-2 text-slate-400 hover:text-red-500"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );

@@ -14,6 +14,9 @@ const STORAGE_KEY = 'personal-debts';
 export function useEntries() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
   const [useSupabaseSync, setUseSupabaseSync] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
@@ -91,13 +94,23 @@ export function useEntries() {
   }, [entries, useSupabaseSync]);
 
   const filteredEntries = useMemo(() => {
-    let result = entries;
+    const byPeriod = entries.filter((d) => {
+      const date = new Date(d.dueDate);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+
+    let result = byPeriod;
     if (filter === 'pending') result = result.filter((d) => !d.isPaid);
     else if (filter === 'paid') result = result.filter((d) => d.isPaid);
     else if (filter === 'debt') result = result.filter((d) => d.type === 'debt');
     else if (filter === 'cash') result = result.filter((d) => d.type === 'cash');
+
+    if (selectedCategory !== 'all') {
+      result = result.filter((d) => d.category === selectedCategory);
+    }
+
     return result;
-  }, [entries, filter]);
+  }, [entries, filter, selectedCategory, currentMonth, currentYear]);
 
   const totalEntradasLancadas = useMemo(
     () => entries.filter((d) => d.type === 'cash').reduce((acc, d) => acc + d.amount, 0),
@@ -127,6 +140,36 @@ export function useEntries() {
     () => entries.filter((d) => d.type === 'debt').length,
     [entries]
   );
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const entry of entries) {
+      if (entry.category) {
+        set.add(entry.category);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [entries]);
+
+  function goToPreviousMonth() {
+    setCurrentMonth((prev) => {
+      if (prev === 0) {
+        setCurrentYear((y) => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  }
+
+  function goToNextMonth() {
+    setCurrentMonth((prev) => {
+      if (prev === 11) {
+        setCurrentYear((y) => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  }
 
   function addOrUpdateEntry(entry: Entry, isEdit: boolean) {
     if (isEdit) {
@@ -184,6 +227,12 @@ export function useEntries() {
     setEntries,
     filter,
     setFilter,
+    selectedCategory,
+    setSelectedCategory,
+    currentMonth,
+    currentYear,
+    goToPreviousMonth,
+    goToNextMonth,
     filteredEntries,
     totalEntradasLancadas,
     totalSaidasLancadas,
@@ -199,5 +248,6 @@ export function useEntries() {
     addOrUpdateEntry,
     togglePaid,
     deleteEntry,
+    availableCategories,
   };
 }
