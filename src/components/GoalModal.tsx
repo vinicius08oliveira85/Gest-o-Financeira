@@ -11,10 +11,11 @@ type GoalModalProps = {
   month: number;
   year: number;
   onSave: (partial: Omit<Goal, 'id' | 'currentAmount'> & { id?: string }) => void;
+  onDelete?: (id: string) => void;
   onClose: () => void;
 };
 
-export function GoalModal({ open, goal, month, year, onSave, onClose }: GoalModalProps) {
+export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }: GoalModalProps) {
   const [name, setName] = React.useState(goal?.name ?? '');
   const [target, setTarget] = React.useState(goal ? goal.targetAmount.toString() : '');
   const [targetDate, setTargetDate] = React.useState(goal?.targetDate ?? '');
@@ -149,12 +150,28 @@ export function GoalModal({ open, goal, month, year, onSave, onClose }: GoalModa
                 .
               </p>
 
-              <button
-                type="submit"
-                className="w-full bg-slate-900 text-white py-3 rounded-2xl font-semibold text-sm shadow-md hover:bg-slate-800 transition-all active:scale-[0.98]"
-              >
-                Salvar meta
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="submit"
+                  className="w-full bg-slate-900 text-white py-3 rounded-2xl font-semibold text-sm shadow-md hover:bg-slate-800 transition-all active:scale-[0.98]"
+                >
+                  Salvar meta
+                </button>
+                {goal && onDelete && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Excluir esta meta?')) {
+                        onDelete(goal.id);
+                        onClose();
+                      }
+                    }}
+                    className="w-full py-2.5 rounded-2xl font-medium text-sm text-red-600 hover:bg-red-50 border border-red-200 transition-all"
+                  >
+                    Excluir meta
+                  </button>
+                )}
+              </div>
             </form>
           </motion.div>
         </div>

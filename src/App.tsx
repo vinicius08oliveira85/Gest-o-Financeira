@@ -80,7 +80,10 @@ export default function App() {
     getSaldoForMonth,
   } = useEntries();
 
-  const { currentGoal, upsertGoal, isLoadingGoals } = useGoals(currentMonth, currentYear);
+  const { currentGoal, upsertGoal, deleteGoal, isLoadingGoals } = useGoals(
+    currentMonth,
+    currentYear
+  );
   const { toastMessage, showToast, dismissToast } = useToast();
   const { alerts } = useAlerts({
     entries,
@@ -290,6 +293,15 @@ export default function App() {
             });
             showToast('Meta salva');
           }}
+          onDelete={
+            currentGoal
+              ? (id) => {
+                  deleteGoal(id);
+                  setIsGoalModalOpen(false);
+                  showToast('Meta excluída');
+                }
+              : undefined
+          }
           onClose={() => setIsGoalModalOpen(false)}
         />
       </Suspense>
