@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import App from './App';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 vi.mock('./hooks/useEntries', () => ({
   useEntries: () => ({
@@ -34,13 +35,22 @@ vi.mock('./hooks/useEntries', () => ({
     refetchEntries: vi.fn(),
     getSaldoForMonth: vi.fn(() => 0),
     getMetaBalanceForGoal: vi.fn(() => 0),
+    searchQuery: '',
+    setSearchQuery: vi.fn(),
+    sortBy: 'dueDate',
+    setSortBy: vi.fn(),
+    sortOrder: 'desc',
+    setSortOrder: vi.fn(),
+    pendingPaidId: null,
   }),
 }));
 
 vi.mock('./hooks/useGoals', () => ({
   useGoals: () => ({
+    currentGoals: [],
     currentGoal: null,
     upsertGoal: vi.fn(),
+    deleteGoal: vi.fn(),
     isLoadingGoals: false,
   }),
 }));
@@ -82,13 +92,21 @@ describe('App', () => {
 
   it('com sessão desbloqueada exibe Fluxo de Caixa', async () => {
     sessionStorage.setItem('gestao-financeira-unlocked', '1');
-    render(<App />);
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    );
     expect(await screen.findByText(/Fluxo de Caixa/i)).toBeInTheDocument();
   });
 
   it('sem sessão desbloqueada exibe PasswordGate', () => {
     sessionStorage.removeItem('gestao-financeira-unlocked');
-    render(<App />);
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    );
     expect(screen.getByRole('button', { name: /unlock/i })).toBeInTheDocument();
   });
 });

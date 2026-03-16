@@ -81,10 +81,12 @@ export function useGoals(month: number, year: number) {
     }
   }, [goals, useSupabaseSync]);
 
-  const currentGoal = useMemo(
-    () => goals.find((g) => g.month === month && g.year === year) ?? null,
+  const currentGoals = useMemo(
+    () => goals.filter((g) => g.month === month && g.year === year),
     [goals, month, year]
   );
+
+  const currentGoal = currentGoals[0] ?? null;
 
   const upsertGoal = useCallback(
     (goal: Omit<Goal, 'id'> & { id?: string }) => {
@@ -132,6 +134,7 @@ export function useGoals(month: number, year: number) {
 
   return {
     goals,
+    currentGoals,
     currentGoal,
     upsertGoal,
     deleteGoal,

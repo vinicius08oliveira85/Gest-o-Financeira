@@ -57,54 +57,58 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
     <section className="mt-8 space-y-4">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">Relatórios de {monthLabel}</h2>
-          <p className="text-xs text-slate-500">Visão rápida de entradas, saídas e categorias.</p>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Relatórios de {monthLabel}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Visão rápida de entradas, saídas e categorias.
+          </p>
         </div>
-        <p className="text-xs font-medium text-slate-600 bg-slate-100 rounded-lg px-3 py-2 w-fit">
+        <p className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 w-fit">
           {cycleLabel}
         </p>
       </div>
 
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3">
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Total entradas
           </p>
-          <p className="text-lg font-semibold text-emerald-600 mt-0.5">
+          <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
             {formatCurrency(totalByType.entradas)}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3">
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Total saídas
           </p>
-          <p className="text-lg font-semibold text-red-600 mt-0.5">
+          <p className="text-lg font-semibold text-red-600 dark:text-red-400 mt-0.5">
             {formatCurrency(totalByType.saidas)}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3">
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Saldo do mês
           </p>
-          <p className="text-lg font-semibold text-slate-900 mt-0.5">
+          <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
             {formatCurrency(saldoDoMes)}
           </p>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Entradas x Saídas
           </h3>
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-slate-600">
+            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
               <span>Entradas</span>
               <span className="font-semibold text-emerald-600">
                 {formatCurrency(totalByType.entradas)}
               </span>
             </div>
-            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
               <div
                 className="h-full bg-emerald-500 transition-all"
                 style={{
@@ -117,13 +121,13 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
                 }}
               />
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-600">
+            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
               <span>Saídas</span>
-              <span className="font-semibold text-red-600">
+              <span className="font-semibold text-red-600 dark:text-red-400">
                 {formatCurrency(totalByType.saidas)}
               </span>
             </div>
-            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
               <div
                 className="h-full bg-red-500 transition-all"
                 style={{
@@ -139,25 +143,27 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Distribuição por categoria
           </h3>
           {categoryEntries.length === 0 ? (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Adicione categorias aos lançamentos para ver a distribuição.
             </p>
           ) : (
             <div className="space-y-2">
               {categoryEntries.map(([cat, value]) => (
                 <div key={cat} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs text-slate-600">
+                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                     <span className="truncate max-w-[140px]">{cat}</span>
-                    <span className="font-medium">{formatCurrency(value)}</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {formatCurrency(value)}
+                    </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
                     <div
-                      className="h-full bg-slate-900 transition-all"
+                      className="h-full bg-slate-900 dark:bg-emerald-600 transition-all"
                       style={{
                         width:
                           maxCategoryValue === 0 ? '0%' : `${(value / maxCategoryValue) * 100}%`,

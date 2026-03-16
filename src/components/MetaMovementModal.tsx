@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -8,11 +8,18 @@ const TITLE_ID = 'meta-movement-modal-title';
 type MetaMovementModalProps = {
   open: boolean;
   type: 'deposit' | 'withdraw';
-  onConfirm: (amount: number, note?: string) => void;
+  isLoading?: boolean;
+  onConfirm: (amount: number, note?: string) => void | Promise<void>;
   onClose: () => void;
 };
 
-export function MetaMovementModal({ open, type, onConfirm, onClose }: MetaMovementModalProps) {
+export function MetaMovementModal({
+  open,
+  type,
+  isLoading = false,
+  onConfirm,
+  onClose,
+}: MetaMovementModalProps) {
   const [amount, setAmount] = React.useState('');
   const [note, setNote] = React.useState('');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -34,11 +41,11 @@ export function MetaMovementModal({ open, type, onConfirm, onClose }: MetaMoveme
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = parseFloat(amount.replace(',', '.'));
     if (Number.isNaN(value) || value <= 0) return;
-    onConfirm(value, note.trim() || undefined);
+    await Promise.resolve(onConfirm(value, note.trim() || undefined));
     onClose();
   };
 
@@ -53,7 +60,7 @@ export function MetaMovementModal({ open, type, onConfirm, onClose }: MetaMoveme
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/50 backdrop-blur-sm"
           />
           <motion.div
             ref={contentRef}
@@ -63,17 +70,20 @@ export function MetaMovementModal({ open, type, onConfirm, onClose }: MetaMoveme
             role="dialog"
             aria-modal="true"
             aria-labelledby={TITLE_ID}
-            className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-600"
             tabIndex={-1}
           >
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h2 id={TITLE_ID} className="text-lg font-semibold">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-600 flex items-center justify-between">
+              <h2
+                id={TITLE_ID}
+                className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+              >
                 {label}
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
                 <Plus size={22} className="rotate-45" />
@@ -84,7 +94,7 @@ export function MetaMovementModal({ open, type, onConfirm, onClose }: MetaMoveme
               <div>
                 <label
                   htmlFor="meta-movement-amount"
-                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
                 >
                   Valor (R$)
                 </label>
@@ -97,13 +107,13 @@ export function MetaMovementModal({ open, type, onConfirm, onClose }: MetaMoveme
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0,00"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
               <div>
                 <label
                   htmlFor="meta-movement-note"
-                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
                 >
                   Observação (opcional)
                 </label>
@@ -113,17 +123,19 @@ export function MetaMovementModal({ open, type, onConfirm, onClose }: MetaMoveme
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Ex: Depósito inicial"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
               <button
                 type="submit"
-                className={`w-full py-3 rounded-2xl font-semibold text-sm shadow-md transition-all active:scale-[0.98] ${
+                disabled={isLoading}
+                className={`w-full py-3 rounded-2xl font-semibold text-sm shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait flex items-center justify-center gap-2 ${
                   type === 'deposit'
-                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                    : 'bg-slate-200 text-slate-800 hover:bg-slate-300'
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 dark:hover:bg-emerald-500'
+                    : 'bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
                 }`}
               >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : null}
                 {type === 'deposit' ? 'Depositar' : 'Sacar'}
               </button>
             </form>

@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import type { Entry } from '../types';
-import { ALERT_CONCENTRATION_RATIO } from '../constants';
+import type { Entry, Goal } from '../types';
+import { ALERT_CONCENTRATION_RATIO, GOAL_DEADLINE_ALERT_DAYS } from '../constants';
 
-export type AlertType = 'concentration' | 'due-soon';
+export type AlertType = 'concentration' | 'due-soon' | 'goal-deadline';
 
 export type Alert = {
   id: string;
@@ -15,9 +15,10 @@ type UseAlertsParams = {
   entries: Entry[];
   month: number;
   year: number;
+  goals?: Goal[];
 };
 
-export function useAlerts({ entries, month, year }: UseAlertsParams) {
+export function useAlerts({ entries, month, year, goals = [] }: UseAlertsParams) {
   const alerts = useMemo<Alert[]>(() => {
     const byPeriod = entries.filter((d) => {
       const date = new Date(d.dueDate);
@@ -73,8 +74,34 @@ export function useAlerts({ entries, month, year }: UseAlertsParams) {
       });
     }
 
+    // Metas com data alvo próxima ou já passada
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    for (const goal of goals) {
+      if (!goal.targetDate) continue;
+      const target = new Date(goal.targetDate);
+      target.setHours(0, 0, 0, 0);
+      const diffMs = target.getTime() - todayStart.getTime();
+      const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+      if (diffDays < 0) {
+        result.push({
+          id: `goal-deadline-${goal.id}`,
+          type: 'goal-deadline',
+          title: `Meta "${goal.name}": data alvo passou`,
+          description: `A data para atingir esta meta já passou. Ajuste a meta ou a data se necessário.`,
+        });
+      } else if (diffDays <= GOAL_DEADLINE_ALERT_DAYS) {
+        result.push({
+          id: `goal-deadline-${goal.id}`,
+          type: 'goal-deadline',
+          title: `Meta "${goal.name}": faltam ${diffDays} dias`,
+          description: `A data alvo desta meta é em ${diffDays} dia(s). Confira seu progresso.`,
+        });
+      }
+    }
+
     return result;
-  }, [entries, month, year]);
+  }, [entries, month, year, goals]);
 
   return { alerts };
 }

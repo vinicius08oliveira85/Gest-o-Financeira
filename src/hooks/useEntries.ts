@@ -17,6 +17,9 @@ export function useEntries() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'dueDate' | 'amount' | 'name'>('dueDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +27,7 @@ export function useEntries() {
   const [useSupabaseSync, setUseSupabaseSync] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [pendingPaidId, setPendingPaidId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,8 +162,35 @@ export function useEntries() {
       result = result.filter((d) => d.category === selectedCategory);
     }
 
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        (d) => d.name.toLowerCase().includes(q) || String(d.amount).includes(q)
+      );
+    }
+
+    const mult = sortOrder === 'asc' ? 1 : -1;
+    result = [...result].sort((a, b) => {
+      if (sortBy === 'dueDate') {
+        return mult * (new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      }
+      if (sortBy === 'amount') {
+        return mult * (a.amount - b.amount);
+      }
+      return mult * a.name.localeCompare(b.name, 'pt-BR');
+    });
+
     return result;
-  }, [entries, filter, selectedCategory, currentMonth, currentYear]);
+  }, [
+    entries,
+    filter,
+    selectedCategory,
+    searchQuery,
+    sortBy,
+    sortOrder,
+    currentMonth,
+    currentYear,
+  ]);
 
   const totalEntradasLancadas = useMemo(
     () => entries.filter((d) => d.type === 'cash').reduce((acc, d) => acc + d.amount, 0),
@@ -240,41 +271,45 @@ export function useEntries() {
     });
   }
 
-  function addOrUpdateEntry(entry: Entry, isEdit: boolean) {
+  function addOrUpdateEntry(entry: Entry, isEdit: boolean): Promise<void> {
     if (isEdit) {
       const previous = entries;
       setEntries(entries.map((e) => (e.id === entry.id ? entry : e)));
       if (useSupabaseSync) {
-        updateEntry(entry).catch((err) => {
+        return updateEntry(entry).catch((err) => {
           logError('Erro ao salvar no Supabase', err);
           setSaveError('Falha ao salvar. Tente de novo.');
           setEntries(previous);
+          throw err;
         });
       }
-    } else {
-      const newList = [entry, ...entries];
-      setEntries(newList);
-      if (useSupabaseSync) {
-        insertEntry(entry)
-          .then(async () => {
-            if (entry.isRecurring) {
-              const copies = generateMissingRecurringCopies(newList);
-              if (copies.length > 0) {
-                await insertEntriesBatch(copies);
-                setEntries((prev) => [...prev, ...copies]);
-              }
-            }
-          })
-          .catch((err) => {
-            logError('Erro ao salvar no Supabase', err);
-            setSaveError('Falha ao salvar. Tente de novo.');
-            setEntries((prev) => prev.filter((e) => e.id !== entry.id));
-          });
-      } else if (entry.isRecurring) {
-        const copies = generateMissingRecurringCopies(newList);
-        if (copies.length > 0) setEntries((prev) => [...prev, ...copies]);
-      }
+      return Promise.resolve();
     }
+    const newList = [entry, ...entries];
+    setEntries(newList);
+    if (useSupabaseSync) {
+      return insertEntry(entry)
+        .then(async () => {
+          if (entry.isRecurring) {
+            const copies = generateMissingRecurringCopies(newList);
+            if (copies.length > 0) {
+              await insertEntriesBatch(copies);
+              setEntries((prev) => [...prev, ...copies]);
+            }
+          }
+        })
+        .catch((err) => {
+          logError('Erro ao salvar no Supabase', err);
+          setSaveError('Falha ao salvar. Tente de novo.');
+          setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+          throw err;
+        });
+    }
+    if (entry.isRecurring) {
+      const copies = generateMissingRecurringCopies(newList);
+      if (copies.length > 0) setEntries((prev) => [...prev, ...copies]);
+    }
+    return Promise.resolve();
   }
 
   const togglePaid = useCallback(
@@ -283,13 +318,19 @@ export function useEntries() {
       if (!entry) return;
       const nextPaid = !entry.isPaid;
       const previous = entries;
+      setPendingPaidId(id);
       setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid } : e)));
       if (useSupabaseSync) {
-        updateEntryIsPaid(id, nextPaid).catch((err) => {
-          logError('Erro ao atualizar no Supabase', err);
-          setSaveError('Falha ao atualizar. Tente de novo.');
-          setEntries(previous);
-        });
+        updateEntryIsPaid(id, nextPaid)
+          .then(() => setPendingPaidId(null))
+          .catch((err) => {
+            logError('Erro ao atualizar no Supabase', err);
+            setSaveError('Falha ao atualizar. Tente de novo.');
+            setEntries(previous);
+            setPendingPaidId(null);
+          });
+      } else {
+        setPendingPaidId(null);
       }
     },
     [entries, useSupabaseSync]
@@ -366,6 +407,12 @@ export function useEntries() {
     setEntries,
     filter,
     setFilter,
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
     selectedCategory,
     setSelectedCategory,
     currentMonth,
@@ -387,6 +434,7 @@ export function useEntries() {
     setSaveError,
     addOrUpdateEntry,
     togglePaid,
+    pendingPaidId,
     deleteEntry,
     updateRecurringApplyToAll,
     deleteRecurringModel,

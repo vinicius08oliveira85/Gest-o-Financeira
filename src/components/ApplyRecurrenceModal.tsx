@@ -49,7 +49,7 @@ export function ApplyRecurrenceModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/50 backdrop-blur-sm"
           />
           <motion.div
             ref={contentRef}
@@ -59,17 +59,20 @@ export function ApplyRecurrenceModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby={TITLE_ID}
-            className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-600"
             tabIndex={-1}
           >
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 id={TITLE_ID} className="text-xl font-semibold">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-600 flex items-center justify-between">
+              <h2
+                id={TITLE_ID}
+                className="text-xl font-semibold text-slate-900 dark:text-slate-100"
+              >
                 Aplicar alteração em
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
                 <Plus size={24} className="rotate-45" />

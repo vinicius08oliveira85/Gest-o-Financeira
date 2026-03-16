@@ -6,3 +6,6 @@ export const PASSWORD_STORAGE_KEY = 'gestao-financeira-pw';
 
 /** Limiar (0–1) acima do qual uma categoria de saídas gera alerta de concentração. */
 export const ALERT_CONCENTRATION_RATIO = 0.35;
+
+/** Dias antes da data alvo da meta para exibir alerta de prazo. */
+export const GOAL_DEADLINE_ALERT_DAYS = 7;

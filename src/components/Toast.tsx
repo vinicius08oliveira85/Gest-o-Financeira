@@ -20,7 +20,7 @@ export function Toast({ message, onDismiss, durationMs = 3000 }: ToastProps) {
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-medium shadow-lg transition-opacity duration-200"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium shadow-lg transition-opacity duration-200 border border-slate-700 dark:border-slate-600"
     >
       {message}
     </div>

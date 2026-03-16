@@ -48,7 +48,7 @@ export function ConfirmDeleteModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/50 backdrop-blur-sm"
           />
           <motion.div
             ref={contentRef}
@@ -58,17 +58,20 @@ export function ConfirmDeleteModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby={CONFIRM_DELETE_TITLE_ID}
-            className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-600"
             tabIndex={-1}
           >
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 id={CONFIRM_DELETE_TITLE_ID} className="text-xl font-semibold">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-600 flex items-center justify-between">
+              <h2
+                id={CONFIRM_DELETE_TITLE_ID}
+                className="text-xl font-semibold text-slate-900 dark:text-slate-100"
+              >
                 {title}
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
                 <Plus size={24} className="rotate-45" />
@@ -76,19 +79,19 @@ export function ConfirmDeleteModal({
             </div>
 
             <div className="p-6 space-y-6">
-              <p className="text-slate-600">{message}</p>
+              <p className="text-slate-600 dark:text-slate-300">{message}</p>
               <div className="flex gap-3 justify-end">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  className="px-4 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirm}
-                  className="px-4 py-2.5 rounded-xl font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
+                  className="px-4 py-2.5 rounded-xl font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 transition-colors"
                 >
                   {confirmLabel}
                 </button>

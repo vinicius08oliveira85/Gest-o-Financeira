@@ -54,11 +54,18 @@ export default function App() {
     goal: Goal;
     type: 'deposit' | 'withdraw';
   } | null>(null);
+  const [metaMovementLoading, setMetaMovementLoading] = useState(false);
 
   const {
     entries,
     filter,
     setFilter,
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
     selectedCategory,
     setSelectedCategory,
     currentMonth,
@@ -79,6 +86,7 @@ export default function App() {
     setSaveError,
     addOrUpdateEntry,
     togglePaid,
+    pendingPaidId,
     deleteEntry,
     updateRecurringApplyToAll,
     deleteRecurringModel,
@@ -88,15 +96,17 @@ export default function App() {
     getMetaBalanceForGoal,
   } = useEntries();
 
-  const { currentGoal, upsertGoal, deleteGoal, isLoadingGoals } = useGoals(
+  const { currentGoals, upsertGoal, deleteGoal, isLoadingGoals } = useGoals(
     currentMonth,
     currentYear
   );
+  const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
   const { toastMessage, showToast, dismissToast } = useToast();
   const { alerts } = useAlerts({
     entries,
     month: currentMonth,
     year: currentYear,
+    goals: currentGoals,
   });
   const { showNewEntryHint, showMonthNavHint, showReportsHint, completeStep, skip } =
     useOnboarding();
@@ -173,11 +183,14 @@ export default function App() {
             saldo={saldo}
             entradasCount={entradasCount}
             saidasCount={saidasCount}
-            currentGoal={currentGoal}
+            currentGoals={currentGoals}
             getSaldoForMonth={getSaldoForMonth}
             getMetaBalanceForGoal={getMetaBalanceForGoal}
             isLoadingGoals={isLoadingGoals}
-            onOpenGoalModal={() => setIsGoalModalOpen(true)}
+            onOpenGoalModal={(goal) => {
+              setGoalToEdit(goal ?? null);
+              setIsGoalModalOpen(true);
+            }}
             onDepositToGoal={(goal) => setMetaMovement({ goal, type: 'deposit' })}
             onWithdrawFromGoal={(goal) => setMetaMovement({ goal, type: 'withdraw' })}
             filter={filter}
@@ -196,6 +209,7 @@ export default function App() {
             showReportsHint={showReportsHint}
             skip={skip}
             onTogglePaid={togglePaid}
+            pendingPaidId={pendingPaidId}
             onEdit={handleOpenForm}
             onDeleteRequest={handleDeleteRequest}
           />
@@ -295,7 +309,8 @@ export default function App() {
         <MetaMovementModal
           open={metaMovement !== null}
           type={metaMovement?.type ?? 'deposit'}
-          onConfirm={(amount, note) => {
+          isLoading={metaMovementLoading}
+          onConfirm={async (amount, note) => {
             if (!metaMovement) return;
             const today = new Date().toISOString().slice(0, 10);
             const isDeposit = metaMovement.type === 'deposit';
@@ -309,9 +324,14 @@ export default function App() {
               createdAt: Date.now(),
               goalId: metaMovement.goal.id,
             };
-            addOrUpdateEntry(entry, false);
-            showToast(isDeposit ? 'Depósito registrado' : 'Saque registrado');
-            setMetaMovement(null);
+            setMetaMovementLoading(true);
+            try {
+              await addOrUpdateEntry(entry, false);
+              showToast(isDeposit ? 'Depósito registrado' : 'Saque registrado');
+              setMetaMovement(null);
+            } finally {
+              setMetaMovementLoading(false);
+            }
           }}
           onClose={() => setMetaMovement(null)}
         />
@@ -320,26 +340,30 @@ export default function App() {
       <Suspense fallback={null}>
         <GoalModal
           open={isGoalModalOpen}
-          goal={currentGoal}
+          goal={goalToEdit}
           month={currentMonth}
           year={currentYear}
           onSave={(partial) => {
             upsertGoal({
               ...partial,
-              currentAmount: currentGoal?.currentAmount ?? 0,
+              currentAmount: goalToEdit?.currentAmount ?? 0,
             });
             showToast('Meta salva');
           }}
           onDelete={
-            currentGoal
+            goalToEdit
               ? (id) => {
                   deleteGoal(id);
                   setIsGoalModalOpen(false);
+                  setGoalToEdit(null);
                   showToast('Meta excluída');
                 }
               : undefined
           }
-          onClose={() => setIsGoalModalOpen(false)}
+          onClose={() => {
+            setIsGoalModalOpen(false);
+            setGoalToEdit(null);
+          }}
         />
       </Suspense>
 

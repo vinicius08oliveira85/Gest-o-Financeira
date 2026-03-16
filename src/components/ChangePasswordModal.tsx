@@ -67,7 +67,7 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/50 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -76,7 +76,7 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
             role="dialog"
             aria-modal="true"
             aria-labelledby={CHANGE_PASSWORD_TITLE_ID}
-            className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-600"
           >
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <h2 id={CHANGE_PASSWORD_TITLE_ID} className="text-xl font-semibold">

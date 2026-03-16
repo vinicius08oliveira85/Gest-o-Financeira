@@ -62,7 +62,7 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/50 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -71,16 +71,19 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
             role="dialog"
             aria-modal="true"
             aria-labelledby={GOAL_MODAL_TITLE_ID}
-            className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-600"
           >
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h2 id={GOAL_MODAL_TITLE_ID} className="text-lg font-semibold">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-600 flex items-center justify-between">
+              <h2
+                id={GOAL_MODAL_TITLE_ID}
+                className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+              >
                 {goal ? 'Editar meta' : 'Nova meta'}
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
                 <Plus size={22} className="rotate-45" />
@@ -91,7 +94,7 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
               <div>
                 <label
                   htmlFor="goal-modal-name"
-                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
                 >
                   Nome da meta
                 </label>
@@ -102,14 +105,14 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Guardar para reserva"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="goal-modal-target"
-                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
                 >
                   Valor alvo (R$)
                 </label>
@@ -121,14 +124,14 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   placeholder="0,00"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="goal-modal-target-date"
-                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
                 >
                   Atingir até (data, opcional)
                 </label>
@@ -137,11 +140,11 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
                   type="date"
                   value={targetDate}
                   onChange={(e) => setTargetDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
 
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Acompanhe esta meta apenas para o mês de{' '}
                 {new Date(year, month).toLocaleDateString('pt-BR', {
                   month: 'long',
@@ -153,7 +156,7 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
               <div className="flex flex-col gap-2">
                 <button
                   type="submit"
-                  className="w-full bg-slate-900 text-white py-3 rounded-2xl font-semibold text-sm shadow-md hover:bg-slate-800 transition-all active:scale-[0.98]"
+                  className="w-full bg-slate-900 dark:bg-emerald-600 text-white py-3 rounded-2xl font-semibold text-sm shadow-md hover:bg-slate-800 dark:hover:bg-emerald-500 transition-all active:scale-[0.98]"
                 >
                   Salvar meta
                 </button>
@@ -166,7 +169,7 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
                         onClose();
                       }
                     }}
-                    className="w-full py-2.5 rounded-2xl font-medium text-sm text-red-600 hover:bg-red-50 border border-red-200 transition-all"
+                    className="w-full py-2.5 rounded-2xl font-medium text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800 transition-all"
                   >
                     Excluir meta
                   </button>

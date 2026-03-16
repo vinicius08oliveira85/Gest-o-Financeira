@@ -80,7 +80,7 @@ export function ModalForm({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/50 backdrop-blur-sm"
           />
           <motion.div
             ref={contentRef}
@@ -90,17 +90,20 @@ export function ModalForm({
             role="dialog"
             aria-modal="true"
             aria-labelledby={MODAL_FORM_TITLE_ID}
-            className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 flex flex-col max-h-[90vh]"
+            className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl relative z-10 flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-600"
             tabIndex={-1}
           >
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
-              <h2 id={MODAL_FORM_TITLE_ID} className="text-xl font-semibold">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-600 flex items-center justify-between flex-shrink-0">
+              <h2
+                id={MODAL_FORM_TITLE_ID}
+                className="text-xl font-semibold text-slate-900 dark:text-slate-100"
+              >
                 {isEditing ? 'Editar Registro' : 'Novo Registro'}
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
                 <Plus size={24} className="rotate-45" />
@@ -108,12 +111,14 @@ export function ModalForm({
             </div>
 
             <form onSubmit={onSubmit} className="p-6 space-y-4 overflow-y-auto">
-              <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
+              <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl mb-4">
                 <button
                   type="button"
                   onClick={() => setType('cash')}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                    type === 'cash' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'
+                    type === 'cash'
+                      ? 'bg-white dark:bg-slate-600 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
                   Entrada
@@ -122,7 +127,9 @@ export function ModalForm({
                   type="button"
                   onClick={() => setType('debt')}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                    type === 'debt' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500'
+                    type === 'debt'
+                      ? 'bg-white dark:bg-slate-600 text-red-600 dark:text-red-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
                   Saída
@@ -143,7 +150,7 @@ export function ModalForm({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={type === 'debt' ? 'Ex: Aluguel, Cartão...' : 'Ex: Salário, Venda...'}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
 
@@ -163,7 +170,7 @@ export function ModalForm({
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0,00"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                   />
                 </div>
                 <div>
@@ -179,7 +186,7 @@ export function ModalForm({
                     required
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                   />
                 </div>
               </div>
@@ -198,7 +205,7 @@ export function ModalForm({
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     placeholder="Ex: Aluguel, Salário..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                   />
                 </div>
                 <div>
@@ -214,7 +221,7 @@ export function ModalForm({
                     value={tag}
                     onChange={(e) => setTag(e.target.value)}
                     placeholder="Ex: Cartão Nubank, Cliente X..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                   />
                 </div>
               </div>
@@ -240,7 +247,7 @@ export function ModalForm({
                       min={2}
                       value={installmentsCount}
                       onChange={(e) => setInstallmentsCount(e.target.value)}
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                      className="flex-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 transition-all"
                     />
                   </div>
                 )}
@@ -268,7 +275,7 @@ export function ModalForm({
                       value={recurrenceCount}
                       onChange={(e) => setRecurrenceCount(e.target.value)}
                       placeholder="Ex: 12"
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                      className="flex-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 transition-all"
                     />
                   </div>
                 )}

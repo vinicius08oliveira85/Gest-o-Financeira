@@ -22,15 +22,21 @@ type CashFlowSectionProps = {
   saldo: number;
   entradasCount: number;
   saidasCount: number;
-  currentGoal: Goal | null;
+  currentGoals: Goal[];
   getSaldoForMonth: (month: number, year: number) => number;
   getMetaBalanceForGoal: (goalId: string) => number;
   isLoadingGoals?: boolean;
-  onOpenGoalModal: () => void;
+  onOpenGoalModal: (goal?: Goal) => void;
   onDepositToGoal: (goal: Goal) => void;
   onWithdrawFromGoal: (goal: Goal) => void;
   filter: FilterType;
   setFilter: (f: FilterType) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  sortBy: 'dueDate' | 'amount' | 'name';
+  setSortBy: (s: 'dueDate' | 'amount' | 'name') => void;
+  sortOrder: 'asc' | 'desc';
+  setSortOrder: (s: 'asc' | 'desc') => void;
   selectedCategory: string;
   setSelectedCategory: (c: string) => void;
   filteredEntries: Entry[];
@@ -45,6 +51,7 @@ type CashFlowSectionProps = {
   showReportsHint: boolean;
   skip: () => void;
   onTogglePaid: (id: string) => void;
+  pendingPaidId?: string | null;
   onEdit: (entry?: Entry) => void;
   onDeleteRequest: (entry: Entry) => void;
 };
@@ -55,7 +62,7 @@ export function CashFlowSection({
   saldo,
   entradasCount,
   saidasCount,
-  currentGoal,
+  currentGoals,
   getSaldoForMonth,
   getMetaBalanceForGoal,
   isLoadingGoals = false,
@@ -64,6 +71,12 @@ export function CashFlowSection({
   onWithdrawFromGoal,
   filter,
   setFilter,
+  searchQuery,
+  setSearchQuery,
+  sortBy,
+  setSortBy,
+  sortOrder,
+  setSortOrder,
   selectedCategory,
   setSelectedCategory,
   filteredEntries,
@@ -78,6 +91,7 @@ export function CashFlowSection({
   showReportsHint,
   skip,
   onTogglePaid,
+  pendingPaidId = null,
   onEdit,
   onDeleteRequest,
 }: CashFlowSectionProps) {
@@ -89,10 +103,10 @@ export function CashFlowSection({
       <section className="space-y-6">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
               Fluxo de Caixa
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Acompanhe seus lançamentos, entradas, saídas e saldo em um só lugar.
             </p>
           </div>
@@ -100,11 +114,11 @@ export function CashFlowSection({
             <button
               type="button"
               onClick={goToPreviousMonth}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
             >
               Mês anterior
             </button>
-            <span className="text-sm font-semibold text-slate-800">
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
               {new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', {
                 month: 'long',
                 year: 'numeric',
@@ -113,7 +127,7 @@ export function CashFlowSection({
             <button
               type="button"
               onClick={goToNextMonth}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
             >
               Próximo mês
             </button>
@@ -124,7 +138,7 @@ export function CashFlowSection({
               <button
                 type="button"
                 onClick={skip}
-                className="mt-1 text-[11px] text-slate-400 underline underline-offset-2 sm:mt-0"
+                className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 underline underline-offset-2 sm:mt-0"
               >
                 Pular dicas
               </button>
@@ -140,8 +154,8 @@ export function CashFlowSection({
             entradasCount={entradasCount}
             saidasCount={saidasCount}
           />
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-3">
-            <p className="text-[11px] text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 p-3">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               O saldo considera apenas lançamentos marcados como{' '}
               <span className="font-semibold">finalizados</span>. Entradas aumentam seu saldo e
               saídas diminuem.
@@ -151,16 +165,42 @@ export function CashFlowSection({
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)] items-start">
           <section className="space-y-4">
-            <GoalsCard
-              goal={currentGoal}
-              monthLabel={monthLabel}
-              saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
-              metaBalance={currentGoal ? getMetaBalanceForGoal(currentGoal.id) : 0}
-              isLoading={isLoadingGoals}
-              onOpenModal={onOpenGoalModal}
-              onDeposit={onDepositToGoal}
-              onWithdraw={onWithdrawFromGoal}
-            />
+            {isLoadingGoals ? (
+              <GoalsCard
+                goal={null}
+                monthLabel={monthLabel}
+                saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
+                metaBalance={0}
+                isLoading
+                onOpenModal={() => onOpenGoalModal()}
+                onDeposit={onDepositToGoal}
+                onWithdraw={onWithdrawFromGoal}
+              />
+            ) : (
+              <>
+                {currentGoals.map((goal) => (
+                  <GoalsCard
+                    key={goal.id}
+                    goal={goal}
+                    monthLabel={monthLabel}
+                    saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
+                    metaBalance={getMetaBalanceForGoal(goal.id)}
+                    onOpenModal={() => onOpenGoalModal(goal)}
+                    onDeposit={onDepositToGoal}
+                    onWithdraw={onWithdrawFromGoal}
+                  />
+                ))}
+                <GoalsCard
+                  goal={null}
+                  monthLabel={monthLabel}
+                  saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
+                  metaBalance={0}
+                  onOpenModal={() => onOpenGoalModal()}
+                  onDeposit={onDepositToGoal}
+                  onWithdraw={onWithdrawFromGoal}
+                />
+              </>
+            )}
           </section>
 
           <section className="space-y-4">
@@ -170,18 +210,24 @@ export function CashFlowSection({
                 onFilterChange={setFilter}
                 filteredCount={filteredEntries.length}
                 totalCount={entriesCount}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                sortBy={sortBy}
+                onSortByChange={setSortBy}
+                sortOrder={sortOrder}
+                onSortOrderChange={setSortOrder}
                 categories={availableCategories}
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
               />
-              <div className="hidden sm:flex bg-white border border-slate-200 rounded-full p-1 shadow-sm text-xs">
+              <div className="hidden sm:flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-full p-1 shadow-sm text-xs">
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
                   className={`px-3 py-1.5 rounded-full font-medium ${
                     viewMode === 'list'
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-500 hover:text-slate-900'
+                      ? 'bg-slate-900 dark:bg-emerald-600 text-white'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   Lista
@@ -191,8 +237,8 @@ export function CashFlowSection({
                   onClick={() => setViewMode('calendar')}
                   className={`px-3 py-1.5 rounded-full font-medium ${
                     viewMode === 'calendar'
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-500 hover:text-slate-900'
+                      ? 'bg-slate-900 dark:bg-emerald-600 text-white'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   Calendário
@@ -209,12 +255,13 @@ export function CashFlowSection({
                   const entry = filteredEntries.find((e) => e.id === id);
                   if (entry) onDeleteRequest(entry);
                 }}
+                pendingPaidId={pendingPaidId}
                 compact
               />
             ) : (
               <Suspense
                 fallback={
-                  <div className="min-h-[280px] rounded-2xl border border-slate-200 bg-white/60 animate-pulse" />
+                  <div className="min-h-[280px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
                 }
               >
                 <CalendarView entries={filteredEntries} month={currentMonth} year={currentYear} />
@@ -225,7 +272,7 @@ export function CashFlowSection({
 
         <Suspense
           fallback={
-            <div className="min-h-[120px] rounded-2xl border border-slate-200 bg-white/60 animate-pulse" />
+            <div className="min-h-[120px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
           }
         >
           <ReportsPanel entries={entries} month={currentMonth} year={currentYear} />
