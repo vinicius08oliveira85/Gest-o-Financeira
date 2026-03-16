@@ -18,13 +18,13 @@ export function DashboardCards({
   saidasCount,
 }: DashboardCardsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200"
+        className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-start justify-between mb-4 flex-wrap">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Total Entradas Lançadas
           </span>
@@ -32,7 +32,7 @@ export function DashboardCards({
             <ArrowUpRight className="text-emerald-500 w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl sm:text-3xl font-light tracking-tight text-emerald-600">
+        <div className="text-2xl sm:text-3xl font-light tracking-tight text-emerald-600 mt-auto">
           {formatCurrency(totalEntradasLancadas)}
         </div>
         <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
@@ -44,9 +44,9 @@ export function DashboardCards({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200"
+        className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-start justify-between mb-4 flex-wrap">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Total Saídas Lançadas
           </span>
@@ -54,7 +54,7 @@ export function DashboardCards({
             <TrendingDown className="text-red-500 w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl sm:text-3xl font-light tracking-tight text-red-600">
+        <div className="text-2xl sm:text-3xl font-light tracking-tight text-red-600 mt-auto">
           {formatCurrency(totalSaidasLancadas)}
         </div>
         <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
@@ -66,11 +66,11 @@ export function DashboardCards({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className={`p-4 sm:p-6 rounded-2xl shadow-sm border ${
-          saldo >= 0 ? 'bg-slate-900 border-slate-800' : 'bg-red-900 border-red-800'
+        className={`p-4 sm:p-6 rounded-2xl shadow-sm border flex flex-col h-full ${
+          saldo >= 0 ? 'bg-slate-900 border-slate-800' : 'bg-red-800 border-red-700'
         }`}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-start justify-between mb-4 flex-wrap">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Saldo
           </span>
@@ -78,12 +78,10 @@ export function DashboardCards({
             <DollarSign className="text-white w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl sm:text-3xl font-light tracking-tight text-white">
+        <div className="text-2xl sm:text-3xl font-light tracking-tight text-white mt-auto">
           {formatCurrency(saldo)}
         </div>
-        <div className="mt-2 text-xs text-slate-400">
-          Só entradas e saídas finalizadas
-        </div>
+        <div className="mt-2 text-xs text-slate-400">Só entradas e saídas finalizadas</div>
       </motion.div>
     </div>
   );

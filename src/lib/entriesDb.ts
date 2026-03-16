@@ -64,12 +64,25 @@ export async function insertEntry(entry: Entry): Promise<void> {
   if (error) throw error;
 }
 
+function entryToBatchRow(entry: Entry): Record<string, unknown> {
+  const row = entryToRow(entry);
+  return {
+    id: entry.id,
+    ...row,
+    created_at: new Date(entry.createdAt).toISOString(),
+  };
+}
+
+export async function insertEntriesBatch(entries: Entry[]): Promise<void> {
+  if (!supabase || entries.length === 0) return;
+  const payload = entries.map(entryToBatchRow);
+  const { error } = await supabase.rpc('insert_entries_batch', { entries_json: payload });
+  if (error) throw error;
+}
+
 export async function updateEntry(entry: Entry): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase
-    .from('entries')
-    .update(entryToRow(entry))
-    .eq('id', entry.id);
+  const { error } = await supabase.from('entries').update(entryToRow(entry)).eq('id', entry.id);
   if (error) throw error;
 }
 

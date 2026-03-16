@@ -1,2 +1,28 @@
 *.lock
 node_modules
+.cursor/
+.cline/
+
+# Variáveis de ambiente (não commitar chaves)
+.env
+.env.local
+.env.*.local
+
+# Ignora arquivos de sistema do Windows
+NTUSER.DAT*
+ntuser.*
+
+# Ignora pastas de usuário
+/Downloads/
+/OneDrive/
+/Music/
+/Videos/
+/Favorites/
+
+# Ignora arquivos do Cursor e outras ferramentas
+.cursor/
+.cline/
+
+# Playwright E2E
+playwright-report/
+test-results/

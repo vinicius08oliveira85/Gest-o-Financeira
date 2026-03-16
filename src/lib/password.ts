@@ -1,4 +1,5 @@
-const STORAGE_KEY = 'gestao-financeira-pw';
+import { PASSWORD_STORAGE_KEY } from '../constants';
+
 const MIN_PASSWORD_LENGTH = 4;
 
 function bufferToBase64(buffer: ArrayBuffer): string {
@@ -23,16 +24,19 @@ async function sha256(data: ArrayBuffer): Promise<ArrayBuffer> {
   return crypto.subtle.digest('SHA-256', data);
 }
 
-function concatBuffers(a: ArrayBuffer, b: ArrayBuffer): ArrayBuffer {
+function concatBuffers(
+  a: ArrayBuffer | ArrayBufferLike,
+  b: ArrayBuffer | ArrayBufferLike
+): ArrayBuffer {
   const result = new Uint8Array(a.byteLength + b.byteLength);
   result.set(new Uint8Array(a), 0);
   result.set(new Uint8Array(b), a.byteLength);
-  return result.buffer;
+  return result.buffer as ArrayBuffer;
 }
 
 export function hasStoredPassword(): boolean {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(PASSWORD_STORAGE_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw) as { salt?: string; hash?: string };
     return Boolean(data?.salt && data?.hash);
@@ -47,10 +51,13 @@ export async function setPassword(password: string): Promise<void> {
   }
   const saltBuffer = crypto.getRandomValues(new Uint8Array(16));
   const passwordBuffer = new TextEncoder().encode(password);
-  const combined = concatBuffers(saltBuffer.buffer, passwordBuffer);
+  const combined = concatBuffers(
+    saltBuffer.buffer as ArrayBuffer,
+    passwordBuffer.buffer as ArrayBuffer
+  );
   const hashBuffer = await sha256(combined);
   localStorage.setItem(
-    STORAGE_KEY,
+    PASSWORD_STORAGE_KEY,
     JSON.stringify({
       salt: bufferToBase64(saltBuffer.buffer),
       hash: bufferToBase64(hashBuffer),
@@ -59,7 +66,7 @@ export async function setPassword(password: string): Promise<void> {
 }
 
 export async function verifyPassword(password: string): Promise<boolean> {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = localStorage.getItem(PASSWORD_STORAGE_KEY);
   if (!raw) return false;
   let data: { salt: string; hash: string };
   try {
@@ -70,7 +77,7 @@ export async function verifyPassword(password: string): Promise<boolean> {
   if (!data.salt || !data.hash) return false;
   const saltBuffer = base64ToBuffer(data.salt);
   const passwordBuffer = new TextEncoder().encode(password);
-  const combined = concatBuffers(saltBuffer, passwordBuffer);
+  const combined = concatBuffers(saltBuffer, passwordBuffer.buffer as ArrayBuffer);
   const hashBuffer = await sha256(combined);
   const hashBase64 = bufferToBase64(hashBuffer);
   return hashBase64 === data.hash;

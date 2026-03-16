@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Entry, FilterType } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { ENTRIES_STORAGE_KEY } from '../constants';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { logError } from '../lib/logger';
 import {
   fetchEntries,
   insertEntry,
+  insertEntriesBatch,
   updateEntry,
   updateEntryIsPaid,
   deleteEntry as deleteEntryDb,
 } from '../lib/entriesDb';
-
-const STORAGE_KEY = 'personal-debts';
 
 export function useEntries() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -18,6 +19,7 @@ export function useEntries() {
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
+  const [isMigrating, setIsMigrating] = useState(false);
   const [useSupabaseSync, setUseSupabaseSync] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -33,35 +35,39 @@ export function useEntries() {
             setUseSupabaseSync(true);
           }
           if (data.length === 0) {
-            const saved = localStorage.getItem(STORAGE_KEY);
+            const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
             if (saved) {
               try {
                 const parsed = JSON.parse(saved) as Entry[];
                 if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) {
-                  for (const entry of parsed) {
-                    await insertEntry(entry);
+                  if (!cancelled) setIsMigrating(true);
+                  try {
+                    await insertEntriesBatch(parsed);
+                    const refetched = await fetchEntries();
+                    if (!cancelled) setEntries(refetched);
+                    localStorage.removeItem(ENTRIES_STORAGE_KEY);
+                  } finally {
+                    if (!cancelled) setIsMigrating(false);
                   }
-                  const refetched = await fetchEntries();
-                  if (!cancelled) setEntries(refetched);
-                  localStorage.removeItem(STORAGE_KEY);
                 }
               } catch {
+                if (!cancelled) setIsMigrating(false);
                 // ignore migration parse errors
               }
             }
           }
         } catch (e) {
-          console.error('Failed to load entries from Supabase', e);
+          logError('Failed to load entries from Supabase', e);
           if (!cancelled) {
             setUseSupabaseSync(false);
             setShowOfflineBanner(true);
           }
-          const saved = localStorage.getItem(STORAGE_KEY);
+          const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
           if (saved) {
             try {
               if (!cancelled) setEntries(JSON.parse(saved));
             } catch {
-              console.error('Failed to parse localStorage entries', e);
+              logError('Failed to parse localStorage entries', e);
             }
           } else if (!cancelled) {
             setEntries([]);
@@ -70,12 +76,12 @@ export function useEntries() {
           if (!cancelled) setIsLoading(false);
         }
       } else {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
         if (saved) {
           try {
             setEntries(JSON.parse(saved));
           } catch (e) {
-            console.error('Failed to parse entries', e);
+            logError('Failed to parse entries', e);
           }
         }
         setIsLoading(false);
@@ -87,9 +93,42 @@ export function useEntries() {
     };
   }, []);
 
+  const refetchEntries = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const data = await fetchEntries();
+      setEntries(data);
+      setShowOfflineBanner(false);
+    } catch (e) {
+      logError('Failed to refetch entries', e);
+      setShowOfflineBanner(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!useSupabaseSync || !supabase) return;
+    let cancelled = false;
+    const channel = supabase
+      .channel('entries-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, async () => {
+        if (cancelled) return;
+        try {
+          const data = await fetchEntries();
+          if (!cancelled) setEntries(data);
+        } catch (e) {
+          logError('Realtime: failed to refetch entries', e);
+        }
+      })
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [useSupabaseSync]);
+
   useEffect(() => {
     if (!isSupabaseConfigured() || !useSupabaseSync) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(entries));
     }
   }, [entries, useSupabaseSync]);
 
@@ -132,14 +171,8 @@ export function useEntries() {
     return entradasFinalizadas - saidasFinalizadas;
   }, [entries]);
 
-  const entradasCount = useMemo(
-    () => entries.filter((d) => d.type === 'cash').length,
-    [entries]
-  );
-  const saidasCount = useMemo(
-    () => entries.filter((d) => d.type === 'debt').length,
-    [entries]
-  );
+  const entradasCount = useMemo(() => entries.filter((d) => d.type === 'cash').length, [entries]);
+  const saidasCount = useMemo(() => entries.filter((d) => d.type === 'debt').length, [entries]);
 
   const availableCategories = useMemo(() => {
     const set = new Set<string>();
@@ -177,7 +210,7 @@ export function useEntries() {
       setEntries(entries.map((e) => (e.id === entry.id ? entry : e)));
       if (useSupabaseSync) {
         updateEntry(entry).catch((err) => {
-          console.error('Erro ao salvar no Supabase', err);
+          logError('Erro ao salvar no Supabase', err);
           setSaveError('Falha ao salvar. Tente de novo.');
           setEntries(previous);
         });
@@ -186,7 +219,7 @@ export function useEntries() {
       setEntries([entry, ...entries]);
       if (useSupabaseSync) {
         insertEntry(entry).catch((err) => {
-          console.error('Erro ao salvar no Supabase', err);
+          logError('Erro ao salvar no Supabase', err);
           setSaveError('Falha ao salvar. Tente de novo.');
           setEntries((prev) => prev.filter((e) => e.id !== entry.id));
         });
@@ -194,33 +227,39 @@ export function useEntries() {
     }
   }
 
-  function togglePaid(id: string) {
-    const entry = entries.find((e) => e.id === id);
-    if (!entry) return;
-    const nextPaid = !entry.isPaid;
-    const previous = entries;
-    setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid } : e)));
-    if (useSupabaseSync) {
-      updateEntryIsPaid(id, nextPaid).catch((err) => {
-        console.error('Erro ao atualizar no Supabase', err);
-        setSaveError('Falha ao atualizar. Tente de novo.');
-        setEntries(previous);
-      });
-    }
-  }
+  const togglePaid = useCallback(
+    (id: string) => {
+      const entry = entries.find((e) => e.id === id);
+      if (!entry) return;
+      const nextPaid = !entry.isPaid;
+      const previous = entries;
+      setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid } : e)));
+      if (useSupabaseSync) {
+        updateEntryIsPaid(id, nextPaid).catch((err) => {
+          logError('Erro ao atualizar no Supabase', err);
+          setSaveError('Falha ao atualizar. Tente de novo.');
+          setEntries(previous);
+        });
+      }
+    },
+    [entries, useSupabaseSync]
+  );
 
-  function deleteEntry(id: string) {
-    const entry = entries.find((e) => e.id === id);
-    if (!entry) return;
-    setEntries(entries.filter((e) => e.id !== id));
-    if (useSupabaseSync) {
-      deleteEntryDb(id).catch((err) => {
-        console.error('Erro ao excluir no Supabase', err);
-        setSaveError('Falha ao excluir. Tente de novo.');
-        setEntries((prev) => [...prev, entry]);
-      });
-    }
-  }
+  const deleteEntry = useCallback(
+    (id: string) => {
+      const entry = entries.find((e) => e.id === id);
+      if (!entry) return;
+      setEntries(entries.filter((e) => e.id !== id));
+      if (useSupabaseSync) {
+        deleteEntryDb(id).catch((err) => {
+          logError('Erro ao excluir no Supabase', err);
+          setSaveError('Falha ao excluir. Tente de novo.');
+          setEntries((prev) => [...prev, entry]);
+        });
+      }
+    },
+    [entries, useSupabaseSync]
+  );
 
   return {
     entries,
@@ -240,6 +279,7 @@ export function useEntries() {
     entradasCount,
     saidasCount,
     isLoading,
+    isMigrating,
     useSupabaseSync,
     showOfflineBanner,
     setShowOfflineBanner,
@@ -249,5 +289,6 @@ export function useEntries() {
     togglePaid,
     deleteEntry,
     availableCategories,
+    refetchEntries,
   };
 }

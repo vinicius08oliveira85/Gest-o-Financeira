@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-
-const STORAGE_KEY = 'gestao-financeira-onboarding';
+import { ONBOARDING_STORAGE_KEY } from '../constants';
 
 type OnboardingState = {
   completed: boolean;
@@ -21,7 +20,7 @@ export function useOnboarding() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as OnboardingState;
       if (parsed && typeof parsed === 'object') {
@@ -33,7 +32,7 @@ export function useOnboarding() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
   function completeStep(step: keyof Omit<OnboardingState, 'completed'>) {
@@ -59,4 +58,3 @@ export function useOnboarding() {
     skip,
   };
 }
-

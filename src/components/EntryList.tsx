@@ -7,7 +7,7 @@ import { EntryItem } from './EntryItem';
 type EntryListProps = {
   entries: Entry[];
   onTogglePaid: (id: string) => void;
-  onEdit: (entry: Entry) => void;
+  onEdit: (entry?: Entry) => void;
   onDeleteRequest: (id: string) => void;
   compact?: boolean;
 };
@@ -45,6 +45,13 @@ export function EntryList({
             <p className="text-slate-500 text-sm mt-1">
               Tente mudar o filtro ou adicione um novo registro.
             </p>
+            <button
+              type="button"
+              onClick={() => onEdit()}
+              className="mt-4 px-4 py-2.5 rounded-xl font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors text-sm"
+            >
+              Adicionar primeiro lançamento
+            </button>
           </div>
         )}
       </AnimatePresence>

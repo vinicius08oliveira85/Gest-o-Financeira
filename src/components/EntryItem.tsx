@@ -12,15 +12,14 @@ type EntryItemProps = {
   compact?: boolean;
 };
 
-export function EntryItem({
+function EntryItemInner({
   entry,
   onTogglePaid,
   onEdit,
   onDeleteRequest,
   compact = false,
 }: EntryItemProps) {
-  const isOverdue =
-    entry.type === 'debt' && !entry.isPaid && new Date(entry.dueDate) < new Date();
+  const isOverdue = entry.type === 'debt' && !entry.isPaid && new Date(entry.dueDate) < new Date();
 
   return (
     <motion.div
@@ -113,10 +112,7 @@ export function EntryItem({
         </div>
 
         <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
-          <button
-            onClick={() => onEdit(entry)}
-            className="p-2 text-slate-400 hover:text-blue-500"
-          >
+          <button onClick={() => onEdit(entry)} className="p-2 text-slate-400 hover:text-blue-500">
             <Pencil size={16} />
           </button>
           <button
@@ -130,3 +126,5 @@ export function EntryItem({
     </motion.div>
   );
 }
+
+export const EntryItem = React.memo(EntryItemInner);

@@ -1,6 +1,7 @@
+-- Idempotente: não falha se as colunas já existirem
 ALTER TABLE public.entries
-ADD COLUMN category TEXT,
-ADD COLUMN tag TEXT,
-ADD COLUMN "installmentsCount" INTEGER,
-ADD COLUMN "installmentNumber" INTEGER,
-ADD COLUMN "parentInstallmentId" TEXT;
+  ADD COLUMN IF NOT EXISTS category TEXT,
+  ADD COLUMN IF NOT EXISTS tag TEXT,
+  ADD COLUMN IF NOT EXISTS "installmentsCount" INTEGER,
+  ADD COLUMN IF NOT EXISTS "installmentNumber" INTEGER,
+  ADD COLUMN IF NOT EXISTS "parentInstallmentId" TEXT;

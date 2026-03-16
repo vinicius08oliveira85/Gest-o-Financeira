@@ -4,10 +4,36 @@ import type { Goal } from '../types';
 type GoalsCardProps = {
   goal: Goal | null;
   monthLabel: string;
+  isLoading?: boolean;
   onOpenModal: () => void;
 };
 
-export function GoalsCard({ goal, monthLabel, onOpenModal }: GoalsCardProps) {
+export function GoalsCard({ goal, monthLabel, isLoading = false, onOpenModal }: GoalsCardProps) {
+  if (isLoading) {
+    return (
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3 animate-pulse">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1">
+            <div className="h-3 bg-slate-200 rounded w-24 mb-2" />
+            <div className="h-4 bg-slate-200 rounded w-40" />
+          </div>
+          <div className="h-8 w-20 bg-slate-100 rounded-full" />
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <div className="h-3 bg-slate-100 rounded w-16" />
+            <div className="h-3 bg-slate-100 rounded w-10" />
+          </div>
+          <div className="h-2 rounded-full bg-slate-100" />
+          <div className="flex justify-between">
+            <div className="h-3 bg-slate-100 rounded w-20" />
+            <div className="h-3 bg-slate-100 rounded w-16" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const progress =
     goal && goal.targetAmount > 0
       ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)
@@ -37,9 +63,7 @@ export function GoalsCard({ goal, monthLabel, onOpenModal }: GoalsCardProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-600">
             <span>Progresso</span>
-            <span className="font-semibold text-slate-900">
-              {progress.toFixed(0)}%
-            </span>
+            <span className="font-semibold text-slate-900">{progress.toFixed(0)}%</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
             <div
@@ -55,18 +79,14 @@ export function GoalsCard({ goal, monthLabel, onOpenModal }: GoalsCardProps) {
           </div>
           <div className="flex items-center justify-between text-xs text-slate-600">
             <span>Meta</span>
-            <span className="font-medium">
-              {formatCurrency(goal.targetAmount)}
-            </span>
+            <span className="font-medium">{formatCurrency(goal.targetAmount)}</span>
           </div>
         </div>
       ) : (
         <p className="text-xs text-slate-500">
-          Defina uma meta simples para acompanhar quanto deseja guardar ou
-          investir neste mês.
+          Defina uma meta simples para acompanhar quanto deseja guardar ou investir neste mês.
         </p>
       )}
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import type { Entry, EntryType } from '../types';
 import { generateInstallmentEntries } from '../lib/installments';
 
@@ -29,7 +29,7 @@ export function useEntryForm(
     onClose();
   }
 
-  function openForm(entry?: Entry) {
+  const openForm = useCallback((entry?: Entry) => {
     if (entry) {
       setEditingEntry(entry);
       setName(entry.name);
@@ -51,7 +51,7 @@ export function useEntryForm(
       setIsInstallment(false);
       setInstallmentsCount('2');
     }
-  }
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

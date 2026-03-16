@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { changePassword, MIN_PASSWORD_LENGTH_EXPORT } from '../lib/password';
+
+const CHANGE_PASSWORD_TITLE_ID = 'change-password-modal-title';
 
 type ChangePasswordModalProps = {
   open: boolean;
@@ -9,13 +11,18 @@ type ChangePasswordModalProps = {
   onSuccess: () => void;
 };
 
-export function ChangePasswordModal({
-  open,
-  onClose,
-  onSuccess,
-}: ChangePasswordModalProps) {
+export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePasswordModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -66,14 +73,20 @@ export function ChangePasswordModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={CHANGE_PASSWORD_TITLE_ID}
             className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden"
           >
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Alterar senha</h2>
+              <h2 id={CHANGE_PASSWORD_TITLE_ID} className="text-xl font-semibold">
+                Alterar senha
+              </h2>
               <button
                 type="button"
                 onClick={onClose}
                 className="text-slate-400 hover:text-slate-600"
+                aria-label="Fechar"
               >
                 <Plus size={24} className="rotate-45" />
               </button>
@@ -92,10 +105,14 @@ export function ChangePasswordModal({
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label
+                  htmlFor="change-password-atual"
+                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                >
                   Senha atual
                 </label>
                 <input
+                  id="change-password-atual"
                   type="password"
                   name="atual"
                   autoComplete="current-password"
@@ -105,10 +122,14 @@ export function ChangePasswordModal({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label
+                  htmlFor="change-password-nova"
+                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                >
                   Nova senha
                 </label>
                 <input
+                  id="change-password-nova"
                   type="password"
                   name="nova"
                   autoComplete="new-password"
@@ -119,10 +140,14 @@ export function ChangePasswordModal({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label
+                  htmlFor="change-password-confirmar"
+                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                >
                   Confirmar nova senha
                 </label>
                 <input
+                  id="change-password-confirmar"
                   type="password"
                   name="confirmar"
                   autoComplete="new-password"

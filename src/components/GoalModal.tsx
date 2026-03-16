@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Goal } from '../types';
+
+const GOAL_MODAL_TITLE_ID = 'goal-modal-title';
 
 type GoalModalProps = {
   open: boolean;
@@ -12,23 +14,23 @@ type GoalModalProps = {
   onClose: () => void;
 };
 
-export function GoalModal({
-  open,
-  goal,
-  month,
-  year,
-  onSave,
-  onClose,
-}: GoalModalProps) {
+export function GoalModal({ open, goal, month, year, onSave, onClose }: GoalModalProps) {
   const [name, setName] = React.useState(goal?.name ?? '');
-  const [target, setTarget] = React.useState(
-    goal ? goal.targetAmount.toString() : ''
-  );
+  const [target, setTarget] = React.useState(goal ? goal.targetAmount.toString() : '');
 
   React.useEffect(() => {
     setName(goal?.name ?? '');
     setTarget(goal ? goal.targetAmount.toString() : '');
   }, [goal, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,15 +64,20 @@ export function GoalModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={GOAL_MODAL_TITLE_ID}
             className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden"
           >
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
+              <h2 id={GOAL_MODAL_TITLE_ID} className="text-lg font-semibold">
                 {goal ? 'Editar meta' : 'Nova meta'}
               </h2>
               <button
+                type="button"
                 onClick={onClose}
                 className="text-slate-400 hover:text-slate-600"
+                aria-label="Fechar"
               >
                 <Plus size={22} className="rotate-45" />
               </button>
@@ -78,10 +85,14 @@ export function GoalModal({
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label
+                  htmlFor="goal-modal-name"
+                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                >
                   Nome da meta
                 </label>
                 <input
+                  id="goal-modal-name"
                   type="text"
                   required
                   value={name}
@@ -92,10 +103,14 @@ export function GoalModal({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label
+                  htmlFor="goal-modal-target"
+                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                >
                   Valor alvo (R$)
                 </label>
                 <input
+                  id="goal-modal-target"
                   type="number"
                   step="0.01"
                   required
@@ -128,4 +143,3 @@ export function GoalModal({
     </AnimatePresence>
   );
 }
-

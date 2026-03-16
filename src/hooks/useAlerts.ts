@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Entry } from '../types';
+import { ALERT_CONCENTRATION_RATIO } from '../constants';
 
 export type AlertType = 'concentration' | 'due-soon';
 
@@ -39,7 +40,7 @@ export function useAlerts({ entries, month, year }: UseAlertsParams) {
 
       Object.entries(byCategory).forEach(([category, value]) => {
         const ratio = value / totalSaidas;
-        if (ratio >= 0.35) {
+        if (ratio >= ALERT_CONCENTRATION_RATIO) {
           result.push({
             id: `concentration-${category}-${month}-${year}`,
             type: 'concentration',
@@ -77,4 +78,3 @@ export function useAlerts({ entries, month, year }: UseAlertsParams) {
 
   return { alerts };
 }
-
