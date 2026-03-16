@@ -60,6 +60,14 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
   };
 }
 
+function isGoalIdColumnError(error: { code?: string; message?: string; status?: number }): boolean {
+  return (
+    error.code === '42703' ||
+    (typeof error.status === 'number' && error.status === 400) ||
+    (error.message != null && /column|goal_id|does not exist/i.test(error.message))
+  );
+}
+
 export async function fetchEntries(): Promise<Entry[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -72,8 +80,17 @@ export async function fetchEntries(): Promise<Entry[]> {
 
 export async function insertEntry(entry: Entry): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase.from('entries').insert({ ...entryToRow(entry), id: entry.id });
-  if (error) throw error;
+  const row = { ...entryToRow(entry), id: entry.id } as Record<string, unknown>;
+  const { error } = await supabase.from('entries').insert(row);
+  if (error) {
+    if (isGoalIdColumnError(error) && 'goal_id' in row) {
+      const { goal_id: _g, ...rowWithoutGoalId } = row;
+      const { error: retryError } = await supabase.from('entries').insert(rowWithoutGoalId);
+      if (retryError) throw retryError;
+      return;
+    }
+    throw error;
+  }
 }
 
 function entryToBatchRow(entry: Entry): Record<string, unknown> {
@@ -97,12 +114,7 @@ export async function updateEntry(entry: Entry): Promise<void> {
   const row = entryToRow(entry) as Record<string, unknown>;
   const { error } = await supabase.from('entries').update(row).eq('id', entry.id);
   if (error) {
-    const isColumnError =
-      error.code === '42703' ||
-      (typeof (error as { status?: number }).status === 'number' &&
-        (error as { status?: number }).status === 400) ||
-      (error.message && /column|goal_id|does not exist/i.test(error.message));
-    if (isColumnError && 'goal_id' in row) {
+    if (isGoalIdColumnError(error) && 'goal_id' in row) {
       const { goal_id: _g, ...rowWithoutGoalId } = row;
       const { error: retryError } = await supabase
         .from('entries')
