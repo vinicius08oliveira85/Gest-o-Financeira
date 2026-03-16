@@ -9,6 +9,7 @@ export type GoalRow = {
   category?: string | null;
   month: number;
   year: number;
+  target_date?: string | null;
 };
 
 export function rowToGoal(row: GoalRow): Goal {
@@ -20,6 +21,7 @@ export function rowToGoal(row: GoalRow): Goal {
     category: row.category ?? undefined,
     month: row.month,
     year: row.year,
+    targetDate: row.target_date ?? undefined,
   };
 }
 
@@ -31,6 +33,7 @@ export function goalToRow(goal: Omit<Goal, 'id'> & { id?: string }): Omit<GoalRo
     category: goal.category ?? null,
     month: goal.month,
     year: goal.year,
+    target_date: goal.targetDate ?? null,
   };
 }
 

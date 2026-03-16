@@ -23,6 +23,7 @@ type CashFlowSectionProps = {
   entradasCount: number;
   saidasCount: number;
   currentGoal: Goal | null;
+  getSaldoForMonth: (month: number, year: number) => number;
   isLoadingGoals?: boolean;
   onOpenGoalModal: () => void;
   filter: FilterType;
@@ -52,6 +53,7 @@ export function CashFlowSection({
   entradasCount,
   saidasCount,
   currentGoal,
+  getSaldoForMonth,
   isLoadingGoals = false,
   onOpenGoalModal,
   filter,
@@ -124,25 +126,29 @@ export function CashFlowSection({
           </div>
         </div>
 
+        <section className="space-y-4">
+          <DashboardCards
+            totalEntradasLancadas={totalEntradasLancadas}
+            totalSaidasLancadas={totalSaidasLancadas}
+            saldo={saldo}
+            entradasCount={entradasCount}
+            saidasCount={saidasCount}
+          />
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-3">
+            <p className="text-[11px] text-slate-500">
+              O saldo considera apenas lançamentos marcados como{' '}
+              <span className="font-semibold">finalizados</span>. Entradas aumentam seu saldo e
+              saídas diminuem.
+            </p>
+          </div>
+        </section>
+
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)] items-start">
           <section className="space-y-4">
-            <DashboardCards
-              totalEntradasLancadas={totalEntradasLancadas}
-              totalSaidasLancadas={totalSaidasLancadas}
-              saldo={saldo}
-              entradasCount={entradasCount}
-              saidasCount={saidasCount}
-            />
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-3">
-              <p className="text-[11px] text-slate-500">
-                O saldo considera apenas lançamentos marcados como{' '}
-                <span className="font-semibold">finalizados</span>. Entradas aumentam seu saldo e
-                saídas diminuem.
-              </p>
-            </div>
             <GoalsCard
               goal={currentGoal}
               monthLabel={monthLabel}
+              saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
               isLoading={isLoadingGoals}
               onOpenModal={onOpenGoalModal}
             />

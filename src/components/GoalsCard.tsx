@@ -1,14 +1,21 @@
-import { formatCurrency } from '../lib/format';
+import { formatCurrency, formatDate } from '../lib/format';
 import type { Goal } from '../types';
 
 type GoalsCardProps = {
   goal: Goal | null;
   monthLabel: string;
+  saldoDoMes: number;
   isLoading?: boolean;
   onOpenModal: () => void;
 };
 
-export function GoalsCard({ goal, monthLabel, isLoading = false, onOpenModal }: GoalsCardProps) {
+export function GoalsCard({
+  goal,
+  monthLabel,
+  saldoDoMes,
+  isLoading = false,
+  onOpenModal,
+}: GoalsCardProps) {
   if (isLoading) {
     return (
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3 animate-pulse">
@@ -35,9 +42,7 @@ export function GoalsCard({ goal, monthLabel, isLoading = false, onOpenModal }: 
   }
 
   const progress =
-    goal && goal.targetAmount > 0
-      ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)
-      : 0;
+    goal && goal.targetAmount > 0 ? Math.min(100, (saldoDoMes / goal.targetAmount) * 100) : 0;
 
   return (
     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
@@ -49,6 +54,9 @@ export function GoalsCard({ goal, monthLabel, isLoading = false, onOpenModal }: 
           <h2 className="text-sm font-semibold text-slate-900">
             {goal ? goal.name : 'Nenhuma meta definida'}
           </h2>
+          {goal?.targetDate && (
+            <p className="text-[11px] text-slate-500 mt-0.5">Até {formatDate(goal.targetDate)}</p>
+          )}
         </div>
         <button
           type="button"
@@ -72,10 +80,8 @@ export function GoalsCard({ goal, monthLabel, isLoading = false, onOpenModal }: 
             />
           </div>
           <div className="flex items-center justify-between text-xs text-slate-600">
-            <span>Acumulado</span>
-            <span className="font-medium text-emerald-600">
-              {formatCurrency(goal.currentAmount)}
-            </span>
+            <span>Saldo do mês</span>
+            <span className="font-medium text-emerald-600">{formatCurrency(saldoDoMes)}</span>
           </div>
           <div className="flex items-center justify-between text-xs text-slate-600">
             <span>Meta</span>

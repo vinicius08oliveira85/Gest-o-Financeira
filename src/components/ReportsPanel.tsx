@@ -7,6 +7,10 @@ type ReportsPanelProps = {
   year: number;
 };
 
+function formatCycleDate(d: Date): string {
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
   const byPeriod = entries.filter((d) => {
     const date = new Date(d.dueDate);
@@ -22,37 +26,70 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
     { entradas: 0, saidas: 0 }
   );
 
+  const totalEntradasFinalizadas = byPeriod
+    .filter((d) => d.type === 'cash' && d.isPaid)
+    .reduce((acc, d) => acc + d.amount, 0);
+  const totalSaidasFinalizadas = byPeriod
+    .filter((d) => d.type === 'debt' && d.isPaid)
+    .reduce((acc, d) => acc + d.amount, 0);
+  const saldoDoMes = totalEntradasFinalizadas - totalSaidasFinalizadas;
+
   const totalByCategory = byPeriod.reduce<Record<string, number>>((acc, d) => {
     if (!d.category) return acc;
     acc[d.category] = (acc[d.category] ?? 0) + d.amount;
     return acc;
   }, {});
 
-  const categoryEntries = Object.entries(totalByCategory).sort(
-    (a, b) => b[1] - a[1]
-  );
+  const categoryEntries = Object.entries(totalByCategory).sort((a, b) => b[1] - a[1]);
 
-  const maxCategoryValue =
-    categoryEntries.length > 0 ? categoryEntries[0][1] : 0;
+  const maxCategoryValue = categoryEntries.length > 0 ? categoryEntries[0][1] : 0;
 
   const monthLabel = new Date(year, month).toLocaleDateString('pt-BR', {
     month: 'long',
     year: 'numeric',
   });
 
-  if (byPeriod.length === 0) {
-    return null;
-  }
+  const cycleStart = new Date(year, month, 1);
+  const cycleEnd = new Date(year, month + 1, 0);
+  const cycleLabel = `Ciclo: ${formatCycleDate(cycleStart)} a ${formatCycleDate(cycleEnd)}`;
 
   return (
     <section className="mt-8 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-900">
-          Relatórios de {monthLabel}
-        </h2>
-        <p className="text-xs text-slate-500">
-          Visão rápida de entradas, saídas e categorias.
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-900">Relatórios de {monthLabel}</h2>
+          <p className="text-xs text-slate-500">Visão rápida de entradas, saídas e categorias.</p>
+        </div>
+        <p className="text-xs font-medium text-slate-600 bg-slate-100 rounded-lg px-3 py-2 w-fit">
+          {cycleLabel}
         </p>
+      </div>
+
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Total entradas
+          </p>
+          <p className="text-lg font-semibold text-emerald-600 mt-0.5">
+            {formatCurrency(totalByType.entradas)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Total saídas
+          </p>
+          <p className="text-lg font-semibold text-red-600 mt-0.5">
+            {formatCurrency(totalByType.saidas)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Saldo do mês
+          </p>
+          <p className="text-lg font-semibold text-slate-900 mt-0.5">
+            {formatCurrency(saldoDoMes)}
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -75,9 +112,7 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
                     totalByType.entradas + totalByType.saidas === 0
                       ? '0%'
                       : `${
-                          (totalByType.entradas /
-                            (totalByType.entradas + totalByType.saidas)) *
-                          100
+                          (totalByType.entradas / (totalByType.entradas + totalByType.saidas)) * 100
                         }%`,
                 }}
               />
@@ -96,9 +131,7 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
                     totalByType.entradas + totalByType.saidas === 0
                       ? '0%'
                       : `${
-                          (totalByType.saidas /
-                            (totalByType.entradas + totalByType.saidas)) *
-                          100
+                          (totalByType.saidas / (totalByType.entradas + totalByType.saidas)) * 100
                         }%`,
                 }}
               />
@@ -127,9 +160,7 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
                       className="h-full bg-slate-900 transition-all"
                       style={{
                         width:
-                          maxCategoryValue === 0
-                            ? '0%'
-                            : `${(value / maxCategoryValue) * 100}%`,
+                          maxCategoryValue === 0 ? '0%' : `${(value / maxCategoryValue) * 100}%`,
                       }}
                     />
                   </div>
@@ -142,4 +173,3 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
     </section>
   );
 }
-

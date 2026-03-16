@@ -17,10 +17,12 @@ type GoalModalProps = {
 export function GoalModal({ open, goal, month, year, onSave, onClose }: GoalModalProps) {
   const [name, setName] = React.useState(goal?.name ?? '');
   const [target, setTarget] = React.useState(goal ? goal.targetAmount.toString() : '');
+  const [targetDate, setTargetDate] = React.useState(goal?.targetDate ?? '');
 
   React.useEffect(() => {
     setName(goal?.name ?? '');
     setTarget(goal ? goal.targetAmount.toString() : '');
+    setTargetDate(goal?.targetDate ?? '');
   }, [goal, open]);
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export function GoalModal({ open, goal, month, year, onSave, onClose }: GoalModa
       category: goal?.category,
       month,
       year,
+      targetDate: targetDate || undefined,
     });
     onClose();
   }
@@ -117,6 +120,22 @@ export function GoalModal({ open, goal, month, year, onSave, onClose }: GoalModa
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   placeholder="0,00"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="goal-modal-target-date"
+                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                >
+                  Atingir até (data, opcional)
+                </label>
+                <input
+                  id="goal-modal-target-date"
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
                 />
               </div>

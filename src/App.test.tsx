@@ -28,8 +28,11 @@ vi.mock('./hooks/useEntries', () => ({
     addOrUpdateEntry: vi.fn(),
     togglePaid: vi.fn(),
     deleteEntry: vi.fn(),
+    updateRecurringApplyToAll: vi.fn(),
+    deleteRecurringModel: vi.fn(),
     availableCategories: [],
     refetchEntries: vi.fn(),
+    getSaldoForMonth: vi.fn(() => 0),
   }),
 }));
 

@@ -25,6 +25,10 @@ type ModalFormProps = {
   setIsInstallment: (v: boolean) => void;
   installmentsCount: string;
   setInstallmentsCount: (v: string) => void;
+  isRecurring: boolean;
+  setIsRecurring: (v: boolean) => void;
+  recurrenceCount: string;
+  setRecurrenceCount: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 };
@@ -48,6 +52,10 @@ export function ModalForm({
   setIsInstallment,
   installmentsCount,
   setInstallmentsCount,
+  isRecurring,
+  setIsRecurring,
+  recurrenceCount,
+  setRecurrenceCount,
   onSubmit,
   onClose,
 }: ModalFormProps) {
@@ -232,6 +240,34 @@ export function ModalForm({
                       min={2}
                       value={installmentsCount}
                       onChange={(e) => setInstallmentsCount(e.target.value)}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isRecurring}
+                    onChange={(e) => setIsRecurring(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500/30"
+                  />
+                  <span>Repetir nos próximos meses</span>
+                </label>
+                {isRecurring && (
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <label htmlFor="modal-form-recurrence-count" className="text-xs text-slate-500">
+                      Quantidade de repetições (opcional)
+                    </label>
+                    <input
+                      id="modal-form-recurrence-count"
+                      type="number"
+                      min={1}
+                      value={recurrenceCount}
+                      onChange={(e) => setRecurrenceCount(e.target.value)}
+                      placeholder="Ex: 12"
                       className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
                     />
                   </div>

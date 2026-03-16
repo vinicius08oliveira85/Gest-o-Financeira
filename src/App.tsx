@@ -24,6 +24,12 @@ const ChangePasswordModal = lazy(() =>
 const ConfirmDeleteModal = lazy(() =>
   import('./components/ConfirmDeleteModal').then((m) => ({ default: m.ConfirmDeleteModal }))
 );
+const ApplyRecurrenceModal = lazy(() =>
+  import('./components/ApplyRecurrenceModal').then((m) => ({ default: m.ApplyRecurrenceModal }))
+);
+const DeleteRecurringModal = lazy(() =>
+  import('./components/DeleteRecurringModal').then((m) => ({ default: m.DeleteRecurringModal }))
+);
 
 const GoalModal = lazy(() =>
   import('./components/GoalModal').then((m) => ({ default: m.GoalModal }))
@@ -39,6 +45,7 @@ export default function App() {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
+  const [pendingRecurringUpdate, setPendingRecurringUpdate] = useState<Entry | null>(null);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
   const {
@@ -66,8 +73,11 @@ export default function App() {
     addOrUpdateEntry,
     togglePaid,
     deleteEntry,
+    updateRecurringApplyToAll,
+    deleteRecurringModel,
     availableCategories,
     refetchEntries,
+    getSaldoForMonth,
   } = useEntries();
 
   const { currentGoal, upsertGoal, isLoadingGoals } = useGoals(currentMonth, currentYear);
@@ -85,7 +95,10 @@ export default function App() {
       addOrUpdateEntry(entry, isEdit);
       showToast('Lançamento salvo');
     },
-    () => setIsFormOpen(false)
+    () => setIsFormOpen(false),
+    {
+      onEditRecurring: (entry) => setPendingRecurringUpdate(entry),
+    }
   );
 
   const handleOpenForm = useCallback(
@@ -150,6 +163,7 @@ export default function App() {
             entradasCount={entradasCount}
             saidasCount={saidasCount}
             currentGoal={currentGoal}
+            getSaldoForMonth={getSaldoForMonth}
             isLoadingGoals={isLoadingGoals}
             onOpenGoalModal={() => setIsGoalModalOpen(true)}
             filter={filter}
@@ -194,6 +208,10 @@ export default function App() {
           setIsInstallment={form.setIsInstallment}
           installmentsCount={form.installmentsCount}
           setInstallmentsCount={form.setInstallmentsCount}
+          isRecurring={form.isRecurring}
+          setIsRecurring={form.setIsRecurring}
+          recurrenceCount={form.recurrenceCount}
+          setRecurrenceCount={form.setRecurrenceCount}
           onSubmit={form.handleSubmit}
           onClose={form.closeForm}
         />
@@ -207,13 +225,55 @@ export default function App() {
           onClose={() => setShowChangePasswordModal(false)}
           onSuccess={() => setShowChangePasswordModal(false)}
         />
-        <ConfirmDeleteModal
-          open={entryToDelete !== null}
-          title="Excluir registro"
-          message="Excluir este registro?"
-          confirmLabel="Excluir"
-          onConfirm={handleConfirmDelete}
-          onClose={() => setEntryToDelete(null)}
+        {entryToDelete &&
+        entryToDelete.isRecurring === true &&
+        !entryToDelete.recurrenceTemplateId ? (
+          <DeleteRecurringModal
+            open={entryToDelete !== null}
+            onDeleteThisOnly={() => {
+              if (entryToDelete) {
+                deleteEntry(entryToDelete.id);
+                setEntryToDelete(null);
+              }
+            }}
+            onDeleteThisAndCopies={() => {
+              if (entryToDelete) {
+                deleteRecurringModel(entryToDelete.id, true);
+                setEntryToDelete(null);
+              }
+            }}
+            onClose={() => setEntryToDelete(null)}
+          />
+        ) : (
+          <ConfirmDeleteModal
+            open={entryToDelete !== null}
+            title="Excluir registro"
+            message="Excluir este registro?"
+            confirmLabel="Excluir"
+            onConfirm={handleConfirmDelete}
+            onClose={() => setEntryToDelete(null)}
+          />
+        )}
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ApplyRecurrenceModal
+          open={pendingRecurringUpdate !== null}
+          onApplyFuture={() => {
+            if (pendingRecurringUpdate) {
+              addOrUpdateEntry(pendingRecurringUpdate, true);
+              showToast('Lançamento salvo');
+              setPendingRecurringUpdate(null);
+            }
+          }}
+          onApplyAll={() => {
+            if (pendingRecurringUpdate) {
+              updateRecurringApplyToAll(pendingRecurringUpdate);
+              showToast('Lançamento salvo');
+              setPendingRecurringUpdate(null);
+            }
+          }}
+          onClose={() => setPendingRecurringUpdate(null)}
         />
       </Suspense>
 

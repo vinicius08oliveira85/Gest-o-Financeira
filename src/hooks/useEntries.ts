@@ -11,6 +11,7 @@ import {
   updateEntryIsPaid,
   deleteEntry as deleteEntryDb,
 } from '../lib/entriesDb';
+import { generateMissingRecurringCopies } from '../lib/recurringEntries';
 
 export function useEntries() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -33,6 +34,15 @@ export function useEntries() {
           if (!cancelled) {
             setEntries(data);
             setUseSupabaseSync(true);
+          }
+          const copies = generateMissingRecurringCopies(data);
+          if (copies.length > 0 && !cancelled) {
+            try {
+              await insertEntriesBatch(copies);
+              if (!cancelled) setEntries((prev) => [...prev, ...copies]);
+            } catch (e) {
+              logError('Failed to insert recurring copies', e);
+            }
           }
           if (data.length === 0) {
             const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
@@ -171,6 +181,23 @@ export function useEntries() {
     return entradasFinalizadas - saidasFinalizadas;
   }, [entries]);
 
+  const getSaldoForMonth = useCallback(
+    (month: number, year: number) => {
+      const inPeriod = (d: Entry) => {
+        const date = new Date(d.dueDate);
+        return date.getMonth() === month && date.getFullYear() === year;
+      };
+      const entradas = entries
+        .filter((d) => d.type === 'cash' && d.isPaid && inPeriod(d))
+        .reduce((acc, d) => acc + d.amount, 0);
+      const saidas = entries
+        .filter((d) => d.type === 'debt' && d.isPaid && inPeriod(d))
+        .reduce((acc, d) => acc + d.amount, 0);
+      return entradas - saidas;
+    },
+    [entries]
+  );
+
   const entradasCount = useMemo(() => entries.filter((d) => d.type === 'cash').length, [entries]);
   const saidasCount = useMemo(() => entries.filter((d) => d.type === 'debt').length, [entries]);
 
@@ -216,13 +243,27 @@ export function useEntries() {
         });
       }
     } else {
-      setEntries([entry, ...entries]);
+      const newList = [entry, ...entries];
+      setEntries(newList);
       if (useSupabaseSync) {
-        insertEntry(entry).catch((err) => {
-          logError('Erro ao salvar no Supabase', err);
-          setSaveError('Falha ao salvar. Tente de novo.');
-          setEntries((prev) => prev.filter((e) => e.id !== entry.id));
-        });
+        insertEntry(entry)
+          .then(async () => {
+            if (entry.isRecurring) {
+              const copies = generateMissingRecurringCopies(newList);
+              if (copies.length > 0) {
+                await insertEntriesBatch(copies);
+                setEntries((prev) => [...prev, ...copies]);
+              }
+            }
+          })
+          .catch((err) => {
+            logError('Erro ao salvar no Supabase', err);
+            setSaveError('Falha ao salvar. Tente de novo.');
+            setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+          });
+      } else if (entry.isRecurring) {
+        const copies = generateMissingRecurringCopies(newList);
+        if (copies.length > 0) setEntries((prev) => [...prev, ...copies]);
       }
     }
   }
@@ -261,6 +302,56 @@ export function useEntries() {
     [entries, useSupabaseSync]
   );
 
+  const updateRecurringApplyToAll = useCallback(
+    (updatedEntry: Entry) => {
+      const modelId = updatedEntry.recurrenceTemplateId ?? updatedEntry.id;
+      const toUpdate = entries.filter(
+        (e) => e.id === modelId || e.recurrenceTemplateId === modelId
+      );
+      const merged = toUpdate.map((e) => ({
+        ...e,
+        name: updatedEntry.name,
+        amount: updatedEntry.amount,
+        category: updatedEntry.category,
+        tag: updatedEntry.tag,
+      }));
+      setEntries(
+        entries.map((e) => {
+          const u = merged.find((m) => m.id === e.id);
+          return u ?? e;
+        })
+      );
+      if (useSupabaseSync) {
+        Promise.all(merged.map((u) => updateEntry(u))).catch((err) => {
+          logError('Erro ao atualizar recorrentes no Supabase', err);
+          setSaveError('Falha ao salvar. Tente de novo.');
+        });
+      }
+    },
+    [entries, useSupabaseSync]
+  );
+
+  const deleteRecurringModel = useCallback(
+    (id: string, deleteAllCopies: boolean) => {
+      const entry = entries.find((e) => e.id === id);
+      if (!entry) return;
+      const toRemove =
+        deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId
+          ? entries.filter((e) => e.id === id || e.recurrenceTemplateId === id)
+          : [entry];
+      const ids = new Set(toRemove.map((e) => e.id));
+      setEntries(entries.filter((e) => !ids.has(e.id)));
+      if (useSupabaseSync) {
+        Promise.all(toRemove.map((e) => deleteEntryDb(e.id))).catch((err) => {
+          logError('Erro ao excluir no Supabase', err);
+          setSaveError('Falha ao excluir. Tente de novo.');
+          setEntries((prev) => [...prev, ...toRemove]);
+        });
+      }
+    },
+    [entries, useSupabaseSync]
+  );
+
   return {
     entries,
     setEntries,
@@ -288,7 +379,10 @@ export function useEntries() {
     addOrUpdateEntry,
     togglePaid,
     deleteEntry,
+    updateRecurringApplyToAll,
+    deleteRecurringModel,
     availableCategories,
     refetchEntries,
+    getSaldoForMonth,
   };
 }

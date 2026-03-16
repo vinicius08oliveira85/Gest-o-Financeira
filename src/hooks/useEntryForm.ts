@@ -4,8 +4,10 @@ import { generateInstallmentEntries } from '../lib/installments';
 
 export function useEntryForm(
   onSubmit: (entry: Entry, isEdit: boolean) => void,
-  onClose: () => void
+  onClose: () => void,
+  options?: { onEditRecurring?: (entry: Entry) => void }
 ) {
+  const onEditRecurring = options?.onEditRecurring;
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -15,6 +17,8 @@ export function useEntryForm(
   const [tag, setTag] = useState('');
   const [isInstallment, setIsInstallment] = useState(false);
   const [installmentsCount, setInstallmentsCount] = useState('2');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceCount, setRecurrenceCount] = useState('');
 
   function closeForm() {
     setName('');
@@ -25,6 +29,8 @@ export function useEntryForm(
     setTag('');
     setIsInstallment(false);
     setInstallmentsCount('2');
+    setIsRecurring(false);
+    setRecurrenceCount('');
     setEditingEntry(null);
     onClose();
   }
@@ -40,6 +46,8 @@ export function useEntryForm(
       setTag(entry.tag ?? '');
       setIsInstallment(false);
       setInstallmentsCount('2');
+      setIsRecurring(entry.isRecurring ?? false);
+      setRecurrenceCount(entry.recurrenceCount != null ? String(entry.recurrenceCount) : '');
     } else {
       setEditingEntry(null);
       setName('');
@@ -50,6 +58,8 @@ export function useEntryForm(
       setTag('');
       setIsInstallment(false);
       setInstallmentsCount('2');
+      setIsRecurring(false);
+      setRecurrenceCount('');
     }
   }, []);
 
@@ -66,9 +76,23 @@ export function useEntryForm(
         type,
         category: category || undefined,
         tag: tag || undefined,
+        isRecurring: isRecurring || undefined,
+        recurrenceCount: isRecurring
+          ? recurrenceCount
+            ? parseInt(recurrenceCount, 10)
+            : null
+          : editingEntry.recurrenceCount,
+        recurrenceTemplateId: editingEntry.recurrenceTemplateId,
       };
-      onSubmit(updated, true);
-      closeForm();
+      const isRecurringEdit =
+        editingEntry.isRecurring === true || !!editingEntry.recurrenceTemplateId;
+      if (isRecurringEdit && onEditRecurring) {
+        onEditRecurring(updated);
+        closeForm();
+      } else {
+        onSubmit(updated, true);
+        closeForm();
+      }
     } else {
       if (isInstallment) {
         const count = parseInt(installmentsCount, 10);
@@ -111,6 +135,13 @@ export function useEntryForm(
           createdAt: Date.now(),
           category: category || undefined,
           tag: tag || undefined,
+          isRecurring: isRecurring || undefined,
+          recurrenceCount: isRecurring
+            ? recurrenceCount
+              ? parseInt(recurrenceCount, 10)
+              : null
+            : undefined,
+          recurrenceTemplateId: undefined,
         };
         onSubmit(newEntry, false);
       }
@@ -136,6 +167,10 @@ export function useEntryForm(
     setCategory,
     tag,
     setTag,
+    isRecurring,
+    setIsRecurring,
+    recurrenceCount,
+    setRecurrenceCount,
     closeForm,
     openForm,
     handleSubmit,

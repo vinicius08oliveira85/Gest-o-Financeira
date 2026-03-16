@@ -14,6 +14,9 @@ export type EntryRow = {
   installments_count?: number | null;
   installment_number?: number | null;
   parent_installment_id?: string | null;
+  is_recurring?: boolean | null;
+  recurrence_count?: number | null;
+  recurrence_template_id?: string | null;
 };
 
 export function rowToEntry(row: EntryRow): Entry {
@@ -30,6 +33,9 @@ export function rowToEntry(row: EntryRow): Entry {
     installmentsCount: row.installments_count ?? undefined,
     installmentNumber: row.installment_number ?? undefined,
     parentInstallmentId: row.parent_installment_id ?? undefined,
+    isRecurring: row.is_recurring ?? undefined,
+    recurrenceCount: row.recurrence_count ?? undefined,
+    recurrenceTemplateId: row.recurrence_template_id ?? undefined,
   };
 }
 
@@ -45,6 +51,9 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
     installments_count: entry.installmentsCount ?? null,
     installment_number: entry.installmentNumber ?? null,
     parent_installment_id: entry.parentInstallmentId ?? null,
+    is_recurring: entry.isRecurring ?? null,
+    recurrence_count: entry.recurrenceCount ?? null,
+    recurrence_template_id: entry.recurrenceTemplateId ?? null,
   };
 }
 
