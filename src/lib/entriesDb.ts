@@ -42,7 +42,10 @@ export function rowToEntry(row: EntryRow): Entry {
 }
 
 export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
-  return {
+  const base: Omit<
+    EntryRow,
+    'created_at' | 'id' | 'is_recurring' | 'recurrence_count' | 'recurrence_template_id' | 'goal_id'
+  > = {
     name: entry.name,
     amount: entry.amount,
     due_date: entry.dueDate,
@@ -53,19 +56,16 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
     installments_count: entry.installmentsCount ?? null,
     installment_number: entry.installmentNumber ?? null,
     parent_installment_id: entry.parentInstallmentId ?? null,
-    is_recurring: entry.isRecurring ?? null,
-    recurrence_count: entry.recurrenceCount ?? null,
-    recurrence_template_id: entry.recurrenceTemplateId ?? null,
-    goal_id: entry.goalId ?? null,
   };
-}
-
-function isGoalIdColumnError(error: { code?: string; message?: string; status?: number }): boolean {
-  return (
-    error.code === '42703' ||
-    (typeof error.status === 'number' && error.status === 400) ||
-    (error.message != null && /column|goal_id|does not exist/i.test(error.message))
-  );
+  // Colunas adicionadas por migration: só inclui quando têm valor
+  // para evitar 400 caso a coluna ainda não exista no banco
+  const extended: Partial<EntryRow> = {};
+  if (entry.isRecurring != null) extended.is_recurring = entry.isRecurring;
+  if (entry.recurrenceCount != null) extended.recurrence_count = entry.recurrenceCount;
+  if (entry.recurrenceTemplateId != null)
+    extended.recurrence_template_id = entry.recurrenceTemplateId;
+  if (entry.goalId != null) extended.goal_id = entry.goalId;
+  return { ...base, ...extended };
 }
 
 export async function fetchEntries(): Promise<Entry[]> {
@@ -80,17 +80,9 @@ export async function fetchEntries(): Promise<Entry[]> {
 
 export async function insertEntry(entry: Entry): Promise<void> {
   if (!supabase) return;
-  const row = { ...entryToRow(entry), id: entry.id } as Record<string, unknown>;
+  const row = { ...entryToRow(entry), id: entry.id };
   const { error } = await supabase.from('entries').insert(row);
-  if (error) {
-    if (isGoalIdColumnError(error) && 'goal_id' in row) {
-      const { goal_id: _g, ...rowWithoutGoalId } = row;
-      const { error: retryError } = await supabase.from('entries').insert(rowWithoutGoalId);
-      if (retryError) throw retryError;
-      return;
-    }
-    throw error;
-  }
+  if (error) throw error;
 }
 
 function entryToBatchRow(entry: Entry): Record<string, unknown> {
@@ -111,20 +103,9 @@ export async function insertEntriesBatch(entries: Entry[]): Promise<void> {
 
 export async function updateEntry(entry: Entry): Promise<void> {
   if (!supabase) return;
-  const row = entryToRow(entry) as Record<string, unknown>;
+  const row = entryToRow(entry);
   const { error } = await supabase.from('entries').update(row).eq('id', entry.id);
-  if (error) {
-    if (isGoalIdColumnError(error) && 'goal_id' in row) {
-      const { goal_id: _g, ...rowWithoutGoalId } = row;
-      const { error: retryError } = await supabase
-        .from('entries')
-        .update(rowWithoutGoalId)
-        .eq('id', entry.id);
-      if (retryError) throw retryError;
-      return;
-    }
-    throw error;
-  }
+  if (error) throw error;
 }
 
 export async function updateEntryIsPaid(id: string, isPaid: boolean): Promise<void> {
