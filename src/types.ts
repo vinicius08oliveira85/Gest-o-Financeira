@@ -19,6 +19,8 @@ export interface Entry {
   recurrenceCount?: number | null;
   /** Preenchido nas cópias: id do lançamento modelo */
   recurrenceTemplateId?: string;
+  /** Lançamento de depósito/saque na meta; preenchido quando o valor compõe a meta */
+  goalId?: string;
 }
 
 export type FilterType = 'all' | 'pending' | 'paid' | 'debt' | 'cash';

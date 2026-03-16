@@ -5,16 +5,22 @@ type GoalsCardProps = {
   goal: Goal | null;
   monthLabel: string;
   saldoDoMes: number;
+  metaBalance: number;
   isLoading?: boolean;
   onOpenModal: () => void;
+  onDeposit: (goal: Goal) => void;
+  onWithdraw: (goal: Goal) => void;
 };
 
 export function GoalsCard({
   goal,
   monthLabel,
   saldoDoMes,
+  metaBalance,
   isLoading = false,
   onOpenModal,
+  onDeposit,
+  onWithdraw,
 }: GoalsCardProps) {
   if (isLoading) {
     return (
@@ -42,7 +48,7 @@ export function GoalsCard({
   }
 
   const progress =
-    goal && goal.targetAmount > 0 ? Math.min(100, (saldoDoMes / goal.targetAmount) * 100) : 0;
+    goal && goal.targetAmount > 0 ? Math.min(100, (metaBalance / goal.targetAmount) * 100) : 0;
 
   return (
     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
@@ -80,12 +86,28 @@ export function GoalsCard({
             />
           </div>
           <div className="flex items-center justify-between text-xs text-slate-600">
-            <span>Saldo do mês</span>
-            <span className="font-medium text-emerald-600">{formatCurrency(saldoDoMes)}</span>
+            <span>Valor na meta</span>
+            <span className="font-medium text-emerald-600">{formatCurrency(metaBalance)}</span>
           </div>
           <div className="flex items-center justify-between text-xs text-slate-600">
             <span>Meta</span>
             <span className="font-medium">{formatCurrency(goal.targetAmount)}</span>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => onDeposit(goal)}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+            >
+              Depositar
+            </button>
+            <button
+              type="button"
+              onClick={() => onWithdraw(goal)}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+            >
+              Sacar
+            </button>
           </div>
         </div>
       ) : (

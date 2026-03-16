@@ -24,8 +24,11 @@ type CashFlowSectionProps = {
   saidasCount: number;
   currentGoal: Goal | null;
   getSaldoForMonth: (month: number, year: number) => number;
+  getMetaBalanceForGoal: (goalId: string) => number;
   isLoadingGoals?: boolean;
   onOpenGoalModal: () => void;
+  onDepositToGoal: (goal: Goal) => void;
+  onWithdrawFromGoal: (goal: Goal) => void;
   filter: FilterType;
   setFilter: (f: FilterType) => void;
   selectedCategory: string;
@@ -54,8 +57,11 @@ export function CashFlowSection({
   saidasCount,
   currentGoal,
   getSaldoForMonth,
+  getMetaBalanceForGoal,
   isLoadingGoals = false,
   onOpenGoalModal,
+  onDepositToGoal,
+  onWithdrawFromGoal,
   filter,
   setFilter,
   selectedCategory,
@@ -149,8 +155,11 @@ export function CashFlowSection({
               goal={currentGoal}
               monthLabel={monthLabel}
               saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
+              metaBalance={currentGoal ? getMetaBalanceForGoal(currentGoal.id) : 0}
               isLoading={isLoadingGoals}
               onOpenModal={onOpenGoalModal}
+              onDeposit={onDepositToGoal}
+              onWithdraw={onWithdrawFromGoal}
             />
           </section>
 

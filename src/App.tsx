@@ -7,7 +7,7 @@ import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { exportEntriesToCSV } from './lib/format';
 import { UNLOCK_KEY } from './constants';
-import type { Entry } from './types';
+import type { Entry, Goal } from './types';
 import { PeriodProvider } from './contexts/PeriodContext';
 import {
   MainLayout,
@@ -30,6 +30,9 @@ const ApplyRecurrenceModal = lazy(() =>
 const DeleteRecurringModal = lazy(() =>
   import('./components/DeleteRecurringModal').then((m) => ({ default: m.DeleteRecurringModal }))
 );
+const MetaMovementModal = lazy(() =>
+  import('./components/MetaMovementModal').then((m) => ({ default: m.MetaMovementModal }))
+);
 
 const GoalModal = lazy(() =>
   import('./components/GoalModal').then((m) => ({ default: m.GoalModal }))
@@ -47,6 +50,10 @@ export default function App() {
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   const [pendingRecurringUpdate, setPendingRecurringUpdate] = useState<Entry | null>(null);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [metaMovement, setMetaMovement] = useState<{
+    goal: Goal;
+    type: 'deposit' | 'withdraw';
+  } | null>(null);
 
   const {
     entries,
@@ -78,6 +85,7 @@ export default function App() {
     availableCategories,
     refetchEntries,
     getSaldoForMonth,
+    getMetaBalanceForGoal,
   } = useEntries();
 
   const { currentGoal, upsertGoal, deleteGoal, isLoadingGoals } = useGoals(
@@ -167,8 +175,11 @@ export default function App() {
             saidasCount={saidasCount}
             currentGoal={currentGoal}
             getSaldoForMonth={getSaldoForMonth}
+            getMetaBalanceForGoal={getMetaBalanceForGoal}
             isLoadingGoals={isLoadingGoals}
             onOpenGoalModal={() => setIsGoalModalOpen(true)}
+            onDepositToGoal={(goal) => setMetaMovement({ goal, type: 'deposit' })}
+            onWithdrawFromGoal={(goal) => setMetaMovement({ goal, type: 'withdraw' })}
             filter={filter}
             setFilter={setFilter}
             selectedCategory={selectedCategory}
@@ -277,6 +288,32 @@ export default function App() {
             }
           }}
           onClose={() => setPendingRecurringUpdate(null)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <MetaMovementModal
+          open={metaMovement !== null}
+          type={metaMovement?.type ?? 'deposit'}
+          onConfirm={(amount, note) => {
+            if (!metaMovement) return;
+            const today = new Date().toISOString().slice(0, 10);
+            const isDeposit = metaMovement.type === 'deposit';
+            const entry: Entry = {
+              id: crypto.randomUUID(),
+              name: note || (isDeposit ? 'Depósito na meta' : 'Saque da meta'),
+              amount,
+              dueDate: today,
+              isPaid: true,
+              type: isDeposit ? 'cash' : 'debt',
+              createdAt: Date.now(),
+              goalId: metaMovement.goal.id,
+            };
+            addOrUpdateEntry(entry, false);
+            showToast(isDeposit ? 'Depósito registrado' : 'Saque registrado');
+            setMetaMovement(null);
+          }}
+          onClose={() => setMetaMovement(null)}
         />
       </Suspense>
 

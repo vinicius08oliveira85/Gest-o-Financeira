@@ -198,6 +198,15 @@ export function useEntries() {
     [entries]
   );
 
+  const getMetaBalanceForGoal = useCallback(
+    (goalId: string) => {
+      return entries
+        .filter((e) => e.goalId === goalId)
+        .reduce((sum, e) => sum + (e.type === 'cash' ? e.amount : -e.amount), 0);
+    },
+    [entries]
+  );
+
   const entradasCount = useMemo(() => entries.filter((d) => d.type === 'cash').length, [entries]);
   const saidasCount = useMemo(() => entries.filter((d) => d.type === 'debt').length, [entries]);
 
@@ -384,5 +393,6 @@ export function useEntries() {
     availableCategories,
     refetchEntries,
     getSaldoForMonth,
+    getMetaBalanceForGoal,
   };
 }

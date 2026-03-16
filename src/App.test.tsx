@@ -33,6 +33,7 @@ vi.mock('./hooks/useEntries', () => ({
     availableCategories: [],
     refetchEntries: vi.fn(),
     getSaldoForMonth: vi.fn(() => 0),
+    getMetaBalanceForGoal: vi.fn(() => 0),
   }),
 }));
 

@@ -17,6 +17,7 @@ export type EntryRow = {
   is_recurring?: boolean | null;
   recurrence_count?: number | null;
   recurrence_template_id?: string | null;
+  goal_id?: string | null;
 };
 
 export function rowToEntry(row: EntryRow): Entry {
@@ -36,6 +37,7 @@ export function rowToEntry(row: EntryRow): Entry {
     isRecurring: row.is_recurring ?? undefined,
     recurrenceCount: row.recurrence_count ?? undefined,
     recurrenceTemplateId: row.recurrence_template_id ?? undefined,
+    goalId: row.goal_id ?? undefined,
   };
 }
 
@@ -54,6 +56,7 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
     is_recurring: entry.isRecurring ?? null,
     recurrence_count: entry.recurrenceCount ?? null,
     recurrence_template_id: entry.recurrenceTemplateId ?? null,
+    goal_id: entry.goalId ?? null,
   };
 }
 
@@ -91,8 +94,25 @@ export async function insertEntriesBatch(entries: Entry[]): Promise<void> {
 
 export async function updateEntry(entry: Entry): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase.from('entries').update(entryToRow(entry)).eq('id', entry.id);
-  if (error) throw error;
+  const row = entryToRow(entry) as Record<string, unknown>;
+  const { error } = await supabase.from('entries').update(row).eq('id', entry.id);
+  if (error) {
+    const isColumnError =
+      error.code === '42703' ||
+      (typeof (error as { status?: number }).status === 'number' &&
+        (error as { status?: number }).status === 400) ||
+      (error.message && /column|goal_id|does not exist/i.test(error.message));
+    if (isColumnError && 'goal_id' in row) {
+      const { goal_id: _g, ...rowWithoutGoalId } = row;
+      const { error: retryError } = await supabase
+        .from('entries')
+        .update(rowWithoutGoalId)
+        .eq('id', entry.id);
+      if (retryError) throw retryError;
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function updateEntryIsPaid(id: string, isPaid: boolean): Promise<void> {
