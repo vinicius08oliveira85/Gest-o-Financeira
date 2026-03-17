@@ -8,6 +8,8 @@ type DashboardCardsProps = {
   saldo: number;
   entradasCount: number;
   saidasCount: number;
+  /** Ex.: "do mês" para indicar que os valores são do período selecionado */
+  periodLabel?: string;
 };
 
 export function DashboardCards({
@@ -16,7 +18,9 @@ export function DashboardCards({
   saldo,
   entradasCount,
   saidasCount,
+  periodLabel,
 }: DashboardCardsProps) {
+  const suffix = periodLabel ? ` ${periodLabel}` : '';
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
       <motion.div
@@ -26,7 +30,7 @@ export function DashboardCards({
       >
         <div className="flex items-start justify-between mb-4 flex-wrap">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Total Entradas Lançadas
+            Total Entradas{suffix}
           </span>
           <div className="bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-full">
             <ArrowUpRight className="text-emerald-500 w-4 h-4" />
@@ -48,7 +52,7 @@ export function DashboardCards({
       >
         <div className="flex items-start justify-between mb-4 flex-wrap">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Total Saídas Lançadas
+            Total Saídas{suffix}
           </span>
           <div className="bg-red-50 dark:bg-red-900/30 p-2 rounded-full">
             <TrendingDown className="text-red-500 w-4 h-4" />
@@ -72,7 +76,7 @@ export function DashboardCards({
       >
         <div className="flex items-start justify-between mb-4 flex-wrap">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Saldo
+            Saldo{suffix}
           </span>
           <div className="bg-white/10 p-2 rounded-full">
             <DollarSign className="text-white w-4 h-4" />

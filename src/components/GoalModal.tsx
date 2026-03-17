@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Goal } from '../types';
 
@@ -11,11 +11,20 @@ type GoalModalProps = {
   month: number;
   year: number;
   onSave: (partial: Omit<Goal, 'id' | 'currentAmount'> & { id?: string }) => void;
-  onDelete?: (id: string) => void;
+  /** Chamado quando o usuário clica em Excluir; o pai deve mostrar confirmação e depois excluir */
+  onRequestDelete?: (goal: Goal) => void;
   onClose: () => void;
 };
 
-export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }: GoalModalProps) {
+export function GoalModal({
+  open,
+  goal,
+  month,
+  year,
+  onSave,
+  onRequestDelete,
+  onClose,
+}: GoalModalProps) {
   const [name, setName] = React.useState(goal?.name ?? '');
   const [target, setTarget] = React.useState(goal ? goal.targetAmount.toString() : '');
   const [targetDate, setTargetDate] = React.useState(goal?.targetDate ?? '');
@@ -86,7 +95,7 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
-                <Plus size={22} className="rotate-45" />
+                <X size={22} />
               </button>
             </div>
 
@@ -160,14 +169,12 @@ export function GoalModal({ open, goal, month, year, onSave, onDelete, onClose }
                 >
                   Salvar meta
                 </button>
-                {goal && onDelete && (
+                {goal && onRequestDelete && (
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm('Excluir esta meta?')) {
-                        onDelete(goal.id);
-                        onClose();
-                      }
+                      onRequestDelete(goal);
+                      onClose();
                     }}
                     className="w-full py-2.5 rounded-2xl font-medium text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800 transition-all"
                   >

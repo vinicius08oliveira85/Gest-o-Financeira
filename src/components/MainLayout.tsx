@@ -13,6 +13,7 @@ type MainLayoutProps = {
   onRetryOffline?: () => void;
   onRetrySaveError?: () => void;
   onExportCSV: () => void;
+  onExportCSVCurrentMonth?: () => void;
   onNewEntry: () => void;
   onOpenChangePassword: () => void;
   showNewEntryHint?: boolean;
@@ -29,6 +30,7 @@ export function MainLayout({
   onRetryOffline,
   onRetrySaveError,
   onExportCSV,
+  onExportCSVCurrentMonth,
   onNewEntry,
   onOpenChangePassword,
   showNewEntryHint,
@@ -40,6 +42,7 @@ export function MainLayout({
         <div className="max-w-6xl mx-auto px-4 py-3 space-y-3">
           <Header
             onExportCSV={onExportCSV}
+            onExportCSVCurrentMonth={onExportCSVCurrentMonth}
             onNewEntry={onNewEntry}
             onOpenChangePassword={onOpenChangePassword}
             showNewEntryHint={showNewEntryHint}

@@ -1,4 +1,4 @@
-import { useState, useCallback, lazy, Suspense } from 'react';
+import { useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useEntries } from './hooks/useEntries';
 import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
@@ -6,7 +6,7 @@ import { useAlerts } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { exportEntriesToCSV } from './lib/format';
-import { UNLOCK_KEY } from './constants';
+import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
 import type { Entry, Goal } from './types';
 import { PeriodProvider } from './contexts/PeriodContext';
 import {
@@ -72,12 +72,19 @@ export default function App() {
     currentYear,
     goToPreviousMonth,
     goToNextMonth,
+    goToCurrentMonth,
     filteredEntries,
     totalEntradasLancadas,
     totalSaidasLancadas,
     saldo,
     entradasCount,
     saidasCount,
+    entriesDoMes,
+    totalEntradasLancadasMes,
+    totalSaidasLancadasMes,
+    saldoMes,
+    entradasCountMes,
+    saidasCountMes,
     isLoading,
     isMigrating,
     showOfflineBanner,
@@ -101,13 +108,41 @@ export default function App() {
     currentYear
   );
   const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
-  const { toastMessage, showToast, dismissToast } = useToast();
+  const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
+  const { toastMessage, toastAction, showToast, dismissToast } = useToast();
   const { alerts } = useAlerts({
     entries,
     month: currentMonth,
     year: currentYear,
     goals: currentGoals,
   });
+
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(DISMISSED_ALERTS_KEY);
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const visibleAlerts = useMemo(
+    () => alerts.filter((a) => !dismissedAlertIds.has(a.id)),
+    [alerts, dismissedAlertIds]
+  );
+
+  const handleDismissAlert = useCallback((id: string) => {
+    setDismissedAlertIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      try {
+        localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify([...next]));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
   const { showNewEntryHint, showMonthNavHint, showReportsHint, completeStep, skip } =
     useOnboarding();
 
@@ -141,10 +176,15 @@ export default function App() {
 
   const handleConfirmDelete = useCallback(() => {
     if (entryToDelete) {
-      deleteEntry(entryToDelete.id);
+      const entry = entryToDelete;
+      deleteEntry(entry.id);
       setEntryToDelete(null);
+      showToast('Registro excluído', {
+        label: 'Desfazer',
+        callback: () => addOrUpdateEntry(entry, false),
+      });
     }
-  }, [entryToDelete, deleteEntry]);
+  }, [entryToDelete, deleteEntry, showToast, addOrUpdateEntry]);
 
   const handleUnlock = useCallback(() => {
     setUnlocked(true);
@@ -162,6 +202,7 @@ export default function App() {
         currentYear={currentYear}
         goToPreviousMonth={goToPreviousMonth}
         goToNextMonth={goToNextMonth}
+        goToCurrentMonth={goToCurrentMonth}
       >
         <MainLayout
           isLoading={isLoading}
@@ -173,16 +214,19 @@ export default function App() {
           onRetryOffline={refetchEntries}
           onRetrySaveError={() => setSaveError(null)}
           onExportCSV={() => exportEntriesToCSV(entries)}
+          onExportCSVCurrentMonth={() =>
+            exportEntriesToCSV(entriesDoMes, { filenameSuffix: '_mes_atual' })
+          }
           onNewEntry={handleNewEntryWithStep}
           onOpenChangePassword={() => setShowChangePasswordModal(true)}
           showNewEntryHint={showNewEntryHint}
         >
           <CashFlowSection
-            totalEntradasLancadas={totalEntradasLancadas}
-            totalSaidasLancadas={totalSaidasLancadas}
-            saldo={saldo}
-            entradasCount={entradasCount}
-            saidasCount={saidasCount}
+            totalEntradasLancadasMes={totalEntradasLancadasMes}
+            totalSaidasLancadasMes={totalSaidasLancadasMes}
+            saldoMes={saldoMes}
+            entradasCountMes={entradasCountMes}
+            saidasCountMes={saidasCountMes}
             currentGoals={currentGoals}
             getSaldoForMonth={getSaldoForMonth}
             getMetaBalanceForGoal={getMetaBalanceForGoal}
@@ -203,7 +247,8 @@ export default function App() {
             viewMode={viewMode}
             setViewMode={setViewMode}
             entries={entries}
-            alerts={alerts}
+            alerts={visibleAlerts}
+            onDismissAlert={handleDismissAlert}
             showNewEntryHint={showNewEntryHint}
             showMonthNavHint={showMonthNavHint}
             showReportsHint={showReportsHint}
@@ -240,6 +285,9 @@ export default function App() {
           setIsRecurring={form.setIsRecurring}
           recurrenceCount={form.recurrenceCount}
           setRecurrenceCount={form.setRecurrenceCount}
+          formErrors={form.formErrors}
+          onClearError={(field) => form.setFormErrors((prev) => ({ ...prev, [field]: false }))}
+          availableCategories={availableCategories}
           onSubmit={form.handleSubmit}
           onClose={form.closeForm}
         />
@@ -350,13 +398,12 @@ export default function App() {
             });
             showToast('Meta salva');
           }}
-          onDelete={
+          onRequestDelete={
             goalToEdit
-              ? (id) => {
-                  deleteGoal(id);
+              ? (goal) => {
+                  setGoalToDelete(goal);
                   setIsGoalModalOpen(false);
                   setGoalToEdit(null);
-                  showToast('Meta excluída');
                 }
               : undefined
           }
@@ -367,7 +414,24 @@ export default function App() {
         />
       </Suspense>
 
-      <Toast message={toastMessage} onDismiss={dismissToast} />
+      <Suspense fallback={null}>
+        <ConfirmDeleteModal
+          open={goalToDelete !== null}
+          title="Excluir meta"
+          message="Excluir esta meta? Esta ação não pode ser desfeita."
+          confirmLabel="Excluir"
+          onConfirm={() => {
+            if (goalToDelete) {
+              deleteGoal(goalToDelete.id);
+              setGoalToDelete(null);
+              showToast('Meta excluída');
+            }
+          }}
+          onClose={() => setGoalToDelete(null)}
+        />
+      </Suspense>
+
+      <Toast message={toastMessage} action={toastAction} onDismiss={dismissToast} />
     </ErrorBoundary>
   );
 }

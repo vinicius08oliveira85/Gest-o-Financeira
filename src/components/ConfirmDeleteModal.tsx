@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -74,7 +74,7 @@ export function ConfirmDeleteModal({
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
-                <Plus size={24} className="rotate-45" />
+                <X size={24} />
               </button>
             </div>
 

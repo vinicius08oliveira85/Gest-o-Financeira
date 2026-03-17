@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { changePassword, MIN_PASSWORD_LENGTH_EXPORT } from '../lib/password';
 
@@ -78,28 +78,31 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
             aria-labelledby={CHANGE_PASSWORD_TITLE_ID}
             className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-600"
           >
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 id={CHANGE_PASSWORD_TITLE_ID} className="text-xl font-semibold">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-600 flex items-center justify-between">
+              <h2
+                id={CHANGE_PASSWORD_TITLE_ID}
+                className="text-xl font-semibold text-slate-900 dark:text-slate-100"
+              >
                 Alterar senha
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
-                <Plus size={24} className="rotate-45" />
+                <X size={24} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {error && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
                   {error}
                 </div>
               )}
               {success && (
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-sm">
                   Senha alterada com sucesso.
                 </div>
               )}
@@ -107,7 +110,7 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
               <div>
                 <label
                   htmlFor="change-password-atual"
-                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
                 >
                   Senha atual
                 </label>
@@ -118,13 +121,13 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
                   autoComplete="current-password"
                   required
                   placeholder="Digite a senha atual"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
               <div>
                 <label
                   htmlFor="change-password-nova"
-                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
                 >
                   Nova senha
                 </label>
@@ -136,13 +139,13 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
                   required
                   minLength={MIN_PASSWORD_LENGTH_EXPORT}
                   placeholder={`Mínimo ${MIN_PASSWORD_LENGTH_EXPORT} caracteres`}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
               <div>
                 <label
                   htmlFor="change-password-confirmar"
-                  className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
                 >
                   Confirmar nova senha
                 </label>
@@ -154,14 +157,14 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
                   required
                   minLength={MIN_PASSWORD_LENGTH_EXPORT}
                   placeholder="Repita a nova senha"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
               <div className="pt-2">
                 <button
                   type="submit"
                   disabled={success}
-                  className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors disabled:opacity-70"
+                  className="w-full bg-slate-900 dark:bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 dark:hover:bg-emerald-500 transition-colors disabled:opacity-70"
                 >
                   Alterar senha
                 </button>

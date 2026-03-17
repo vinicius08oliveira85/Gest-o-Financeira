@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import type { Entry, FilterType, Goal } from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
@@ -8,6 +8,7 @@ import { FilterBar } from './FilterBar';
 import { EntryList } from './EntryList';
 import { AlertsPanel } from './AlertsPanel';
 import { GuidedTooltip } from './GuidedTooltip';
+import { TabNav, type TabId } from './TabNav';
 
 const CalendarView = lazy(() =>
   import('./CalendarView').then((m) => ({ default: m.CalendarView }))
@@ -17,11 +18,11 @@ const ReportsPanel = lazy(() =>
 );
 
 type CashFlowSectionProps = {
-  totalEntradasLancadas: number;
-  totalSaidasLancadas: number;
-  saldo: number;
-  entradasCount: number;
-  saidasCount: number;
+  totalEntradasLancadasMes: number;
+  totalSaidasLancadasMes: number;
+  saldoMes: number;
+  entradasCountMes: number;
+  saidasCountMes: number;
   currentGoals: Goal[];
   getSaldoForMonth: (month: number, year: number) => number;
   getMetaBalanceForGoal: (goalId: string) => number;
@@ -54,14 +55,15 @@ type CashFlowSectionProps = {
   pendingPaidId?: string | null;
   onEdit: (entry?: Entry) => void;
   onDeleteRequest: (entry: Entry) => void;
+  onDismissAlert?: (id: string) => void;
 };
 
 export function CashFlowSection({
-  totalEntradasLancadas,
-  totalSaidasLancadas,
-  saldo,
-  entradasCount,
-  saidasCount,
+  totalEntradasLancadasMes,
+  totalSaidasLancadasMes,
+  saldoMes,
+  entradasCountMes,
+  saidasCountMes,
   currentGoals,
   getSaldoForMonth,
   getMetaBalanceForGoal,
@@ -94,8 +96,18 @@ export function CashFlowSection({
   pendingPaidId = null,
   onEdit,
   onDeleteRequest,
+  onDismissAlert,
 }: CashFlowSectionProps) {
-  const { currentMonth, currentYear, goToPreviousMonth, goToNextMonth, monthLabel } = usePeriod();
+  const {
+    currentMonth,
+    currentYear,
+    goToPreviousMonth,
+    goToNextMonth,
+    goToCurrentMonth,
+    monthLabel,
+    isCurrentMonth,
+  } = usePeriod();
+  const [activeTab, setActiveTab] = useState<TabId>('resumo');
   const showSkipButton = !showNewEntryHint && !showMonthNavHint && !showReportsHint;
 
   return (
@@ -107,7 +119,7 @@ export function CashFlowSection({
               Fluxo de Caixa
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Acompanhe seus lançamentos, entradas, saídas e saldo em um só lugar.
+              Acompanhe seus lançamentos, entradas, saídas e saldo por mês.
             </p>
           </div>
           <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
@@ -118,7 +130,16 @@ export function CashFlowSection({
             >
               Mês anterior
             </button>
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            {!isCurrentMonth && (
+              <button
+                type="button"
+                onClick={goToCurrentMonth}
+                className="inline-flex items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 shadow-sm hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+              >
+                Hoje
+              </button>
+            )}
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize">
               {new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', {
                 month: 'long',
                 year: 'numeric',
@@ -146,25 +167,112 @@ export function CashFlowSection({
           </div>
         </div>
 
-        <section className="space-y-4">
-          <DashboardCards
-            totalEntradasLancadas={totalEntradasLancadas}
-            totalSaidasLancadas={totalSaidasLancadas}
-            saldo={saldo}
-            entradasCount={entradasCount}
-            saidasCount={saidasCount}
-          />
-          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 p-3">
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              O saldo considera apenas lançamentos marcados como{' '}
-              <span className="font-semibold">finalizados</span>. Entradas aumentam seu saldo e
-              saídas diminuem.
-            </p>
-          </div>
-        </section>
+        <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)] items-start">
+        {activeTab === 'resumo' && (
           <section className="space-y-4">
+            <DashboardCards
+              totalEntradasLancadas={totalEntradasLancadasMes}
+              totalSaidasLancadas={totalSaidasLancadasMes}
+              saldo={saldoMes}
+              entradasCount={entradasCountMes}
+              saidasCount={saidasCountMes}
+              periodLabel="do mês"
+            />
+            <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 p-3">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                O saldo considera apenas lançamentos marcados como{' '}
+                <span className="font-semibold">finalizados</span>. Entradas aumentam seu saldo e
+                saídas diminuem.
+              </p>
+            </div>
+            <AlertsPanel alerts={alerts} onDismiss={onDismissAlert} />
+            {showReportsHint && (
+              <GuidedTooltip text="Use as abas para ver Lançamentos, Relatórios e Metas." />
+            )}
+          </section>
+        )}
+
+        {activeTab === 'lancamentos' && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <FilterBar
+                filter={filter}
+                onFilterChange={setFilter}
+                filteredCount={filteredEntries.length}
+                totalCount={entriesCount}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                sortBy={sortBy}
+                onSortByChange={setSortBy}
+                sortOrder={sortOrder}
+                onSortOrderChange={setSortOrder}
+                categories={availableCategories}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+              />
+              <div className="flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-full p-1 shadow-sm text-xs">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-1.5 rounded-full font-medium ${
+                    viewMode === 'list'
+                      ? 'bg-slate-900 dark:bg-emerald-600 text-white'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  Lista
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('calendar')}
+                  className={`px-3 py-1.5 rounded-full font-medium ${
+                    viewMode === 'calendar'
+                      ? 'bg-slate-900 dark:bg-emerald-600 text-white'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  Calendário
+                </button>
+              </div>
+            </div>
+            {viewMode === 'list' ? (
+              <EntryList
+                entries={filteredEntries}
+                onTogglePaid={onTogglePaid}
+                onEdit={onEdit}
+                onDeleteRequest={(id) => {
+                  const entry = filteredEntries.find((e) => e.id === id);
+                  if (entry) onDeleteRequest(entry);
+                }}
+                pendingPaidId={pendingPaidId}
+                compact
+                groupByDate
+              />
+            ) : (
+              <Suspense
+                fallback={
+                  <div className="min-h-[280px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
+                }
+              >
+                <CalendarView entries={filteredEntries} month={currentMonth} year={currentYear} />
+              </Suspense>
+            )}
+          </section>
+        )}
+
+        {activeTab === 'relatorios' && (
+          <Suspense
+            fallback={
+              <div className="min-h-[120px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
+            }
+          >
+            <ReportsPanel entries={entries} month={currentMonth} year={currentYear} />
+          </Suspense>
+        )}
+
+        {activeTab === 'metas' && (
+          <section className="space-y-4 max-w-xl">
             {isLoadingGoals ? (
               <GoalsCard
                 goal={null}
@@ -202,88 +310,6 @@ export function CashFlowSection({
               </>
             )}
           </section>
-
-          <section className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <FilterBar
-                filter={filter}
-                onFilterChange={setFilter}
-                filteredCount={filteredEntries.length}
-                totalCount={entriesCount}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                sortBy={sortBy}
-                onSortByChange={setSortBy}
-                sortOrder={sortOrder}
-                onSortOrderChange={setSortOrder}
-                categories={availableCategories}
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-              />
-              <div className="hidden sm:flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-full p-1 shadow-sm text-xs">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-1.5 rounded-full font-medium ${
-                    viewMode === 'list'
-                      ? 'bg-slate-900 dark:bg-emerald-600 text-white'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                >
-                  Lista
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('calendar')}
-                  className={`px-3 py-1.5 rounded-full font-medium ${
-                    viewMode === 'calendar'
-                      ? 'bg-slate-900 dark:bg-emerald-600 text-white'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                >
-                  Calendário
-                </button>
-              </div>
-            </div>
-
-            {viewMode === 'list' ? (
-              <EntryList
-                entries={filteredEntries}
-                onTogglePaid={onTogglePaid}
-                onEdit={onEdit}
-                onDeleteRequest={(id) => {
-                  const entry = filteredEntries.find((e) => e.id === id);
-                  if (entry) onDeleteRequest(entry);
-                }}
-                pendingPaidId={pendingPaidId}
-                compact
-              />
-            ) : (
-              <Suspense
-                fallback={
-                  <div className="min-h-[280px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
-                }
-              >
-                <CalendarView entries={filteredEntries} month={currentMonth} year={currentYear} />
-              </Suspense>
-            )}
-          </section>
-        </div>
-
-        <Suspense
-          fallback={
-            <div className="min-h-[120px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
-          }
-        >
-          <ReportsPanel entries={entries} month={currentMonth} year={currentYear} />
-        </Suspense>
-
-        <AlertsPanel alerts={alerts} />
-
-        {showReportsHint && (
-          <div className="mt-2">
-            <GuidedTooltip text="Aqui você encontra um resumo visual do mês: relatórios, metas e alertas." />
-          </div>
         )}
       </section>
     </div>

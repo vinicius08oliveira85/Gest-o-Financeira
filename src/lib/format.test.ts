@@ -66,6 +66,9 @@ describe('exportEntriesToCSV', () => {
     expect(csvContent).toContain('Valor');
     expect(csvContent).toContain('Vencimento');
     expect(csvContent).toContain('Status');
+    expect(csvContent).toContain('Categoria');
+    expect(csvContent).toContain('Tag');
+    expect(csvContent).toContain('Parcelas');
     expect(csvContent).toContain('Saída');
     expect(csvContent).toContain('Aluguel');
     expect(csvContent).toContain('1500');

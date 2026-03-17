@@ -34,15 +34,25 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
     .reduce((acc, d) => acc + d.amount, 0);
   const saldoDoMes = totalEntradasFinalizadas - totalSaidasFinalizadas;
 
-  const totalByCategory = byPeriod.reduce<Record<string, number>>((acc, d) => {
-    if (!d.category) return acc;
+  const totalByCategorySaidas = byPeriod.reduce<Record<string, number>>((acc, d) => {
+    if (!d.category || d.type !== 'debt') return acc;
     acc[d.category] = (acc[d.category] ?? 0) + d.amount;
     return acc;
   }, {});
 
-  const categoryEntries = Object.entries(totalByCategory).sort((a, b) => b[1] - a[1]);
+  const totalByCategoryEntradas = byPeriod.reduce<Record<string, number>>((acc, d) => {
+    if (!d.category || d.type !== 'cash') return acc;
+    acc[d.category] = (acc[d.category] ?? 0) + d.amount;
+    return acc;
+  }, {});
 
-  const maxCategoryValue = categoryEntries.length > 0 ? categoryEntries[0][1] : 0;
+  const categorySaidasEntries = Object.entries(totalByCategorySaidas).sort((a, b) => b[1] - a[1]);
+  const categoryEntradasEntries = Object.entries(totalByCategoryEntradas).sort(
+    (a, b) => b[1] - a[1]
+  );
+  const maxCategorySaidas = categorySaidasEntries.length > 0 ? categorySaidasEntries[0][1] : 0;
+  const maxCategoryEntradas =
+    categoryEntradasEntries.length > 0 ? categoryEntradasEntries[0][1] : 0;
 
   const monthLabel = new Date(year, month).toLocaleDateString('pt-BR', {
     month: 'long',
@@ -145,16 +155,16 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
 
         <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
           <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Distribuição por categoria
+            Categorias (saídas)
           </h3>
-          {categoryEntries.length === 0 ? (
+          {categorySaidasEntries.length === 0 ? (
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Adicione categorias aos lançamentos para ver a distribuição.
+              Adicione categorias às saídas para ver a distribuição.
             </p>
           ) : (
             <div className="space-y-2">
-              {categoryEntries.map(([cat, value]) => (
-                <div key={cat} className="space-y-1">
+              {categorySaidasEntries.map(([cat, value]) => (
+                <div key={`s-${cat}`} className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                     <span className="truncate max-w-[140px]">{cat}</span>
                     <span className="font-medium text-slate-900 dark:text-slate-100">
@@ -163,10 +173,45 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
                     <div
-                      className="h-full bg-slate-900 dark:bg-emerald-600 transition-all"
+                      className="h-full bg-red-500 dark:bg-red-600 transition-all"
                       style={{
                         width:
-                          maxCategoryValue === 0 ? '0%' : `${(value / maxCategoryValue) * 100}%`,
+                          maxCategorySaidas === 0 ? '0%' : `${(value / maxCategorySaidas) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Categorias (entradas)
+          </h3>
+          {categoryEntradasEntries.length === 0 ? (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Adicione categorias às entradas para ver a distribuição.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {categoryEntradasEntries.map(([cat, value]) => (
+                <div key={`e-${cat}`} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span className="truncate max-w-[140px]">{cat}</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {formatCurrency(value)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 dark:bg-emerald-600 transition-all"
+                      style={{
+                        width:
+                          maxCategoryEntradas === 0
+                            ? '0%'
+                            : `${(value / maxCategoryEntradas) * 100}%`,
                       }}
                     />
                   </div>

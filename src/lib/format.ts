@@ -21,17 +21,31 @@ function escapeCsvCell(value: string | number): string {
   return str;
 }
 
-export function exportEntriesToCSV(entries: Entry[]): void {
+export type ExportCSVOptions = {
+  /** Sufixo do nome do arquivo (ex: '_mes_atual') */
+  filenameSuffix?: string;
+};
+
+export function exportEntriesToCSV(entries: Entry[], options?: ExportCSVOptions): void {
   if (entries.length === 0) return;
 
-  const headers = ['Tipo', 'Nome', 'Valor', 'Vencimento', 'Status'];
-  const rows = entries.map((d) => [
-    d.type === 'debt' ? 'Saída' : 'Entrada',
-    d.name,
-    d.amount.toString(),
-    d.dueDate,
-    d.isPaid ? 'Finalizado' : 'Pendente',
-  ]);
+  const headers = ['Tipo', 'Nome', 'Valor', 'Vencimento', 'Status', 'Categoria', 'Tag', 'Parcelas'];
+  const rows = entries.map((d) => {
+    const parcelas =
+      d.installmentsCount != null && d.installmentNumber != null
+        ? `${d.installmentNumber}/${d.installmentsCount}`
+        : '';
+    return [
+      d.type === 'debt' ? 'Saída' : 'Entrada',
+      d.name,
+      d.amount.toString(),
+      d.dueDate,
+      d.isPaid ? 'Finalizado' : 'Pendente',
+      d.category ?? '',
+      d.tag ?? '',
+      parcelas,
+    ];
+  });
 
   const csvLines = [
     headers.map(escapeCsvCell).join(','),
@@ -42,7 +56,11 @@ export function exportEntriesToCSV(entries: Entry[]): void {
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.setAttribute('href', url);
-  link.setAttribute('download', `lancamentos_${new Date().toISOString().split('T')[0]}.csv`);
+  const suffix = options?.filenameSuffix ?? '';
+  link.setAttribute(
+    'download',
+    `lancamentos_${new Date().toISOString().split('T')[0]}${suffix}.csv`
+  );
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();

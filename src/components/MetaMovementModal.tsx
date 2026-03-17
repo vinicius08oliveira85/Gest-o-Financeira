@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -22,6 +22,7 @@ export function MetaMovementModal({
 }: MetaMovementModalProps) {
   const [amount, setAmount] = React.useState('');
   const [note, setNote] = React.useState('');
+  const [amountError, setAmountError] = React.useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   useFocusTrap(contentRef, open);
 
@@ -29,6 +30,7 @@ export function MetaMovementModal({
     if (!open) {
       setAmount('');
       setNote('');
+      setAmountError(null);
     }
   }, [open]);
 
@@ -43,8 +45,12 @@ export function MetaMovementModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAmountError(null);
     const value = parseFloat(amount.replace(',', '.'));
-    if (Number.isNaN(value) || value <= 0) return;
+    if (Number.isNaN(value) || value <= 0) {
+      setAmountError('Informe um valor maior que zero.');
+      return;
+    }
     await Promise.resolve(onConfirm(value, note.trim() || undefined));
     onClose();
   };
@@ -86,7 +92,7 @@ export function MetaMovementModal({
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
-                <Plus size={22} className="rotate-45" />
+                <X size={22} />
               </button>
             </div>
 
@@ -105,10 +111,27 @@ export function MetaMovementModal({
                   min="0.01"
                   required
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    if (amountError) setAmountError(null);
+                  }}
                   placeholder="0,00"
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
+                  className={`w-full bg-slate-50 dark:bg-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 transition-all ${
+                    amountError
+                      ? 'border-2 border-red-500 dark:border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border border-slate-200 dark:border-slate-600 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500'
+                  }`}
+                  aria-invalid={!!amountError}
+                  aria-describedby={amountError ? 'meta-movement-amount-error' : undefined}
                 />
+                {amountError && (
+                  <p
+                    id="meta-movement-amount-error"
+                    className="mt-1.5 text-sm text-red-600 dark:text-red-400"
+                  >
+                    {amountError}
+                  </p>
+                )}
               </div>
               <div>
                 <label

@@ -17,3 +17,4 @@ export { ModalForm } from './ModalForm';
 export { PasswordGate } from './PasswordGate';
 export { CalendarView } from './CalendarView';
 export { Toast } from './Toast';
+export { TabNav, type TabId } from './TabNav';

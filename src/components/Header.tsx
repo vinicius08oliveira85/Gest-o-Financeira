@@ -1,9 +1,12 @@
-import { Plus, TrendingDown, Lock, Sun, Moon } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Plus, Wallet, Lock, Sun, Moon, MoreVertical, FileDown } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { GuidedTooltip } from './GuidedTooltip';
 
 type HeaderProps = {
   onExportCSV: () => void;
+  /** Exportar apenas lançamentos do mês atual */
+  onExportCSVCurrentMonth?: () => void;
   onNewEntry: () => void;
   onOpenChangePassword: () => void;
   showNewEntryHint?: boolean;
@@ -11,18 +14,32 @@ type HeaderProps = {
 
 export function Header({
   onExportCSV,
+  onExportCSVCurrentMonth,
   onNewEntry,
   onOpenChangePassword,
   showNewEntryHint,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [menuOpen]);
 
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="bg-emerald-500 p-2 rounded-lg">
-            <TrendingDown className="text-white w-5 h-5" />
+            <Wallet className="text-white w-5 h-5" />
           </div>
           <h1 className="font-semibold text-base sm:text-lg tracking-tight text-slate-900 dark:text-slate-100">
             Gestão Financeira
@@ -39,21 +56,83 @@ export function Header({
           >
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <button
-            type="button"
-            onClick={onOpenChangePassword}
-            className="flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-3 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors"
-            title="Alterar senha"
-          >
-            <Lock size={16} />
-            <span className="hidden md:inline">Alterar senha</span>
-          </button>
-          <button
-            onClick={onExportCSV}
-            className="hidden md:flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-4 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors"
-          >
-            Exportar CSV
-          </button>
+          <div className="hidden md:flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onOpenChangePassword}
+              className="flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-3 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors"
+              title="Alterar senha"
+            >
+              <Lock size={16} />
+              Alterar senha
+            </button>
+            <button
+              type="button"
+              onClick={onExportCSV}
+              className="flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-4 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors"
+            >
+              Exportar CSV
+            </button>
+            {onExportCSVCurrentMonth && (
+              <button
+                type="button"
+                onClick={onExportCSVCurrentMonth}
+                className="flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-4 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors"
+              >
+                Exportar mês
+              </button>
+            )}
+          </div>
+          <div className="relative md:hidden" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+            >
+              <MoreVertical size={20} />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 py-1 w-48 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-lg z-50">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onExportCSV();
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  <FileDown size={16} />
+                  Exportar CSV (todos)
+                </button>
+                {onExportCSVCurrentMonth && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onExportCSVCurrentMonth();
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  >
+                    <FileDown size={16} />
+                    Exportar mês atual
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenChangePassword();
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  <Lock size={16} />
+                  Alterar senha
+                </button>
+              </div>
+            )}
+          </div>
           <div className="flex flex-col items-end gap-1">
             <button
               onClick={onNewEntry}

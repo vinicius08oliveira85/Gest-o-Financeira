@@ -2,6 +2,12 @@ import React, { useState, useCallback } from 'react';
 import type { Entry, EntryType } from '../types';
 import { generateInstallmentEntries } from '../lib/installments';
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export type FormErrors = { name?: boolean; amount?: boolean; dueDate?: boolean };
+
 export function useEntryForm(
   onSubmit: (entry: Entry, isEdit: boolean) => void,
   onClose: () => void,
@@ -19,6 +25,7 @@ export function useEntryForm(
   const [installmentsCount, setInstallmentsCount] = useState('2');
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceCount, setRecurrenceCount] = useState('');
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   function closeForm() {
     setName('');
@@ -32,10 +39,22 @@ export function useEntryForm(
     setIsRecurring(false);
     setRecurrenceCount('');
     setEditingEntry(null);
+    setFormErrors({});
     onClose();
   }
 
+  const setInstallment = useCallback((value: boolean) => {
+    setIsInstallment(value);
+    if (value) setIsRecurring(false);
+  }, []);
+
+  const setRecurring = useCallback((value: boolean) => {
+    setIsRecurring(value);
+    if (value) setIsInstallment(false);
+  }, []);
+
   const openForm = useCallback((entry?: Entry) => {
+    setFormErrors({});
     if (entry) {
       setEditingEntry(entry);
       setName(entry.name);
@@ -52,7 +71,7 @@ export function useEntryForm(
       setEditingEntry(null);
       setName('');
       setAmount('');
-      setDueDate('');
+      setDueDate(todayISO());
       setType('debt');
       setCategory('');
       setTag('');
@@ -65,7 +84,16 @@ export function useEntryForm(
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name || !amount || !dueDate) return;
+    const errors: FormErrors = {};
+    if (!name.trim()) errors.name = true;
+    const amountNum = parseFloat(amount);
+    if (!amount || Number.isNaN(amountNum) || amountNum <= 0) errors.amount = true;
+    if (!dueDate) errors.dueDate = true;
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
 
     if (editingEntry) {
       const updated: Entry = {
@@ -160,7 +188,7 @@ export function useEntryForm(
     type,
     setType,
     isInstallment,
-    setIsInstallment,
+    setIsInstallment: setInstallment,
     installmentsCount,
     setInstallmentsCount,
     category,
@@ -168,9 +196,11 @@ export function useEntryForm(
     tag,
     setTag,
     isRecurring,
-    setIsRecurring,
+    setIsRecurring: setRecurring,
     recurrenceCount,
     setRecurrenceCount,
+    formErrors,
+    setFormErrors,
     closeForm,
     openForm,
     handleSubmit,

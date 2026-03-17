@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -75,12 +75,12 @@ export function ApplyRecurrenceModal({
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 aria-label="Fechar"
               >
-                <Plus size={24} className="rotate-45" />
+                <X size={24} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Este registro é recorrente. Deseja aplicar as alterações apenas nos próximos meses
                 ou em todos os meses (já gerados e futuros)?
               </p>
@@ -88,7 +88,7 @@ export function ApplyRecurrenceModal({
                 <button
                   type="button"
                   onClick={handleFuture}
-                  className="w-full px-4 py-3 rounded-xl font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors text-left"
+                  className="w-full px-4 py-3 rounded-xl font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors text-left"
                 >
                   Apenas nos próximos meses
                 </button>
@@ -103,7 +103,7 @@ export function ApplyRecurrenceModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-2 text-sm text-slate-500 hover:text-slate-700"
+                className="w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               >
                 Cancelar
               </button>

@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { Search, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import type { FilterType } from '../types';
 
 const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
@@ -61,7 +61,11 @@ export function FilterBar({
           {FILTER_OPTIONS.map(({ value, label }) => (
             <button
               key={value}
-              onClick={() => onFilterChange(value)}
+              type="button"
+              onClick={() => {
+                onFilterChange(value);
+                if (value === 'all') onCategoryChange('all');
+              }}
               className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                 filter === value
                   ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-sm'
@@ -76,43 +80,50 @@ export function FilterBar({
           Mostrando {filteredCount} de {totalCount} registros
         </div>
       </div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <span className="font-medium">Ordenar:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => onSortByChange(e.target.value as SortByOption)}
-            className="rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20"
-          >
-            <option value="dueDate">Data</option>
-            <option value="amount">Valor</option>
-            <option value="name">Nome</option>
-          </select>
-          <select
-            value={sortOrder}
-            onChange={(e) => onSortOrderChange(e.target.value as SortOrderOption)}
-            className="rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20"
-          >
-            <option value="desc">Decrescente</option>
-            <option value="asc">Crescente</option>
-          </select>
+      <details className="group">
+        <summary className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer list-none py-1 hover:text-slate-700 dark:hover:text-slate-300 [&::-webkit-details-marker]:hidden">
+          <SlidersHorizontal size={14} />
+          Filtros avançados
+          <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap mt-3 pl-0">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-medium">Ordenar:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => onSortByChange(e.target.value as SortByOption)}
+              className="rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20"
+            >
+              <option value="dueDate">Data</option>
+              <option value="amount">Valor</option>
+              <option value="name">Nome</option>
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => onSortOrderChange(e.target.value as SortOrderOption)}
+              className="rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20"
+            >
+              <option value="desc">Decrescente</option>
+              <option value="asc">Crescente</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-medium">Categoria:</span>
+            <select
+              value={selectedCategory}
+              onChange={(e) => onCategoryChange(e.target.value)}
+              className="w-full sm:min-w-[160px] sm:w-auto rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500"
+            >
+              <option value="all">Todas</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <span className="font-medium">Categoria:</span>
-          <select
-            value={selectedCategory}
-            onChange={(e) => onCategoryChange(e.target.value)}
-            className="w-full sm:min-w-[160px] sm:w-auto rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500"
-          >
-            <option value="all">Todas</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      </details>
     </div>
   );
 }

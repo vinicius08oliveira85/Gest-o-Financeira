@@ -146,6 +146,10 @@ export function useEntries() {
     }
   }, [entries, useSupabaseSync]);
 
+  useEffect(() => {
+    setSearchQuery('');
+  }, [currentMonth, currentYear]);
+
   const filteredEntries = useMemo(() => {
     const byPeriod = entries.filter((d) => {
       const date = new Date(d.dueDate);
@@ -192,6 +196,15 @@ export function useEntries() {
     currentYear,
   ]);
 
+  const entriesDoMes = useMemo(
+    () =>
+      entries.filter((d) => {
+        const date = new Date(d.dueDate);
+        return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      }),
+    [entries, currentMonth, currentYear]
+  );
+
   const totalEntradasLancadas = useMemo(
     () => entries.filter((d) => d.type === 'cash').reduce((acc, d) => acc + d.amount, 0),
     [entries]
@@ -211,6 +224,35 @@ export function useEntries() {
       .reduce((acc, d) => acc + d.amount, 0);
     return entradasFinalizadas - saidasFinalizadas;
   }, [entries]);
+
+  const totalEntradasLancadasMes = useMemo(
+    () => entriesDoMes.filter((d) => d.type === 'cash').reduce((acc, d) => acc + d.amount, 0),
+    [entriesDoMes]
+  );
+
+  const totalSaidasLancadasMes = useMemo(
+    () => entriesDoMes.filter((d) => d.type === 'debt').reduce((acc, d) => acc + d.amount, 0),
+    [entriesDoMes]
+  );
+
+  const saldoMes = useMemo(() => {
+    const entradasFinalizadas = entriesDoMes
+      .filter((d) => d.type === 'cash' && d.isPaid)
+      .reduce((acc, d) => acc + d.amount, 0);
+    const saidasFinalizadas = entriesDoMes
+      .filter((d) => d.type === 'debt' && d.isPaid)
+      .reduce((acc, d) => acc + d.amount, 0);
+    return entradasFinalizadas - saidasFinalizadas;
+  }, [entriesDoMes]);
+
+  const entradasCountMes = useMemo(
+    () => entriesDoMes.filter((d) => d.type === 'cash').length,
+    [entriesDoMes]
+  );
+  const saidasCountMes = useMemo(
+    () => entriesDoMes.filter((d) => d.type === 'debt').length,
+    [entriesDoMes]
+  );
 
   const getSaldoForMonth = useCallback(
     (month: number, year: number) => {
@@ -269,6 +311,12 @@ export function useEntries() {
       }
       return prev + 1;
     });
+  }
+
+  function goToCurrentMonth() {
+    const now = new Date();
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
   }
 
   function addOrUpdateEntry(entry: Entry, isEdit: boolean): Promise<void> {
@@ -419,12 +467,19 @@ export function useEntries() {
     currentYear,
     goToPreviousMonth,
     goToNextMonth,
+    goToCurrentMonth,
     filteredEntries,
+    entriesDoMes,
     totalEntradasLancadas,
     totalSaidasLancadas,
     saldo,
     entradasCount,
     saidasCount,
+    totalEntradasLancadasMes,
+    totalSaidasLancadasMes,
+    saldoMes,
+    entradasCountMes,
+    saidasCountMes,
     isLoading,
     isMigrating,
     useSupabaseSync,

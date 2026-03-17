@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { EntryType } from '../types';
+import type { FormErrors } from '../hooks/useEntryForm';
 
 const MODAL_FORM_TITLE_ID = 'modal-form-title';
 
@@ -29,6 +30,9 @@ type ModalFormProps = {
   setIsRecurring: (v: boolean) => void;
   recurrenceCount: string;
   setRecurrenceCount: (v: string) => void;
+  formErrors?: FormErrors;
+  onClearError?: (field: 'name' | 'amount' | 'dueDate') => void;
+  availableCategories?: string[];
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 };
@@ -56,9 +60,17 @@ export function ModalForm({
   setIsRecurring,
   recurrenceCount,
   setRecurrenceCount,
+  formErrors = {},
+  onClearError,
+  availableCategories = [],
   onSubmit,
   onClose,
 }: ModalFormProps) {
+  const hasError = (field: 'name' | 'amount' | 'dueDate') => formErrors[field];
+  const inputErrorClass =
+    'border-red-500 dark:border-red-500 focus:ring-red-500/20 dark:focus:ring-red-500/20 focus:border-red-500';
+  const inputBaseClass =
+    'w-full bg-slate-50 dark:bg-slate-700 border rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 transition-all border-slate-200 dark:border-slate-600 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500';
   const contentRef = useRef<HTMLDivElement>(null);
   useFocusTrap(contentRef, isOpen);
 
@@ -103,10 +115,10 @@ export function ModalForm({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                 aria-label="Fechar"
               >
-                <Plus size={24} className="rotate-45" />
+                <X size={24} />
               </button>
             </div>
 
@@ -148,10 +160,17 @@ export function ModalForm({
                   type="text"
                   required
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    onClearError?.('name');
+                  }}
                   placeholder={type === 'debt' ? 'Ex: Aluguel, Cartão...' : 'Ex: Salário, Venda...'}
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
+                  className={`${inputBaseClass} ${hasError('name') ? inputErrorClass : ''}`}
+                  aria-invalid={hasError('name')}
                 />
+                {hasError('name') && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">Preencha o nome.</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -166,12 +185,21 @@ export function ModalForm({
                     id="modal-form-amount"
                     type="number"
                     step="0.01"
-                    required
+                    inputMode="decimal"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      onClearError?.('amount');
+                    }}
                     placeholder="0,00"
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
+                    className={`${inputBaseClass} ${hasError('amount') ? inputErrorClass : ''}`}
+                    aria-invalid={hasError('amount')}
                   />
+                  {hasError('amount') && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                      Informe um valor válido.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label
@@ -185,9 +213,16 @@ export function ModalForm({
                     type="date"
                     required
                     value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
+                    onChange={(e) => {
+                      setDueDate(e.target.value);
+                      onClearError?.('dueDate');
+                    }}
+                    className={`${inputBaseClass} ${hasError('dueDate') ? inputErrorClass : ''}`}
+                    aria-invalid={hasError('dueDate')}
                   />
+                  {hasError('dueDate') && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">Selecione a data.</p>
+                  )}
                 </div>
               </div>
 
@@ -202,11 +237,19 @@ export function ModalForm({
                   <input
                     id="modal-form-category"
                     type="text"
+                    list="modal-form-category-list"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     placeholder="Ex: Aluguel, Salário..."
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
+                    className={inputBaseClass}
                   />
+                  {availableCategories.length > 0 && (
+                    <datalist id="modal-form-category-list">
+                      {availableCategories.map((cat) => (
+                        <option key={cat} value={cat} />
+                      ))}
+                    </datalist>
+                  )}
                 </div>
                 <div>
                   <label
@@ -221,17 +264,23 @@ export function ModalForm({
                     value={tag}
                     onChange={(e) => setTag(e.target.value)}
                     placeholder="Ex: Cartão Nubank, Cliente X..."
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
+                    className={inputBaseClass}
                   />
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
-                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <label
+                  className={`flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 ${
+                    isEditing ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+                  }`}
+                  title={isEditing ? 'Não é possível alterar parcelamento ao editar' : undefined}
+                >
                   <input
                     type="checkbox"
                     checked={isInstallment}
-                    onChange={(e) => setIsInstallment(e.target.checked)}
+                    onChange={(e) => !isEditing && setIsInstallment(e.target.checked)}
+                    disabled={isEditing}
                     className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500/30"
                   />
                   <span>Lançamento parcelado</span>

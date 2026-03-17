@@ -12,7 +12,7 @@ type DayBucket = {
   entries: Entry[];
 };
 
-const WEEK_DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export function CalendarView({ entries, month, year }: CalendarViewProps) {
   const firstDay = new Date(year, month, 1);
@@ -52,9 +52,13 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
     cells.push(null);
   }
 
+  const today = new Date();
+  const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
+  const todayDay = today.getDate();
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
-      <div className="grid grid-cols-7 gap-1 mb-2 text-[11px] font-medium text-slate-500 text-center">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-600 p-3 md:p-4">
+      <div className="grid grid-cols-7 gap-1 mb-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 text-center">
         {WEEK_DAYS.map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -62,15 +66,11 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
       <div className="grid grid-cols-7 gap-1 text-xs">
         {cells.map((bucket, idx) => {
           if (!bucket) {
-            return (
-              <div
-                key={idx}
-                className="h-16 md:h-20 rounded-xl border border-transparent"
-              />
-            );
+            return <div key={idx} className="h-16 md:h-20 rounded-xl border border-transparent" />;
           }
 
           const day = bucket.date.getDate();
+          const isToday = isCurrentMonth && day === todayDay;
           const entradas = bucket.entries.filter((e) => e.type === 'cash');
           const saidas = bucket.entries.filter((e) => e.type === 'debt');
           const totalEntradas = entradas.reduce((acc, e) => acc + e.amount, 0);
@@ -86,13 +86,21 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
             <div
               key={idx}
               className={`h-20 md:h-24 rounded-xl border px-1.5 py-1 flex flex-col gap-0.5 ${
-                hasInstallments
-                  ? 'border-indigo-200 bg-indigo-50/60'
-                  : 'border-slate-100 bg-slate-50/60'
+                isToday
+                  ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700'
+                  : hasInstallments
+                    ? 'border-indigo-200 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-900/20'
+                    : 'border-slate-100 dark:border-slate-600 bg-slate-50/60 dark:bg-slate-700/60'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-800">
+                <span
+                  className={`text-[11px] font-semibold ${
+                    isToday
+                      ? 'text-emerald-700 dark:text-emerald-300'
+                      : 'text-slate-800 dark:text-slate-200'
+                  }`}
+                >
                   {day}
                 </span>
                 <div className="flex flex-col items-end gap-0.5">
@@ -112,17 +120,17 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                 {visible.map((e) => (
                   <div
                     key={e.id}
-                    className="truncate text-[10px] text-slate-700 flex items-center gap-1"
+                    className="truncate text-[10px] text-slate-700 dark:text-slate-300 flex items-center gap-1"
                   >
                     <span
-                      className={`inline-block h-1.5 w-1.5 rounded-full ${
+                      className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
                         e.type === 'cash' ? 'bg-emerald-500' : 'bg-red-500'
                       }`}
                     />
                     <span className="truncate">
                       {e.name}
                       {e.installmentsCount && e.installmentNumber && (
-                        <span className="ml-1 text-[9px] text-slate-500">
+                        <span className="ml-1 text-[9px] text-slate-500 dark:text-slate-400">
                           {e.installmentNumber}/{e.installmentsCount}
                         </span>
                       )}
@@ -130,7 +138,9 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                   </div>
                 ))}
                 {remaining > 0 && (
-                  <div className="text-[9px] text-slate-500">+{remaining} lançamentos</div>
+                  <div className="text-[9px] text-slate-500 dark:text-slate-400">
+                    +{remaining} lançamentos
+                  </div>
                 )}
               </div>
             </div>
@@ -140,4 +150,3 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
     </div>
   );
 }
-

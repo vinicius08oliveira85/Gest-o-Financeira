@@ -1,8 +1,13 @@
 import React from 'react';
-import { CheckCircle2, Circle, Calendar, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, Pencil, Trash2, Loader2, Tag } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Entry } from '../types';
 import { formatCurrency, formatDate } from '../lib/format';
+
+function isOverdueByDate(dueDateStr: string): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  return dueDateStr < today;
+}
 
 type EntryItemProps = {
   entry: Entry;
@@ -21,7 +26,7 @@ function EntryItemInner({
   pendingPaidId = null,
   compact = false,
 }: EntryItemProps) {
-  const isOverdue = entry.type === 'debt' && !entry.isPaid && new Date(entry.dueDate) < new Date();
+  const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(entry.dueDate);
   const isTogglingPaid = pendingPaidId === entry.id;
 
   return (
@@ -100,7 +105,11 @@ function EntryItemInner({
             </span>
           )}
           {entry.tag && (
-            <span className="text-xs text-slate-400 dark:text-slate-500 truncate hidden sm:inline-block max-w-[120px] lg:max-w-[180px]">
+            <span
+              className="text-xs text-slate-400 dark:text-slate-500 truncate inline-flex items-center gap-1 max-w-[120px] sm:max-w-[140px] lg:max-w-[180px]"
+              title={entry.tag}
+            >
+              <Tag size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
               {entry.tag}
             </span>
           )}
@@ -123,18 +132,22 @@ function EntryItemInner({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
+        <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
           <button
+            type="button"
             onClick={() => onEdit(entry)}
-            className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400"
+            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-600/50"
+            aria-label="Editar"
           >
-            <Pencil size={16} />
+            <Pencil size={18} className="sm:w-4 sm:h-4" />
           </button>
           <button
+            type="button"
             onClick={() => onDeleteRequest(entry.id)}
-            className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400"
+            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-600/50"
+            aria-label="Excluir"
           >
-            <Trash2 size={16} />
+            <Trash2 size={18} className="sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
