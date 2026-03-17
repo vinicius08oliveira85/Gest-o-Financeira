@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Entry, FilterType, Goal } from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
@@ -110,16 +111,55 @@ export function CashFlowSection({
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 space-y-6">
       <section className="space-y-6">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
               Fluxo de Caixa
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">
               Acompanhe seus lançamentos, entradas, saídas e saldo por mês.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+
+          {/* Mobile: navegação compacta em uma linha */}
+          <div className="flex items-center justify-between gap-2 lg:hidden">
+            <button
+              type="button"
+              onClick={goToPreviousMonth}
+              aria-label="Mês anterior"
+              className="shrink-0 p-2 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div className="flex flex-col items-center min-w-0 flex-1 px-2">
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize truncate w-full text-center">
+                {new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', {
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </span>
+              {!isCurrentMonth && (
+                <button
+                  type="button"
+                  onClick={goToCurrentMonth}
+                  className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline mt-0.5"
+                >
+                  Ir para hoje
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={goToNextMonth}
+              aria-label="Próximo mês"
+              className="shrink-0 p-2 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          {/* Desktop: botões com texto */}
+          <div className="hidden lg:flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-3">
             <button
               type="button"
               onClick={goToPreviousMonth}
@@ -156,7 +196,7 @@ export function CashFlowSection({
               <button
                 type="button"
                 onClick={skip}
-                className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 underline underline-offset-2 sm:mt-0"
+                className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 underline underline-offset-2 lg:mt-0"
               >
                 Pular dicas
               </button>
