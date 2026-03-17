@@ -23,8 +23,7 @@ type CashFlowSectionProps = {
   saldoMes: number;
   entradasCountMes: number;
   saidasCountMes: number;
-  currentGoals: Goal[];
-  getSaldoForMonth: (month: number, year: number) => number;
+  goals: Goal[];
   getMetaBalanceForGoal: (goalId: string) => number;
   isLoadingGoals?: boolean;
   onOpenGoalModal: (goal?: Goal) => void;
@@ -64,8 +63,7 @@ export function CashFlowSection({
   saldoMes,
   entradasCountMes,
   saidasCountMes,
-  currentGoals,
-  getSaldoForMonth,
+  goals,
   getMetaBalanceForGoal,
   isLoadingGoals = false,
   onOpenGoalModal,
@@ -104,7 +102,6 @@ export function CashFlowSection({
     goToPreviousMonth,
     goToNextMonth,
     goToCurrentMonth,
-    monthLabel,
     isCurrentMonth,
   } = usePeriod();
   const [activeTab, setActiveTab] = useState<TabId>('resumo');
@@ -276,8 +273,6 @@ export function CashFlowSection({
             {isLoadingGoals ? (
               <GoalsCard
                 goal={null}
-                monthLabel={monthLabel}
-                saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
                 metaBalance={0}
                 isLoading
                 onOpenModal={() => onOpenGoalModal()}
@@ -286,12 +281,10 @@ export function CashFlowSection({
               />
             ) : (
               <>
-                {currentGoals.map((goal) => (
+                {goals.map((goal) => (
                   <GoalsCard
                     key={goal.id}
                     goal={goal}
-                    monthLabel={monthLabel}
-                    saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
                     metaBalance={getMetaBalanceForGoal(goal.id)}
                     onOpenModal={() => onOpenGoalModal(goal)}
                     onDeposit={onDepositToGoal}
@@ -300,8 +293,6 @@ export function CashFlowSection({
                 ))}
                 <GoalsCard
                   goal={null}
-                  monthLabel={monthLabel}
-                  saldoDoMes={getSaldoForMonth(currentMonth, currentYear)}
                   metaBalance={0}
                   onOpenModal={() => onOpenGoalModal()}
                   onDeposit={onDepositToGoal}

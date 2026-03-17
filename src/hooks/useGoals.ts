@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { Goal } from '../types';
 import { GOALS_STORAGE_KEY } from '../constants';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { logError } from '../lib/logger';
 import { fetchGoals, upsertGoal as upsertGoalDb, deleteGoal as deleteGoalDb } from '../lib/goalsDb';
 
-export function useGoals(month: number, year: number) {
+export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [useSupabaseSync, setUseSupabaseSync] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,13 +81,6 @@ export function useGoals(month: number, year: number) {
     }
   }, [goals, useSupabaseSync]);
 
-  const currentGoals = useMemo(
-    () => goals.filter((g) => g.month === month && g.year === year),
-    [goals, month, year]
-  );
-
-  const currentGoal = currentGoals[0] ?? null;
-
   const upsertGoal = useCallback(
     (goal: Omit<Goal, 'id'> & { id?: string }) => {
       if (useSupabaseSync) {
@@ -95,7 +88,7 @@ export function useGoals(month: number, year: number) {
         const optimisticId = goal.id ?? crypto.randomUUID();
         const optimistic: Goal = { ...(goal as Omit<Goal, 'id'>), id: optimisticId };
         setGoals((g) =>
-          goal.id ? g.map((x) => (x.id === goal.id ? optimistic : x)) : [optimistic, ...g]
+          goal.id ? g.map((x) => (x.id === goal.id ? optimistic : x)) : [...g, optimistic]
         );
         upsertGoalDb({ ...goal, id: optimisticId })
           .then((saved) => {
@@ -111,7 +104,8 @@ export function useGoals(month: number, year: number) {
             return prev.map((g) => (g.id === goal.id ? (goal as Goal) : g));
           }
           const id = crypto.randomUUID();
-          return [{ ...(goal as Omit<Goal, 'id'>), id }, ...prev];
+          const createdAt = new Date().toISOString();
+          return [...prev, { ...(goal as Omit<Goal, 'id'>), id, createdAt }];
         });
       }
     },
@@ -134,8 +128,6 @@ export function useGoals(month: number, year: number) {
 
   return {
     goals,
-    currentGoals,
-    currentGoal,
     upsertGoal,
     deleteGoal,
     isLoadingGoals: isLoading,

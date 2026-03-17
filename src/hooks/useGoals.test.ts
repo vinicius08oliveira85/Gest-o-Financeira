@@ -7,11 +7,10 @@ import { GOALS_STORAGE_KEY } from '../constants';
 const mockGoals: Goal[] = [
   {
     id: 'g1',
-    name: 'Meta Março',
-    targetAmount: 1000,
-    currentAmount: 300,
-    month: 2,
-    year: 2025,
+    name: 'Reserva de emergência',
+    targetAmount: 10000,
+    currentAmount: 3000,
+    createdAt: '2025-01-01T00:00:00.000Z',
   },
 ];
 
@@ -35,12 +34,12 @@ describe('useGoals', () => {
     localStorage.clear();
   });
 
-  it('sem Supabase: carrega do localStorage e retorna goals/currentGoal', async () => {
+  it('sem Supabase: carrega do localStorage e retorna goals', async () => {
     const { isSupabaseConfigured } = await import('../lib/supabase');
     vi.mocked(isSupabaseConfigured).mockReturnValue(false);
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(mockGoals));
 
-    const { result } = renderHook(() => useGoals(2, 2025));
+    const { result } = renderHook(() => useGoals());
 
     await waitFor(
       () => {
@@ -50,7 +49,7 @@ describe('useGoals', () => {
     );
 
     expect(result.current.goals).toHaveLength(1);
-    expect(result.current.currentGoal?.name).toBe('Meta Março');
+    expect(result.current.goals[0].name).toBe('Reserva de emergência');
   });
 
   it('com Supabase: chama fetchGoals e seta goals', async () => {
@@ -59,7 +58,7 @@ describe('useGoals', () => {
     vi.mocked(isSupabaseConfigured).mockReturnValue(true);
     vi.mocked(fetchGoals).mockResolvedValue(mockGoals);
 
-    const { result } = renderHook(() => useGoals(2, 2025));
+    const { result } = renderHook(() => useGoals());
 
     await waitFor(
       () => {
@@ -80,7 +79,7 @@ describe('useGoals', () => {
 
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(mockGoals));
 
-    const { result } = renderHook(() => useGoals(2, 2025));
+    const { result } = renderHook(() => useGoals());
 
     await waitFor(
       () => {

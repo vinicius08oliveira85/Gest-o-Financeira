@@ -54,8 +54,7 @@ vi.mock('./hooks/useEntries', () => ({
 
 vi.mock('./hooks/useGoals', () => ({
   useGoals: () => ({
-    currentGoals: [],
-    currentGoal: null,
+    goals: [],
     upsertGoal: vi.fn(),
     deleteGoal: vi.fn(),
     isLoadingGoals: false,

@@ -3,8 +3,6 @@ import type { Goal } from '../types';
 
 type GoalsCardProps = {
   goal: Goal | null;
-  monthLabel: string;
-  saldoDoMes: number;
   metaBalance: number;
   isLoading?: boolean;
   onOpenModal: () => void;
@@ -14,8 +12,6 @@ type GoalsCardProps = {
 
 export function GoalsCard({
   goal,
-  monthLabel,
-  saldoDoMes,
   metaBalance,
   isLoading = false,
   onOpenModal,
@@ -50,12 +46,14 @@ export function GoalsCard({
   const progress =
     goal && goal.targetAmount > 0 ? Math.min(100, (metaBalance / goal.targetAmount) * 100) : 0;
 
+  const isComplete = progress >= 100;
+
   return (
     <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-600 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Meta de {monthLabel}
+            {isComplete ? '✓ Meta concluída' : 'Meta'}
           </p>
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
             {goal ? goal.name : 'Nenhuma meta definida'}
@@ -69,38 +67,48 @@ export function GoalsCard({
         <button
           type="button"
           onClick={onOpenModal}
-          className="text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm"
+          className="text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm whitespace-nowrap"
         >
-          {goal ? 'Editar meta' : 'Criar meta'}
+          {goal ? 'Editar' : 'Criar meta'}
         </button>
       </div>
 
       {goal ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-            <span>Progresso</span>
-            <span className="font-semibold text-slate-900 dark:text-slate-100">
+            <span>Progresso acumulado</span>
+            <span
+              className={`font-semibold ${isComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-slate-100'}`}
+            >
               {progress.toFixed(0)}%
             </span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
             <div
-              className="h-full bg-emerald-500 transition-all"
+              className={`h-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-emerald-500'}`}
               style={{ width: `${progress}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-            <span>Valor na meta</span>
+            <span>Depositado</span>
             <span className="font-medium text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(metaBalance)}
+              {formatCurrency(Math.max(0, metaBalance))}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-            <span>Meta</span>
+            <span>Alvo</span>
             <span className="font-medium text-slate-900 dark:text-slate-100">
               {formatCurrency(goal.targetAmount)}
             </span>
           </div>
+          {!isComplete && (
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span>Faltam</span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {formatCurrency(Math.max(0, goal.targetAmount - metaBalance))}
+              </span>
+            </div>
+          )}
           <div className="flex gap-2 pt-2">
             <button
               type="button"
@@ -120,7 +128,7 @@ export function GoalsCard({
         </div>
       ) : (
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Defina uma meta simples para acompanhar quanto deseja guardar ou investir neste mês.
+          Defina uma meta financeira e acompanhe seu progresso ao longo dos meses.
         </p>
       )}
     </div>

@@ -31,8 +31,8 @@ export interface Goal {
   targetAmount: number;
   currentAmount: number;
   category?: string;
-  month: number;
-  year: number;
   /** Data alvo (atingir até), ISO date */
   targetDate?: string;
+  /** Data de criação ISO date, para ordenação */
+  createdAt?: string;
 }

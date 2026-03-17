@@ -7,9 +7,8 @@ export type GoalRow = {
   target_amount: number;
   current_amount: number;
   category?: string | null;
-  month: number;
-  year: number;
   target_date?: string | null;
+  created_at?: string | null;
 };
 
 export function rowToGoal(row: GoalRow): Goal {
@@ -19,9 +18,8 @@ export function rowToGoal(row: GoalRow): Goal {
     targetAmount: Number(row.target_amount),
     currentAmount: Number(row.current_amount),
     category: row.category ?? undefined,
-    month: row.month,
-    year: row.year,
     targetDate: row.target_date ?? undefined,
+    createdAt: row.created_at ?? undefined,
   };
 }
 
@@ -31,23 +29,16 @@ export function goalToRow(goal: Omit<Goal, 'id'> & { id?: string }): Omit<GoalRo
     target_amount: goal.targetAmount,
     current_amount: goal.currentAmount,
     category: goal.category ?? null,
-    month: goal.month,
-    year: goal.year,
     target_date: goal.targetDate ?? null,
   };
 }
 
-export async function fetchGoals(month?: number, year?: number): Promise<Goal[]> {
+export async function fetchGoals(): Promise<Goal[]> {
   if (!supabase) return [];
-  let query = supabase
+  const { data, error } = await supabase
     .from('goals')
     .select('*')
-    .order('year', { ascending: false })
-    .order('month', { ascending: false });
-  if (month !== undefined && year !== undefined) {
-    query = query.eq('month', month).eq('year', year);
-  }
-  const { data, error } = await query;
+    .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []).map((row) => rowToGoal(row as GoalRow));
 }

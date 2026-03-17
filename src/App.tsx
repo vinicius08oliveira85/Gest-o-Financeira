@@ -103,10 +103,7 @@ export default function App() {
     getMetaBalanceForGoal,
   } = useEntries();
 
-  const { currentGoals, upsertGoal, deleteGoal, isLoadingGoals } = useGoals(
-    currentMonth,
-    currentYear
-  );
+  const { goals, upsertGoal, deleteGoal, isLoadingGoals } = useGoals();
   const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
   const { toastMessage, toastAction, showToast, dismissToast } = useToast();
@@ -114,7 +111,7 @@ export default function App() {
     entries,
     month: currentMonth,
     year: currentYear,
-    goals: currentGoals,
+    goals,
   });
 
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(() => {
@@ -227,8 +224,7 @@ export default function App() {
             saldoMes={saldoMes}
             entradasCountMes={entradasCountMes}
             saidasCountMes={saidasCountMes}
-            currentGoals={currentGoals}
-            getSaldoForMonth={getSaldoForMonth}
+            goals={goals}
             getMetaBalanceForGoal={getMetaBalanceForGoal}
             isLoadingGoals={isLoadingGoals}
             onOpenGoalModal={(goal) => {
@@ -389,8 +385,6 @@ export default function App() {
         <GoalModal
           open={isGoalModalOpen}
           goal={goalToEdit}
-          month={currentMonth}
-          year={currentYear}
           onSave={(partial) => {
             upsertGoal({
               ...partial,

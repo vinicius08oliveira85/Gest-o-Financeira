@@ -8,23 +8,13 @@ const GOAL_MODAL_TITLE_ID = 'goal-modal-title';
 type GoalModalProps = {
   open: boolean;
   goal: Goal | null;
-  month: number;
-  year: number;
   onSave: (partial: Omit<Goal, 'id' | 'currentAmount'> & { id?: string }) => void;
   /** Chamado quando o usuário clica em Excluir; o pai deve mostrar confirmação e depois excluir */
   onRequestDelete?: (goal: Goal) => void;
   onClose: () => void;
 };
 
-export function GoalModal({
-  open,
-  goal,
-  month,
-  year,
-  onSave,
-  onRequestDelete,
-  onClose,
-}: GoalModalProps) {
+export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: GoalModalProps) {
   const [name, setName] = React.useState(goal?.name ?? '');
   const [target, setTarget] = React.useState(goal ? goal.targetAmount.toString() : '');
   const [targetDate, setTargetDate] = React.useState(goal?.targetDate ?? '');
@@ -54,10 +44,10 @@ export function GoalModal({
       id: goal?.id,
       name,
       targetAmount,
+      currentAmount: goal?.currentAmount ?? 0,
       category: goal?.category,
-      month,
-      year,
       targetDate: targetDate || undefined,
+      createdAt: goal?.createdAt ?? new Date().toISOString(),
     });
     onClose();
   }
@@ -113,7 +103,7 @@ export function GoalModal({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Guardar para reserva"
+                  placeholder="Ex: Guardar para reserva de emergência"
                   className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>
@@ -129,6 +119,7 @@ export function GoalModal({
                   id="goal-modal-target"
                   type="number"
                   step="0.01"
+                  min="0.01"
                   required
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
@@ -154,12 +145,7 @@ export function GoalModal({
               </div>
 
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Acompanhe esta meta apenas para o mês de{' '}
-                {new Date(year, month).toLocaleDateString('pt-BR', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
-                .
+                Os depósitos acumulam ao longo dos meses até atingir o valor alvo.
               </p>
 
               <div className="flex flex-col gap-2">
