@@ -12,6 +12,24 @@ export function formatDate(dateStr: string): string {
   return `${day}/${month}/${year}`;
 }
 
+/**
+ * Interpreta uma string ISO (YYYY-MM-DD) como meio-dia no horário local,
+ * evitando o deslocamento de fuso horário que ocorre quando o JS parseia
+ * datas sem hora como meia-noite UTC.
+ */
+export function parseDateLocal(dateStr: string): Date {
+  return new Date(dateStr + 'T12:00:00');
+}
+
+/**
+ * Retorna a data de hoje no formato ISO (YYYY-MM-DD) usando getters locais,
+ * evitando que toISOString() retorne a data UTC (que pode ser diferente da local).
+ */
+export function todayLocalISO(): string {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+}
+
 /** Escapa um valor para uso em CSV (aspas e vírgulas). */
 function escapeCsvCell(value: string | number): string {
   const str = String(value);

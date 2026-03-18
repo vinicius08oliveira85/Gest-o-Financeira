@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { Entry, Goal } from '../types';
 import { ALERT_CONCENTRATION_RATIO, GOAL_DEADLINE_ALERT_DAYS } from '../constants';
+import { parseDateLocal, todayLocalISO } from '../lib/format';
 
 export type AlertType = 'concentration' | 'due-soon' | 'goal-deadline';
 
@@ -21,7 +22,7 @@ type UseAlertsParams = {
 export function useAlerts({ entries, month, year, goals = [] }: UseAlertsParams) {
   const alerts = useMemo<Alert[]>(() => {
     const byPeriod = entries.filter((d) => {
-      const date = new Date(d.dueDate);
+      const date = parseDateLocal(d.dueDate);
       return date.getMonth() === month && date.getFullYear() === year;
     });
 
@@ -54,14 +55,14 @@ export function useAlerts({ entries, month, year, goals = [] }: UseAlertsParams)
     }
 
     // Vencimentos próximos (próximos 5 dias, não pagos)
-    const today = new Date();
-    const fiveDaysAhead = new Date();
-    fiveDaysAhead.setDate(today.getDate() + 5);
+    const todayISO = todayLocalISO();
+    const n = new Date();
+    n.setDate(n.getDate() + 5);
+    const fiveDaysISO = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
 
     const dueSoon = byPeriod.filter((d) => {
       if (d.type !== 'debt' || d.isPaid) return false;
-      const date = new Date(d.dueDate);
-      return date >= today && date <= fiveDaysAhead;
+      return d.dueDate >= todayISO && d.dueDate <= fiveDaysISO;
     });
 
     if (dueSoon.length > 0) {
@@ -75,11 +76,10 @@ export function useAlerts({ entries, month, year, goals = [] }: UseAlertsParams)
     }
 
     // Metas com data alvo próxima ou já passada
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const todayStart = new Date(todayISO + 'T00:00:00');
     for (const goal of goals) {
       if (!goal.targetDate) continue;
-      const target = new Date(goal.targetDate);
+      const target = parseDateLocal(goal.targetDate);
       target.setHours(0, 0, 0, 0);
       const diffMs = target.getTime() - todayStart.getTime();
       const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));

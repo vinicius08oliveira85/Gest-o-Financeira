@@ -1,10 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import type { Entry, EntryType } from '../types';
 import { generateInstallmentEntries } from '../lib/installments';
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayLocalISO } from '../lib/format';
 
 export type FormErrors = { name?: boolean; amount?: boolean; dueDate?: boolean };
 
@@ -71,7 +68,7 @@ export function useEntryForm(
       setEditingEntry(null);
       setName('');
       setAmount('');
-      setDueDate(todayISO());
+      setDueDate(todayLocalISO());
       setType('debt');
       setCategory('');
       setTag('');

@@ -1,5 +1,5 @@
 import type { Entry } from '../types';
-import { formatCurrency } from '../lib/format';
+import { formatCurrency, parseDateLocal } from '../lib/format';
 
 type ReportsPanelProps = {
   entries: Entry[];
@@ -13,7 +13,7 @@ function formatCycleDate(d: Date): string {
 
 export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
   const byPeriod = entries.filter((d) => {
-    const date = new Date(d.dueDate);
+    const date = parseDateLocal(d.dueDate);
     return date.getMonth() === month && date.getFullYear() === year;
   });
 

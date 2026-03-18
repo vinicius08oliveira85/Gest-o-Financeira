@@ -3,6 +3,7 @@ import type { Entry, FilterType } from '../types';
 import { ENTRIES_STORAGE_KEY } from '../constants';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { logError } from '../lib/logger';
+import { parseDateLocal } from '../lib/format';
 import {
   fetchEntries,
   insertEntry,
@@ -152,7 +153,7 @@ export function useEntries() {
 
   const filteredEntries = useMemo(() => {
     const byPeriod = entries.filter((d) => {
-      const date = new Date(d.dueDate);
+      const date = parseDateLocal(d.dueDate);
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     });
 
@@ -199,7 +200,7 @@ export function useEntries() {
   const entriesDoMes = useMemo(
     () =>
       entries.filter((d) => {
-        const date = new Date(d.dueDate);
+        const date = parseDateLocal(d.dueDate);
         return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
       }),
     [entries, currentMonth, currentYear]
@@ -257,7 +258,7 @@ export function useEntries() {
   const getSaldoForMonth = useCallback(
     (month: number, year: number) => {
       const inPeriod = (d: Entry) => {
-        const date = new Date(d.dueDate);
+        const date = parseDateLocal(d.dueDate);
         return date.getMonth() === month && date.getFullYear() === year;
       };
       const entradas = entries

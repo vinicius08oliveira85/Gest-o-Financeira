@@ -1,4 +1,5 @@
 import type { Entry } from '../types';
+import { parseDateLocal } from './format';
 
 const MAX_RECURRENCE_MONTHS = 24;
 const DEFAULT_RECURRENCE_MONTHS = 12;
@@ -8,12 +9,14 @@ function sameMonthYear(d: Date, month: number, year: number): boolean {
 }
 
 function copyDueDateForMonth(baseDueDate: string, targetMonth: number, targetYear: number): string {
-  const base = new Date(baseDueDate);
+  const base = parseDateLocal(baseDueDate);
   const day = base.getDate();
   const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
   const safeDay = Math.min(day, lastDay);
   const d = new Date(targetYear, targetMonth, safeDay);
-  return d.toISOString().slice(0, 10);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 /**
@@ -26,7 +29,7 @@ export function generateMissingRecurringCopies(entries: Entry[]): Entry[] {
   const limitMonths = DEFAULT_RECURRENCE_MONTHS;
 
   for (const model of models) {
-    const modelDate = new Date(model.dueDate);
+    const modelDate = parseDateLocal(model.dueDate);
     const startMonth = modelDate.getMonth();
     const startYear = modelDate.getFullYear();
     const count = model.recurrenceCount ?? limitMonths;
@@ -44,7 +47,7 @@ export function generateMissingRecurringCopies(entries: Entry[]): Entry[] {
       }
       const alreadyExists = entries.some((e) => {
         if (e.recurrenceTemplateId !== model.id) return false;
-        const d = new Date(e.dueDate);
+        const d = parseDateLocal(e.dueDate);
         return sameMonthYear(d, m, y);
       });
       if (alreadyExists) continue;

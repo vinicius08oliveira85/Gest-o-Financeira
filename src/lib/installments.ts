@@ -1,12 +1,15 @@
 import type { Entry, EntryType } from '../types';
+import { parseDateLocal } from './format';
 
 function copyDueDateForMonth(baseDueDate: string, targetMonth: number, targetYear: number): string {
-  const base = new Date(baseDueDate);
+  const base = parseDateLocal(baseDueDate);
   const day = base.getDate();
   const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
   const safeDay = Math.min(day, lastDay);
   const d = new Date(targetYear, targetMonth, safeDay);
-  return d.toISOString().slice(0, 10);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 type BaseInstallmentInput = {
@@ -22,7 +25,7 @@ type BaseInstallmentInput = {
 export function generateInstallmentEntries(input: BaseInstallmentInput): Entry[] {
   const { name, amountPerInstallment, firstDueDate, type, category, tag, count } = input;
 
-  const baseDate = new Date(firstDueDate);
+  const baseDate = parseDateLocal(firstDueDate);
   const createdAt = Date.now();
   const groupId = crypto.randomUUID();
 

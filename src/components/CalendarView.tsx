@@ -1,5 +1,5 @@
 import type { Entry } from '../types';
-import { formatCurrency } from '../lib/format';
+import { formatCurrency, parseDateLocal } from '../lib/format';
 
 type CalendarViewProps = {
   entries: Entry[];
@@ -30,7 +30,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
   }
 
   for (const entry of entries) {
-    const d = new Date(entry.dueDate);
+    const d = parseDateLocal(entry.dueDate);
     if (d.getMonth() === month && d.getFullYear() === year) {
       const day = d.getDate();
       if (buckets[day]) {
