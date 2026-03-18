@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { EntryType } from '../types';
 import type { FormErrors } from '../hooks/useEntryForm';
+import { DateInput } from './DateInput';
 
 const MODAL_FORM_TITLE_ID = 'modal-form-title';
 
@@ -208,13 +209,11 @@ export function ModalForm({
                   >
                     Data
                   </label>
-                  <input
+                  <DateInput
                     id="modal-form-due-date"
-                    type="date"
-                    required
                     value={dueDate}
-                    onChange={(e) => {
-                      setDueDate(e.target.value);
+                    onChange={(v) => {
+                      setDueDate(v);
                       onClearError?.('dueDate');
                     }}
                     className={`${inputBaseClass} ${hasError('dueDate') ? inputErrorClass : ''}`}

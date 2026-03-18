@@ -19,6 +19,7 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
 
   const totalByType = byPeriod.reduce(
     (acc, d) => {
+      if (d.goalId) return acc;
       if (d.type === 'cash') acc.entradas += d.amount;
       else acc.saidas += d.amount;
       return acc;
@@ -27,10 +28,10 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
   );
 
   const totalEntradasFinalizadas = byPeriod
-    .filter((d) => d.type === 'cash' && d.isPaid)
+    .filter((d) => d.type === 'cash' && d.isPaid && !d.goalId)
     .reduce((acc, d) => acc + d.amount, 0);
   const totalSaidasFinalizadas = byPeriod
-    .filter((d) => d.type === 'debt' && d.isPaid)
+    .filter((d) => d.type === 'debt' && d.isPaid && !d.goalId)
     .reduce((acc, d) => acc + d.amount, 0);
   const saldoDoMes = totalEntradasFinalizadas - totalSaidasFinalizadas;
 

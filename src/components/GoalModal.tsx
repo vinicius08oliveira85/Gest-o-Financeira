@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Goal } from '../types';
+import { DateInput } from './DateInput';
 
 const GOAL_MODAL_TITLE_ID = 'goal-modal-title';
 
@@ -135,11 +136,10 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
                 >
                   Atingir até (data, opcional)
                 </label>
-                <input
+                <DateInput
                   id="goal-modal-target-date"
-                  type="date"
                   value={targetDate}
-                  onChange={(e) => setTargetDate(e.target.value)}
+                  onChange={setTargetDate}
                   className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500 transition-all"
                 />
               </div>

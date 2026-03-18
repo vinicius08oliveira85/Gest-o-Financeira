@@ -71,8 +71,8 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
 
           const day = bucket.date.getDate();
           const isToday = isCurrentMonth && day === todayDay;
-          const entradas = bucket.entries.filter((e) => e.type === 'cash');
-          const saidas = bucket.entries.filter((e) => e.type === 'debt');
+          const entradas = bucket.entries.filter((e) => e.type === 'cash' && !e.goalId);
+          const saidas = bucket.entries.filter((e) => e.type === 'debt' && !e.goalId);
           const totalEntradas = entradas.reduce((acc, e) => acc + e.amount, 0);
           const totalSaidas = saidas.reduce((acc, e) => acc + e.amount, 0);
           const hasInstallments = bucket.entries.some(
@@ -124,7 +124,11 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                   >
                     <span
                       className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
-                        e.type === 'cash' ? 'bg-emerald-500' : 'bg-red-500'
+                        e.goalId
+                          ? 'bg-amber-600'
+                          : e.type === 'cash'
+                            ? 'bg-emerald-500'
+                            : 'bg-red-500'
                       }`}
                     />
                     <span className="truncate">

@@ -120,11 +120,13 @@ function EntryItemInner({
         <div className="text-right sm:mr-3 pl-8 sm:pl-0">
           <div
             className={`font-semibold ${
-              entry.isPaid
-                ? 'text-slate-400 dark:text-slate-500'
-                : entry.type === 'cash'
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-red-600 dark:text-red-400'
+              entry.goalId
+                ? 'text-amber-800 dark:text-amber-400'
+                : entry.isPaid
+                  ? 'text-slate-400 dark:text-slate-500'
+                  : entry.type === 'cash'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-red-600 dark:text-red-400'
             }`}
           >
             {entry.type === 'cash' ? '+' : '-'}
