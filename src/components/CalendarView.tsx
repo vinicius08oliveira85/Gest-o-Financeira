@@ -63,10 +63,15 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
           <div key={d}>{d}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1 text-xs">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-xs">
         {cells.map((bucket, idx) => {
           if (!bucket) {
-            return <div key={idx} className="h-16 md:h-20 rounded-xl border border-transparent" />;
+            return (
+              <div
+                key={idx}
+                className="h-12 sm:h-16 md:h-20 rounded-lg sm:rounded-xl border border-transparent"
+              />
+            );
           }
 
           const day = bucket.date.getDate();
@@ -82,10 +87,16 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
           const visible = bucket.entries.slice(0, 2);
           const remaining = bucket.entries.length - visible.length;
 
+          const dotColors = bucket.entries
+            .slice(0, 3)
+            .map((e) =>
+              e.goalId ? 'bg-amber-600' : e.type === 'cash' ? 'bg-emerald-500' : 'bg-red-500'
+            );
+
           return (
             <div
               key={idx}
-              className={`h-20 md:h-24 rounded-xl border px-1.5 py-1 flex flex-col gap-0.5 ${
+              className={`h-12 sm:h-20 md:h-24 rounded-lg sm:rounded-xl border px-1 py-1 sm:px-1.5 flex flex-col gap-0.5 ${
                 isToday
                   ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700'
                   : hasInstallments
@@ -93,9 +104,10 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                     : 'border-slate-100 dark:border-slate-600 bg-slate-50/60 dark:bg-slate-700/60'
               }`}
             >
-              <div className="flex items-center justify-between">
+              {/* Número do dia — sempre visível */}
+              <div className="flex items-start justify-between">
                 <span
-                  className={`text-[11px] font-semibold ${
+                  className={`text-[11px] font-semibold leading-none ${
                     isToday
                       ? 'text-emerald-700 dark:text-emerald-300'
                       : 'text-slate-800 dark:text-slate-200'
@@ -103,7 +115,9 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                 >
                   {day}
                 </span>
-                <div className="flex flex-col items-end gap-0.5">
+
+                {/* Valores: visíveis apenas a partir de sm */}
+                <div className="hidden sm:flex flex-col items-end gap-0.5">
                   {totalEntradas > 0 && (
                     <span className="text-[10px] text-emerald-600 font-semibold">
                       +{formatCurrency(totalEntradas)}
@@ -116,7 +130,23 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                   )}
                 </div>
               </div>
-              <div className="mt-0.5 space-y-0.5">
+
+              {/* Mobile: bolinhas coloridas indicando lançamentos */}
+              {bucket.entries.length > 0 && (
+                <div className="flex sm:hidden items-center gap-0.5 flex-wrap mt-0.5">
+                  {dotColors.map((color, i) => (
+                    <span key={i} className={`inline-block h-1.5 w-1.5 rounded-full ${color}`} />
+                  ))}
+                  {bucket.entries.length > 3 && (
+                    <span className="text-[8px] text-slate-400 leading-none">
+                      +{bucket.entries.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Desktop: nomes dos lançamentos */}
+              <div className="hidden sm:block mt-0.5 space-y-0.5">
                 {visible.map((e) => (
                   <div
                     key={e.id}
