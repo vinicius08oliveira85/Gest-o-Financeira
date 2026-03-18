@@ -12,6 +12,8 @@ type DashboardCardsProps = {
   totalEntradasPendentes?: number;
   totalSaidasFinalizadas?: number;
   totalSaidasPendentes?: number;
+  /** Saldo projetado (total entradas - total saídas do mês) */
+  saldoProjetado?: number;
   /** Ex.: "do mês" para indicar que os valores são do período selecionado */
   periodLabel?: string;
 };
@@ -26,6 +28,7 @@ export function DashboardCards({
   totalEntradasPendentes,
   totalSaidasFinalizadas,
   totalSaidasPendentes,
+  saldoProjetado,
   periodLabel,
 }: DashboardCardsProps) {
   const suffix = periodLabel ? ` ${periodLabel}` : '';
@@ -146,6 +149,23 @@ export function DashboardCards({
           {formatCurrency(saldo)}
         </div>
         <div className="mt-2 text-xs text-slate-400">Só entradas e saídas finalizadas</div>
+        {saldoProjetado !== undefined && (
+          <div className="mt-2 space-y-0.5 border-t border-white/10 pt-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400" />
+                Projetado
+              </span>
+              <span
+                className={`font-medium ${
+                  saldoProjetado >= 0 ? 'text-emerald-300' : 'text-red-300'
+                }`}
+              >
+                {formatCurrency(saldoProjetado)}
+              </span>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

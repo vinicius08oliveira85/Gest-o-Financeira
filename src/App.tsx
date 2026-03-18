@@ -226,6 +226,7 @@ export default function App() {
             totalEntradasLancadasMes={totalEntradasLancadasMes}
             totalSaidasLancadasMes={totalSaidasLancadasMes}
             saldoMes={saldoMes}
+            saldoProjetadoMes={totalEntradasLancadasMes - totalSaidasLancadasMes}
             entradasCountMes={entradasCountMes}
             saidasCountMes={saidasCountMes}
             totalEntradasFinalizadasMes={totalEntradasFinalizadasMes}
