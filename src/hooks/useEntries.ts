@@ -261,6 +261,38 @@ export function useEntries() {
     [entriesDoMes]
   );
 
+  const totalEntradasFinalizadasMes = useMemo(
+    () =>
+      entriesDoMes
+        .filter((d) => d.type === 'cash' && d.isPaid && !d.goalId)
+        .reduce((acc, d) => acc + d.amount, 0),
+    [entriesDoMes]
+  );
+
+  const totalEntradasPendentesMes = useMemo(
+    () =>
+      entriesDoMes
+        .filter((d) => d.type === 'cash' && !d.isPaid && !d.goalId)
+        .reduce((acc, d) => acc + d.amount, 0),
+    [entriesDoMes]
+  );
+
+  const totalSaidasFinalizadasMes = useMemo(
+    () =>
+      entriesDoMes
+        .filter((d) => d.type === 'debt' && d.isPaid && !d.goalId)
+        .reduce((acc, d) => acc + d.amount, 0),
+    [entriesDoMes]
+  );
+
+  const totalSaidasPendentesMes = useMemo(
+    () =>
+      entriesDoMes
+        .filter((d) => d.type === 'debt' && !d.isPaid && !d.goalId)
+        .reduce((acc, d) => acc + d.amount, 0),
+    [entriesDoMes]
+  );
+
   const getSaldoForMonth = useCallback(
     (month: number, year: number) => {
       const inPeriod = (d: Entry) => {
@@ -487,6 +519,10 @@ export function useEntries() {
     saldoMes,
     entradasCountMes,
     saidasCountMes,
+    totalEntradasFinalizadasMes,
+    totalEntradasPendentesMes,
+    totalSaidasFinalizadasMes,
+    totalSaidasPendentesMes,
     isLoading,
     isMigrating,
     useSupabaseSync,

@@ -8,6 +8,10 @@ type DashboardCardsProps = {
   saldo: number;
   entradasCount: number;
   saidasCount: number;
+  totalEntradasFinalizadas?: number;
+  totalEntradasPendentes?: number;
+  totalSaidasFinalizadas?: number;
+  totalSaidasPendentes?: number;
   /** Ex.: "do mês" para indicar que os valores são do período selecionado */
   periodLabel?: string;
 };
@@ -18,6 +22,10 @@ export function DashboardCards({
   saldo,
   entradasCount,
   saidasCount,
+  totalEntradasFinalizadas,
+  totalEntradasPendentes,
+  totalSaidasFinalizadas,
+  totalSaidasPendentes,
   periodLabel,
 }: DashboardCardsProps) {
   const suffix = periodLabel ? ` ${periodLabel}` : '';
@@ -42,6 +50,32 @@ export function DashboardCards({
         <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
           <span>{entradasCount} entradas lançadas</span>
         </div>
+        {(totalEntradasFinalizadas !== undefined || totalEntradasPendentes !== undefined) && (
+          <div className="mt-2 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-2">
+            {totalEntradasFinalizadas !== undefined && (
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Finalizadas
+                </span>
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(totalEntradasFinalizadas)}
+                </span>
+              </div>
+            )}
+            {totalEntradasPendentes !== undefined && (
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-500" />
+                  Pendentes
+                </span>
+                <span className="font-medium text-slate-500 dark:text-slate-400">
+                  {formatCurrency(totalEntradasPendentes)}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
 
       <motion.div
@@ -64,6 +98,32 @@ export function DashboardCards({
         <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
           <span>{saidasCount} saídas lançadas</span>
         </div>
+        {(totalSaidasFinalizadas !== undefined || totalSaidasPendentes !== undefined) && (
+          <div className="mt-2 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-2">
+            {totalSaidasFinalizadas !== undefined && (
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
+                  Finalizadas
+                </span>
+                <span className="font-medium text-red-600 dark:text-red-400">
+                  {formatCurrency(totalSaidasFinalizadas)}
+                </span>
+              </div>
+            )}
+            {totalSaidasPendentes !== undefined && (
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-500" />
+                  Pendentes
+                </span>
+                <span className="font-medium text-slate-500 dark:text-slate-400">
+                  {formatCurrency(totalSaidasPendentes)}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
 
       <motion.div

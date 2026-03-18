@@ -24,6 +24,10 @@ type CashFlowSectionProps = {
   saldoMes: number;
   entradasCountMes: number;
   saidasCountMes: number;
+  totalEntradasFinalizadasMes: number;
+  totalEntradasPendentesMes: number;
+  totalSaidasFinalizadasMes: number;
+  totalSaidasPendentesMes: number;
   goals: Goal[];
   getMetaBalanceForGoal: (goalId: string) => number;
   isLoadingGoals?: boolean;
@@ -64,6 +68,10 @@ export function CashFlowSection({
   saldoMes,
   entradasCountMes,
   saidasCountMes,
+  totalEntradasFinalizadasMes,
+  totalEntradasPendentesMes,
+  totalSaidasFinalizadasMes,
+  totalSaidasPendentesMes,
   goals,
   getMetaBalanceForGoal,
   isLoadingGoals = false,
@@ -214,6 +222,10 @@ export function CashFlowSection({
               saldo={saldoMes}
               entradasCount={entradasCountMes}
               saidasCount={saidasCountMes}
+              totalEntradasFinalizadas={totalEntradasFinalizadasMes}
+              totalEntradasPendentes={totalEntradasPendentesMes}
+              totalSaidasFinalizadas={totalSaidasFinalizadasMes}
+              totalSaidasPendentes={totalSaidasPendentesMes}
               periodLabel="do mês"
             />
             <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 p-3">

@@ -85,6 +85,10 @@ export default function App() {
     saldoMes,
     entradasCountMes,
     saidasCountMes,
+    totalEntradasFinalizadasMes,
+    totalEntradasPendentesMes,
+    totalSaidasFinalizadasMes,
+    totalSaidasPendentesMes,
     isLoading,
     isMigrating,
     showOfflineBanner,
@@ -224,6 +228,10 @@ export default function App() {
             saldoMes={saldoMes}
             entradasCountMes={entradasCountMes}
             saidasCountMes={saidasCountMes}
+            totalEntradasFinalizadasMes={totalEntradasFinalizadasMes}
+            totalEntradasPendentesMes={totalEntradasPendentesMes}
+            totalSaidasFinalizadasMes={totalSaidasFinalizadasMes}
+            totalSaidasPendentesMes={totalSaidasPendentesMes}
             goals={goals}
             getMetaBalanceForGoal={getMetaBalanceForGoal}
             isLoadingGoals={isLoadingGoals}
