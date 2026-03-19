@@ -25,9 +25,13 @@ export function ReportsPanel({
     return date.getMonth() === month && date.getFullYear() === year;
   });
 
+  // Depósito na meta (cash+goalId) → saída do caixa; Saque (debt+goalId) → entrada
+  const isEntrada = (d: (typeof byPeriod)[0]) => (d.goalId ? d.type === 'debt' : d.type === 'cash');
+  const isSaida = (d: (typeof byPeriod)[0]) => (d.goalId ? d.type === 'cash' : d.type === 'debt');
+
   const totalByType = byPeriod.reduce(
     (acc, d) => {
-      if (d.type === 'cash') acc.entradas += d.amount;
+      if (isEntrada(d)) acc.entradas += d.amount;
       else acc.saidas += d.amount;
       return acc;
     },
@@ -35,21 +39,21 @@ export function ReportsPanel({
   );
 
   const totalEntradasFinalizadas = byPeriod
-    .filter((d) => d.type === 'cash' && d.isPaid)
+    .filter((d) => d.isPaid && isEntrada(d))
     .reduce((acc, d) => acc + d.amount, 0);
   const totalSaidasFinalizadas = byPeriod
-    .filter((d) => d.type === 'debt' && d.isPaid)
+    .filter((d) => d.isPaid && isSaida(d))
     .reduce((acc, d) => acc + d.amount, 0);
   const saldoDoMes = totalEntradasFinalizadas - totalSaidasFinalizadas;
 
   const totalByCategorySaidas = byPeriod.reduce<Record<string, number>>((acc, d) => {
-    if (!d.category || d.type !== 'debt') return acc;
+    if (!d.category || !isSaida(d)) return acc;
     acc[d.category] = (acc[d.category] ?? 0) + d.amount;
     return acc;
   }, {});
 
   const totalByCategoryEntradas = byPeriod.reduce<Record<string, number>>((acc, d) => {
-    if (!d.category || d.type !== 'cash') return acc;
+    if (!d.category || !isEntrada(d)) return acc;
     acc[d.category] = (acc[d.category] ?? 0) + d.amount;
     return acc;
   }, {});

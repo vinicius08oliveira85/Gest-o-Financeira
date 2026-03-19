@@ -226,39 +226,47 @@ export function useEntries() {
     return entradasFinalizadas - saidasFinalizadas;
   }, [entries]);
 
+  // Depósito na meta (cash+goalId) abate do caixa → conta como saída do mês
+  // Saque da meta  (debt+goalId) retorna ao caixa → conta como entrada do mês
   const totalEntradasLancadasMes = useMemo(
-    () => entriesDoMes.filter((d) => d.type === 'cash').reduce((acc, d) => acc + d.amount, 0),
+    () =>
+      entriesDoMes
+        .filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash'))
+        .reduce((acc, d) => acc + d.amount, 0),
     [entriesDoMes]
   );
 
   const totalSaidasLancadasMes = useMemo(
-    () => entriesDoMes.filter((d) => d.type === 'debt').reduce((acc, d) => acc + d.amount, 0),
+    () =>
+      entriesDoMes
+        .filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt'))
+        .reduce((acc, d) => acc + d.amount, 0),
     [entriesDoMes]
   );
 
   const saldoMes = useMemo(() => {
     const entradasFinalizadas = entriesDoMes
-      .filter((d) => d.type === 'cash' && d.isPaid)
+      .filter((d) => d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
       .reduce((acc, d) => acc + d.amount, 0);
     const saidasFinalizadas = entriesDoMes
-      .filter((d) => d.type === 'debt' && d.isPaid)
+      .filter((d) => d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
       .reduce((acc, d) => acc + d.amount, 0);
     return entradasFinalizadas - saidasFinalizadas;
   }, [entriesDoMes]);
 
   const entradasCountMes = useMemo(
-    () => entriesDoMes.filter((d) => d.type === 'cash').length,
+    () => entriesDoMes.filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash')).length,
     [entriesDoMes]
   );
   const saidasCountMes = useMemo(
-    () => entriesDoMes.filter((d) => d.type === 'debt').length,
+    () => entriesDoMes.filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt')).length,
     [entriesDoMes]
   );
 
   const totalEntradasFinalizadasMes = useMemo(
     () =>
       entriesDoMes
-        .filter((d) => d.type === 'cash' && d.isPaid)
+        .filter((d) => d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
         .reduce((acc, d) => acc + d.amount, 0),
     [entriesDoMes]
   );
@@ -266,7 +274,7 @@ export function useEntries() {
   const totalEntradasPendentesMes = useMemo(
     () =>
       entriesDoMes
-        .filter((d) => d.type === 'cash' && !d.isPaid)
+        .filter((d) => !d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
         .reduce((acc, d) => acc + d.amount, 0),
     [entriesDoMes]
   );
@@ -274,7 +282,7 @@ export function useEntries() {
   const totalSaidasFinalizadasMes = useMemo(
     () =>
       entriesDoMes
-        .filter((d) => d.type === 'debt' && d.isPaid)
+        .filter((d) => d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
         .reduce((acc, d) => acc + d.amount, 0),
     [entriesDoMes]
   );
@@ -282,7 +290,7 @@ export function useEntries() {
   const totalSaidasPendentesMes = useMemo(
     () =>
       entriesDoMes
-        .filter((d) => d.type === 'debt' && !d.isPaid)
+        .filter((d) => !d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
         .reduce((acc, d) => acc + d.amount, 0),
     [entriesDoMes]
   );
@@ -294,10 +302,14 @@ export function useEntries() {
         return date.getMonth() === month && date.getFullYear() === year;
       };
       const entradas = entries
-        .filter((d) => d.type === 'cash' && d.isPaid && inPeriod(d))
+        .filter(
+          (d) => d.isPaid && inPeriod(d) && (d.goalId ? d.type === 'debt' : d.type === 'cash')
+        )
         .reduce((acc, d) => acc + d.amount, 0);
       const saidas = entries
-        .filter((d) => d.type === 'debt' && d.isPaid && inPeriod(d))
+        .filter(
+          (d) => d.isPaid && inPeriod(d) && (d.goalId ? d.type === 'cash' : d.type === 'debt')
+        )
         .reduce((acc, d) => acc + d.amount, 0);
       return entradas - saidas;
     },

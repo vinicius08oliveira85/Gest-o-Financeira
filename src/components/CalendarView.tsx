@@ -76,8 +76,13 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
 
           const day = bucket.date.getDate();
           const isToday = isCurrentMonth && day === todayDay;
-          const entradas = bucket.entries.filter((e) => e.type === 'cash');
-          const saidas = bucket.entries.filter((e) => e.type === 'debt');
+          // Depósito meta (cash+goalId) → saída; Saque meta (debt+goalId) → entrada
+          const entradas = bucket.entries.filter((e) =>
+            e.goalId ? e.type === 'debt' : e.type === 'cash'
+          );
+          const saidas = bucket.entries.filter((e) =>
+            e.goalId ? e.type === 'cash' : e.type === 'debt'
+          );
           const totalEntradas = entradas.reduce((acc, e) => acc + e.amount, 0);
           const totalSaidas = saidas.reduce((acc, e) => acc + e.amount, 0);
           const hasInstallments = bucket.entries.some(
