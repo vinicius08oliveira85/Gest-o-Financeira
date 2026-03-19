@@ -17,6 +17,7 @@ describe('rowToEntry', () => {
       installments_count: null,
       installment_number: null,
       parent_installment_id: null,
+      paid_date: '2025-03-15',
     };
     const entry = rowToEntry(row);
     expect(entry.id).toBe('abc-123');
@@ -31,6 +32,22 @@ describe('rowToEntry', () => {
     expect(entry.installmentsCount).toBeUndefined();
     expect(entry.installmentNumber).toBeUndefined();
     expect(entry.parentInstallmentId).toBeUndefined();
+    expect(entry.paidDate).toBe('2025-03-15');
+  });
+
+  it('mapeia paid_date null para paidDate undefined', () => {
+    const row = {
+      id: 'y',
+      name: 'Y',
+      amount: 10,
+      due_date: '2025-01-01',
+      is_paid: false,
+      type: 'debt',
+      created_at: '2025-01-01T00:00:00.000Z',
+      paid_date: null,
+    };
+    const entry = rowToEntry(row);
+    expect(entry.paidDate).toBeUndefined();
   });
 
   it('converte null/undefined em categoria e tag para undefined', () => {
@@ -93,6 +110,21 @@ describe('entryToRow', () => {
     expect(row.type).toBe('debt');
     expect(row.category).toBe('Moradia');
     expect(row.tag).toBe('Imobiliária');
+  });
+
+  it('inclui paid_date quando paidDate está preenchido', () => {
+    const entry: Entry = {
+      id: 'z',
+      name: 'Z',
+      amount: 50,
+      dueDate: '2025-05-01',
+      isPaid: true,
+      type: 'debt',
+      createdAt: 0,
+      paidDate: '2025-05-02',
+    };
+    const row = entryToRow(entry);
+    expect(row.paid_date).toBe('2025-05-02');
   });
 
   it('converte undefined em category/tag para null', () => {

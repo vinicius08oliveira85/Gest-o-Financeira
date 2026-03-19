@@ -18,6 +18,7 @@ export type EntryRow = {
   recurrence_count?: number | null;
   recurrence_template_id?: string | null;
   goal_id?: string | null;
+  paid_date?: string | null;
 };
 
 export function rowToEntry(row: EntryRow): Entry {
@@ -38,6 +39,7 @@ export function rowToEntry(row: EntryRow): Entry {
     recurrenceCount: row.recurrence_count ?? undefined,
     recurrenceTemplateId: row.recurrence_template_id ?? undefined,
     goalId: row.goal_id ?? undefined,
+    paidDate: row.paid_date ?? undefined,
   };
 }
 
@@ -65,6 +67,7 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
   if (entry.recurrenceTemplateId != null)
     extended.recurrence_template_id = entry.recurrenceTemplateId;
   if (entry.goalId != null) extended.goal_id = entry.goalId;
+  if (entry.paidDate != null) extended.paid_date = entry.paidDate;
   return { ...base, ...extended };
 }
 
@@ -108,9 +111,16 @@ export async function updateEntry(entry: Entry): Promise<void> {
   if (error) throw error;
 }
 
-export async function updateEntryIsPaid(id: string, isPaid: boolean): Promise<void> {
+export async function updateEntryIsPaid(
+  id: string,
+  isPaid: boolean,
+  paidDate?: string
+): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase.from('entries').update({ is_paid: isPaid }).eq('id', id);
+  const { error } = await supabase
+    .from('entries')
+    .update({ is_paid: isPaid, paid_date: paidDate ?? null })
+    .eq('id', id);
   if (error) throw error;
 }
 

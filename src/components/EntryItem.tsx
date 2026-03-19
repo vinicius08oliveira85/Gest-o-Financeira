@@ -83,6 +83,12 @@ function EntryItemInner({
             <Calendar size={12} />
             {entry.type === 'debt' ? 'Vence em' : 'Data:'} {formatDate(entry.dueDate)}
           </span>
+          {entry.isPaid && entry.paidDate && (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <CheckCircle2 size={12} />
+              Pago em {formatDate(entry.paidDate)}
+            </span>
+          )}
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
               entry.isPaid

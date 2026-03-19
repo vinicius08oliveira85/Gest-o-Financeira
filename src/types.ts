@@ -21,6 +21,8 @@ export interface Entry {
   recurrenceTemplateId?: string;
   /** Lançamento de depósito/saque na meta; preenchido quando o valor compõe a meta */
   goalId?: string;
+  /** Data do pagamento efetivo, ISO date (preenchida quando isPaid = true) */
+  paidDate?: string;
 }
 
 export type FilterType = 'all' | 'pending' | 'paid' | 'debt' | 'cash';

@@ -34,6 +34,9 @@ type ModalFormProps = {
   formErrors?: FormErrors;
   onClearError?: (field: 'name' | 'amount' | 'dueDate') => void;
   availableCategories?: string[];
+  isPaid?: boolean;
+  paidDate?: string;
+  setPaidDate?: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 };
@@ -64,6 +67,9 @@ export function ModalForm({
   formErrors = {},
   onClearError,
   availableCategories = [],
+  isPaid = false,
+  paidDate = '',
+  setPaidDate,
   onSubmit,
   onClose,
 }: ModalFormProps) {
@@ -328,6 +334,23 @@ export function ModalForm({
                   </div>
                 )}
               </div>
+
+              {isEditing && isPaid && setPaidDate && (
+                <div>
+                  <label
+                    htmlFor="modal-form-paid-date"
+                    className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+                  >
+                    Data do pagamento
+                  </label>
+                  <DateInput
+                    id="modal-form-paid-date"
+                    value={paidDate}
+                    onChange={setPaidDate}
+                    className={inputBaseClass}
+                  />
+                </div>
+              )}
 
               <div className="pt-4">
                 <button

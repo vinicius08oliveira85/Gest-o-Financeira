@@ -404,11 +404,12 @@ export function useEntries() {
       const entry = entries.find((e) => e.id === id);
       if (!entry) return;
       const nextPaid = !entry.isPaid;
+      const paidDate = nextPaid ? new Date().toISOString().slice(0, 10) : undefined;
       const previous = entries;
       setPendingPaidId(id);
-      setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid } : e)));
+      setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid, paidDate } : e)));
       if (useSupabaseSync) {
-        updateEntryIsPaid(id, nextPaid)
+        updateEntryIsPaid(id, nextPaid, paidDate)
           .then(() => setPendingPaidId(null))
           .catch((err) => {
             logError('Erro ao atualizar no Supabase', err);

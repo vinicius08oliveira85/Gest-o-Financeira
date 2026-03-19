@@ -293,6 +293,9 @@ export default function App() {
           formErrors={form.formErrors}
           onClearError={(field) => form.setFormErrors((prev) => ({ ...prev, [field]: false }))}
           availableCategories={availableCategories}
+          isPaid={form.editingEntry?.isPaid ?? false}
+          paidDate={form.paidDate}
+          setPaidDate={form.setPaidDate}
           onSubmit={form.handleSubmit}
           onClose={form.closeForm}
         />

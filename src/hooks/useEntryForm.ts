@@ -23,6 +23,7 @@ export function useEntryForm(
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceCount, setRecurrenceCount] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [paidDate, setPaidDate] = useState('');
 
   function closeForm() {
     setName('');
@@ -37,6 +38,7 @@ export function useEntryForm(
     setRecurrenceCount('');
     setEditingEntry(null);
     setFormErrors({});
+    setPaidDate('');
     onClose();
   }
 
@@ -64,6 +66,7 @@ export function useEntryForm(
       setInstallmentsCount('2');
       setIsRecurring(entry.isRecurring ?? false);
       setRecurrenceCount(entry.recurrenceCount != null ? String(entry.recurrenceCount) : '');
+      setPaidDate(entry.paidDate ?? '');
     } else {
       setEditingEntry(null);
       setName('');
@@ -108,6 +111,7 @@ export function useEntryForm(
             : null
           : editingEntry.recurrenceCount,
         recurrenceTemplateId: editingEntry.recurrenceTemplateId,
+        paidDate: paidDate || undefined,
       };
       const isRecurringEdit =
         editingEntry.isRecurring === true || !!editingEntry.recurrenceTemplateId;
@@ -198,6 +202,8 @@ export function useEntryForm(
     setRecurrenceCount,
     formErrors,
     setFormErrors,
+    paidDate,
+    setPaidDate,
     closeForm,
     openForm,
     handleSubmit,

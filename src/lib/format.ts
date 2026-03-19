@@ -47,7 +47,17 @@ export type ExportCSVOptions = {
 export function exportEntriesToCSV(entries: Entry[], options?: ExportCSVOptions): void {
   if (entries.length === 0) return;
 
-  const headers = ['Tipo', 'Nome', 'Valor', 'Vencimento', 'Status', 'Categoria', 'Tag', 'Parcelas'];
+  const headers = [
+    'Tipo',
+    'Nome',
+    'Valor',
+    'Vencimento',
+    'Status',
+    'Data Pgto',
+    'Categoria',
+    'Tag',
+    'Parcelas',
+  ];
   const rows = entries.map((d) => {
     const parcelas =
       d.installmentsCount != null && d.installmentNumber != null
@@ -59,6 +69,7 @@ export function exportEntriesToCSV(entries: Entry[], options?: ExportCSVOptions)
       d.amount.toString(),
       d.dueDate,
       d.isPaid ? 'Finalizado' : 'Pendente',
+      d.paidDate ? formatDate(d.paidDate) : '',
       d.category ?? '',
       d.tag ?? '',
       parcelas,
