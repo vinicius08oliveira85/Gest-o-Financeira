@@ -12,7 +12,7 @@ import {
   updateEntryIsPaid,
   deleteEntry as deleteEntryDb,
 } from '../lib/entriesDb';
-import { generateMissingRecurringCopies } from '../lib/recurringEntries';
+import { generateMissingRecurringCopies, copyDueDateForMonth } from '../lib/recurringEntries';
 
 export function useEntries() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -446,13 +446,23 @@ export function useEntries() {
       const toUpdate = entries.filter(
         (e) => e.id === modelId || e.recurrenceTemplateId === modelId
       );
-      const merged = toUpdate.map((e) => ({
-        ...e,
-        name: updatedEntry.name,
-        amount: updatedEntry.amount,
-        category: updatedEntry.category,
-        tag: updatedEntry.tag,
-      }));
+      const merged = toUpdate.map((e) => {
+        const isModel = e.id === modelId;
+        const dueDate = isModel
+          ? updatedEntry.dueDate
+          : (() => {
+              const d = parseDateLocal(e.dueDate);
+              return copyDueDateForMonth(updatedEntry.dueDate, d.getMonth(), d.getFullYear());
+            })();
+        return {
+          ...e,
+          name: updatedEntry.name,
+          amount: updatedEntry.amount,
+          dueDate,
+          category: updatedEntry.category,
+          tag: updatedEntry.tag,
+        };
+      });
       setEntries(
         entries.map((e) => {
           const u = merged.find((m) => m.id === e.id);

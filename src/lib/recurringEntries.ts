@@ -8,7 +8,11 @@ function sameMonthYear(d: Date, month: number, year: number): boolean {
   return d.getMonth() === month && d.getFullYear() === year;
 }
 
-function copyDueDateForMonth(baseDueDate: string, targetMonth: number, targetYear: number): string {
+export function copyDueDateForMonth(
+  baseDueDate: string,
+  targetMonth: number,
+  targetYear: number
+): string {
   const base = parseDateLocal(baseDueDate);
   const day = base.getDate();
   const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
