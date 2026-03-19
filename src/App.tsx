@@ -366,16 +366,15 @@ export default function App() {
           open={metaMovement !== null}
           type={metaMovement?.type ?? 'deposit'}
           isLoading={metaMovementLoading}
-          onConfirm={async (amount, note) => {
+          onConfirm={async (amount, date, isPaid, note) => {
             if (!metaMovement) return;
-            const today = new Date().toISOString().slice(0, 10);
             const isDeposit = metaMovement.type === 'deposit';
             const entry: Entry = {
               id: crypto.randomUUID(),
               name: note || (isDeposit ? 'Depósito na meta' : 'Saque da meta'),
               amount,
-              dueDate: today,
-              isPaid: true,
+              dueDate: date,
+              isPaid,
               type: isDeposit ? 'cash' : 'debt',
               createdAt: Date.now(),
               goalId: metaMovement.goal.id,

@@ -313,7 +313,7 @@ export function useEntries() {
   const getMetaBalanceForGoal = useCallback(
     (goalId: string) => {
       return entries
-        .filter((e) => e.goalId === goalId)
+        .filter((e) => e.goalId === goalId && e.isPaid)
         .reduce((sum, e) => sum + (e.type === 'cash' ? e.amount : -e.amount), 0);
     },
     [entries]
