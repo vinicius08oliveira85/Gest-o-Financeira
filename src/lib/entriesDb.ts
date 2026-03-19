@@ -19,6 +19,8 @@ export type EntryRow = {
   recurrence_template_id?: string | null;
   goal_id?: string | null;
   paid_date?: string | null;
+  card_id?: string | null;
+  is_card_invoice?: boolean | null;
 };
 
 export function rowToEntry(row: EntryRow): Entry {
@@ -40,6 +42,8 @@ export function rowToEntry(row: EntryRow): Entry {
     recurrenceTemplateId: row.recurrence_template_id ?? undefined,
     goalId: row.goal_id ?? undefined,
     paidDate: row.paid_date ?? undefined,
+    cardId: row.card_id ?? undefined,
+    isCardInvoice: row.is_card_invoice ?? undefined,
   };
 }
 
@@ -68,6 +72,8 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
     extended.recurrence_template_id = entry.recurrenceTemplateId;
   if (entry.goalId != null) extended.goal_id = entry.goalId;
   if (entry.paidDate != null) extended.paid_date = entry.paidDate;
+  if (entry.cardId != null) extended.card_id = entry.cardId;
+  if (entry.isCardInvoice != null) extended.is_card_invoice = entry.isCardInvoice;
   return { ...base, ...extended };
 }
 

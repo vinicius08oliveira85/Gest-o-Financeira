@@ -2,12 +2,15 @@ import { useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useEntries } from './hooks/useEntries';
 import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
+import { useCreditCards } from './hooks/useCreditCards';
+import { useCardExpenses } from './hooks/useCardExpenses';
 import { useAlerts } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { exportEntriesToCSV } from './lib/format';
+import { buildInvoiceEntry } from './lib/cardInvoice';
 import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
-import type { Entry, Goal } from './types';
+import type { CreditCard, Entry, Goal } from './types';
 import { PeriodProvider } from './contexts/PeriodContext';
 import {
   MainLayout,
@@ -38,6 +41,14 @@ const GoalModal = lazy(() =>
   import('./components/GoalModal').then((m) => ({ default: m.GoalModal }))
 );
 
+const CreditCardModal = lazy(() =>
+  import('./components/CreditCardModal').then((m) => ({ default: m.CreditCardModal }))
+);
+
+const CardExpenseModal = lazy(() =>
+  import('./components/CardExpenseModal').then((m) => ({ default: m.CardExpenseModal }))
+);
+
 const ModalForm = lazy(() =>
   import('./components/ModalForm').then((m) => ({ default: m.ModalForm }))
 );
@@ -55,6 +66,14 @@ export default function App() {
     type: 'deposit' | 'withdraw';
   } | null>(null);
   const [metaMovementLoading, setMetaMovementLoading] = useState(false);
+
+  const [cardModalOpen, setCardModalOpen] = useState(false);
+  const [cardToEdit, setCardToEdit] = useState<CreditCard | null>(null);
+  const [expenseModalCard, setExpenseModalCard] = useState<CreditCard | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
+
+  const { cards, upsertCard, deleteCard } = useCreditCards();
+  const { expenses: cardExpenses, addExpense } = useCardExpenses();
 
   const {
     entries,
@@ -116,6 +135,8 @@ export default function App() {
     month: currentMonth,
     year: currentYear,
     goals,
+    cards,
+    cardExpenses,
   });
 
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(() => {
@@ -192,6 +213,17 @@ export default function App() {
     sessionStorage.setItem(UNLOCK_KEY, '1');
   }, []);
 
+  const handleRegisterInvoice = useCallback(
+    (card: CreditCard, month: number, year: number, total: number) => {
+      // Verifica se já existe uma fatura gerada para esse cartão/período
+      const existing = entries.find((e) => e.isCardInvoice && e.cardId === card.id);
+      const entry = buildInvoiceEntry(card, month, year, total, existing?.id);
+      addOrUpdateEntry(entry, existing != null);
+      showToast('Fatura registrada no fluxo de caixa');
+    },
+    [entries, addOrUpdateEntry, showToast]
+  );
+
   if (!unlocked) {
     return <PasswordGate onUnlock={handleUnlock} />;
   }
@@ -262,6 +294,18 @@ export default function App() {
             pendingPaidId={pendingPaidId}
             onEdit={handleOpenForm}
             onDeleteRequest={handleDeleteRequest}
+            cards={cards}
+            cardExpenses={cardExpenses}
+            onNewCard={() => {
+              setCardToEdit(null);
+              setCardModalOpen(true);
+            }}
+            onEditCard={(card) => {
+              setCardToEdit(card);
+              setCardModalOpen(true);
+            }}
+            onAddExpense={(card) => setExpenseModalCard(card)}
+            onRegisterInvoice={handleRegisterInvoice}
           />
         </MainLayout>
       </PeriodProvider>
@@ -434,6 +478,54 @@ export default function App() {
           }}
           onClose={() => setGoalToDelete(null)}
         />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <CreditCardModal
+          open={cardModalOpen}
+          card={cardToEdit}
+          onSave={(partial) => {
+            upsertCard(partial);
+            showToast('Cartão salvo');
+          }}
+          onRequestDelete={(card) => {
+            setCardToDelete(card);
+            setCardModalOpen(false);
+            setCardToEdit(null);
+          }}
+          onClose={() => {
+            setCardModalOpen(false);
+            setCardToEdit(null);
+          }}
+        />
+        <ConfirmDeleteModal
+          open={cardToDelete !== null}
+          title="Excluir cartão"
+          message="Excluir este cartão e todos os seus gastos?"
+          confirmLabel="Excluir"
+          onConfirm={() => {
+            if (cardToDelete) {
+              deleteCard(cardToDelete.id);
+              setCardToDelete(null);
+              showToast('Cartão excluído');
+            }
+          }}
+          onClose={() => setCardToDelete(null)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        {expenseModalCard && (
+          <CardExpenseModal
+            open={expenseModalCard !== null}
+            card={expenseModalCard}
+            expense={null}
+            onSave={(expense) => {
+              addExpense(expense);
+            }}
+            onClose={() => setExpenseModalCard(null)}
+          />
+        )}
       </Suspense>
 
       <Toast message={toastMessage} action={toastAction} onDismiss={dismissToast} />

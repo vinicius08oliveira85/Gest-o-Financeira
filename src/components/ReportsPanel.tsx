@@ -1,17 +1,25 @@
-import type { Entry } from '../types';
+import type { CardExpense, CreditCard, Entry } from '../types';
 import { formatCurrency, parseDateLocal } from '../lib/format';
 
 type ReportsPanelProps = {
   entries: Entry[];
   month: number;
   year: number;
+  cards?: CreditCard[];
+  cardExpenses?: CardExpense[];
 };
 
 function formatCycleDate(d: Date): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
+export function ReportsPanel({
+  entries,
+  month,
+  year,
+  cards = [],
+  cardExpenses = [],
+}: ReportsPanelProps) {
   const byPeriod = entries.filter((d) => {
     const date = parseDateLocal(d.dueDate);
     return date.getMonth() === month && date.getFullYear() === year;
@@ -222,6 +230,50 @@ export function ReportsPanel({ entries, month, year }: ReportsPanelProps) {
           )}
         </div>
       </div>
+
+      {cards.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Faturas do mês
+          </h3>
+          <div className="space-y-3">
+            {cards.map((card) => {
+              const total = cardExpenses
+                .filter(
+                  (e) => e.cardId === card.id && e.billingMonth === month && e.billingYear === year
+                )
+                .reduce((sum, e) => sum + e.amount, 0);
+              const usageRatio = card.limitAmount > 0 ? total / card.limitAmount : 0;
+              const progressColor =
+                usageRatio >= 0.9
+                  ? 'bg-red-500'
+                  : usageRatio >= 0.7
+                    ? 'bg-amber-500'
+                    : 'bg-emerald-500';
+              return (
+                <div key={card.id}>
+                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
+                    <span className="font-medium">{card.name}</span>
+                    <span>
+                      {formatCurrency(total)}{' '}
+                      <span className="text-slate-400">/ {formatCurrency(card.limitAmount)}</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${progressColor}`}
+                      style={{ width: `${Math.min(usageRatio * 100, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {(usageRatio * 100).toFixed(0)}% do limite utilizado
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

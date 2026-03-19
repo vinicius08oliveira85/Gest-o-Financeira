@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Entry, FilterType, Goal } from '../types';
+import type { CardExpense, CreditCard, Entry, FilterType, Goal } from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
 import { DashboardCards } from './DashboardCards';
@@ -10,6 +10,7 @@ import { EntryList } from './EntryList';
 import { AlertsPanel } from './AlertsPanel';
 import { GuidedTooltip } from './GuidedTooltip';
 import { TabNav, type TabId } from './TabNav';
+import { CardsSection } from './CardsSection';
 
 const CalendarView = lazy(() =>
   import('./CalendarView').then((m) => ({ default: m.CalendarView }))
@@ -61,6 +62,12 @@ type CashFlowSectionProps = {
   onEdit: (entry?: Entry) => void;
   onDeleteRequest: (entry: Entry) => void;
   onDismissAlert?: (id: string) => void;
+  cards: CreditCard[];
+  cardExpenses: CardExpense[];
+  onNewCard: () => void;
+  onEditCard: (card: CreditCard) => void;
+  onAddExpense: (card: CreditCard) => void;
+  onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
 };
 
 export function CashFlowSection({
@@ -106,6 +113,12 @@ export function CashFlowSection({
   onEdit,
   onDeleteRequest,
   onDismissAlert,
+  cards,
+  cardExpenses,
+  onNewCard,
+  onEditCard,
+  onAddExpense,
+  onRegisterInvoice,
 }: CashFlowSectionProps) {
   const {
     currentMonth,
@@ -319,7 +332,13 @@ export function CashFlowSection({
               <div className="min-h-[120px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
             }
           >
-            <ReportsPanel entries={entries} month={currentMonth} year={currentYear} />
+            <ReportsPanel
+              entries={entries}
+              month={currentMonth}
+              year={currentYear}
+              cards={cards}
+              cardExpenses={cardExpenses}
+            />
           </Suspense>
         )}
 
@@ -355,6 +374,22 @@ export function CashFlowSection({
                 />
               </>
             )}
+          </section>
+        )}
+
+        {activeTab === 'cartoes' && (
+          <section>
+            <CardsSection
+              cards={cards}
+              expenses={cardExpenses}
+              invoiceEntries={entries.filter((e) => e.isCardInvoice)}
+              currentMonth={currentMonth}
+              currentYear={currentYear}
+              onNewCard={onNewCard}
+              onEditCard={onEditCard}
+              onAddExpense={onAddExpense}
+              onRegisterInvoice={onRegisterInvoice}
+            />
           </section>
         )}
       </section>

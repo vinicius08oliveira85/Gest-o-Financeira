@@ -10,3 +10,9 @@ export const ALERT_CONCENTRATION_RATIO = 0.35;
 
 /** Dias antes da data alvo da meta para exibir alerta de prazo. */
 export const GOAL_DEADLINE_ALERT_DAYS = 7;
+
+export const CARDS_STORAGE_KEY = 'gestao-financeira-cards';
+export const CARD_EXPENSES_STORAGE_KEY = 'gestao-financeira-card-expenses';
+
+/** Limiar (0–1) acima do qual o uso do limite do cartão gera alerta. */
+export const CARD_LIMIT_ALERT_RATIO = 0.8;

@@ -23,9 +23,44 @@ export interface Entry {
   goalId?: string;
   /** Data do pagamento efetivo, ISO date (preenchida quando isPaid = true) */
   paidDate?: string;
+  /** FK para CreditCard quando o lançamento representa uma fatura gerada */
+  cardId?: string;
+  /** true quando o lançamento é uma fatura de cartão gerada automaticamente */
+  isCardInvoice?: boolean;
 }
 
 export type FilterType = 'all' | 'pending' | 'paid' | 'debt' | 'cash';
+
+export interface CreditCard {
+  id: string;
+  name: string;
+  limitAmount: number;
+  /** Dia do mês em que a fatura fecha (ex: 25) */
+  closingDay: number;
+  /** Dia do mês em que a fatura vence no mês seguinte (ex: 5) */
+  dueDay: number;
+  color?: string;
+  createdAt?: string;
+}
+
+export interface CardExpense {
+  id: string;
+  cardId: string;
+  name: string;
+  amount: number;
+  /** Data da compra, ISO date */
+  date: string;
+  /** Mês da fatura (0-11) */
+  billingMonth: number;
+  /** Ano da fatura */
+  billingYear: number;
+  category?: string;
+  tag?: string;
+  installmentsCount?: number;
+  installmentNumber?: number;
+  parentInstallmentId?: string;
+  createdAt: number;
+}
 
 export interface Goal {
   id: string;

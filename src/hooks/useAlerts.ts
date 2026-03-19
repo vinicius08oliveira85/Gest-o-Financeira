@@ -1,9 +1,18 @@
 import { useMemo } from 'react';
-import type { Entry, Goal } from '../types';
-import { ALERT_CONCENTRATION_RATIO, GOAL_DEADLINE_ALERT_DAYS } from '../constants';
+import type { CardExpense, CreditCard, Entry, Goal } from '../types';
+import {
+  ALERT_CONCENTRATION_RATIO,
+  CARD_LIMIT_ALERT_RATIO,
+  GOAL_DEADLINE_ALERT_DAYS,
+} from '../constants';
 import { parseDateLocal, todayLocalISO } from '../lib/format';
 
-export type AlertType = 'concentration' | 'due-soon' | 'goal-deadline';
+export type AlertType =
+  | 'concentration'
+  | 'due-soon'
+  | 'goal-deadline'
+  | 'card-invoice-due'
+  | 'card-limit';
 
 export type Alert = {
   id: string;
@@ -17,9 +26,18 @@ type UseAlertsParams = {
   month: number;
   year: number;
   goals?: Goal[];
+  cards?: CreditCard[];
+  cardExpenses?: CardExpense[];
 };
 
-export function useAlerts({ entries, month, year, goals = [] }: UseAlertsParams) {
+export function useAlerts({
+  entries,
+  month,
+  year,
+  goals = [],
+  cards = [],
+  cardExpenses = [],
+}: UseAlertsParams) {
   const alerts = useMemo<Alert[]>(() => {
     const byPeriod = entries.filter((d) => {
       const date = parseDateLocal(d.dueDate);
@@ -100,8 +118,48 @@ export function useAlerts({ entries, month, year, goals = [] }: UseAlertsParams)
       }
     }
 
+    // Alertas de cartão de crédito
+    const todayD = new Date(todayISO + 'T00:00:00');
+    const fiveDaysD = new Date(todayD);
+    fiveDaysD.setDate(fiveDaysD.getDate() + 5);
+
+    for (const entry of entries) {
+      if (!entry.isCardInvoice || entry.isPaid) continue;
+      const dueD = parseDateLocal(entry.dueDate);
+      dueD.setHours(0, 0, 0, 0);
+      const diffMs = dueD.getTime() - todayD.getTime();
+      const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+      if (diffDays >= 0 && dueD <= fiveDaysD) {
+        result.push({
+          id: `card-invoice-due-${entry.id}`,
+          type: 'card-invoice-due',
+          title: `Fatura "${entry.name}" vence em breve`,
+          description:
+            diffDays === 0
+              ? 'Esta fatura de cartão vence hoje e ainda não foi paga.'
+              : `Esta fatura de cartão vence em ${diffDays} dia(s). Não esqueça de pagar.`,
+        });
+      }
+    }
+
+    // Alertas de limite do cartão
+    for (const card of cards) {
+      const totalUsed = cardExpenses
+        .filter((e) => e.cardId === card.id && e.billingMonth === month && e.billingYear === year)
+        .reduce((sum, e) => sum + e.amount, 0);
+      const ratio = card.limitAmount > 0 ? totalUsed / card.limitAmount : 0;
+      if (ratio >= CARD_LIMIT_ALERT_RATIO) {
+        result.push({
+          id: `card-limit-${card.id}-${month}-${year}`,
+          type: 'card-limit',
+          title: `Cartão "${card.name}" acima de ${Math.round(CARD_LIMIT_ALERT_RATIO * 100)}% do limite`,
+          description: `Você usou ${(ratio * 100).toFixed(0)}% do limite do cartão ${card.name} neste mês.`,
+        });
+      }
+    }
+
     return result;
-  }, [entries, month, year, goals]);
+  }, [entries, month, year, goals, cards, cardExpenses]);
 
   return { alerts };
 }

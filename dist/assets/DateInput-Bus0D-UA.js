@@ -1,0 +1,1 @@
+import{j as o}from"./index-B59Gelug.js";function u({id:a,value:t,onChange:i,className:n,"aria-invalid":e}){return o.jsx("input",{id:a,type:"date",value:t,onChange:r=>i(r.target.value),className:n,"aria-invalid":e})}export{u as D};
