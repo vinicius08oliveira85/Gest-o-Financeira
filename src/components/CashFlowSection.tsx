@@ -134,17 +134,15 @@ export function CashFlowSection({
   const totalLimiteDisponivel = useMemo(
     () =>
       cards.reduce((sum, card) => {
-        const usado = cardExpenses
-          .filter(
-            (e) =>
-              e.cardId === card.id &&
-              e.billingMonth === currentMonth &&
-              e.billingYear === currentYear
-          )
+        const totalGasto = cardExpenses
+          .filter((e) => e.cardId === card.id)
           .reduce((s, e) => s + e.amount, 0);
-        return sum + (card.limitAmount - usado);
+        const totalFaturasPagas = entries
+          .filter((e) => e.cardId === card.id && e.isCardInvoice && e.isPaid)
+          .reduce((s, e) => s + e.amount, 0);
+        return sum + Math.max(0, card.limitAmount - totalGasto + totalFaturasPagas);
       }, 0),
-    [cards, cardExpenses, currentMonth, currentYear]
+    [cards, cardExpenses, entries]
   );
 
   return (
