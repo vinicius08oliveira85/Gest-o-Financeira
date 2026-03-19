@@ -76,8 +76,8 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
 
           const day = bucket.date.getDate();
           const isToday = isCurrentMonth && day === todayDay;
-          const entradas = bucket.entries.filter((e) => e.type === 'cash' && !e.goalId);
-          const saidas = bucket.entries.filter((e) => e.type === 'debt' && !e.goalId);
+          const entradas = bucket.entries.filter((e) => e.type === 'cash');
+          const saidas = bucket.entries.filter((e) => e.type === 'debt');
           const totalEntradas = entradas.reduce((acc, e) => acc + e.amount, 0);
           const totalSaidas = saidas.reduce((acc, e) => acc + e.amount, 0);
           const hasInstallments = bucket.entries.some(
