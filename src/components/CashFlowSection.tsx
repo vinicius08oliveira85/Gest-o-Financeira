@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry, FilterType, Goal } from '../types';
 import type { Alert } from '../hooks/useAlerts';
@@ -131,6 +131,22 @@ export function CashFlowSection({
   const [activeTab, setActiveTab] = useState<TabId>('resumo');
   const showSkipButton = !showNewEntryHint && !showMonthNavHint && !showReportsHint;
 
+  const totalLimiteDisponivel = useMemo(
+    () =>
+      cards.reduce((sum, card) => {
+        const usado = cardExpenses
+          .filter(
+            (e) =>
+              e.cardId === card.id &&
+              e.billingMonth === currentMonth &&
+              e.billingYear === currentYear
+          )
+          .reduce((s, e) => s + e.amount, 0);
+        return sum + (card.limitAmount - usado);
+      }, 0),
+    [cards, cardExpenses, currentMonth, currentYear]
+  );
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 space-y-6">
       <section className="space-y-6">
@@ -241,6 +257,7 @@ export function CashFlowSection({
               totalEntradasPendentes={totalEntradasPendentesMes}
               totalSaidasFinalizadas={totalSaidasFinalizadasMes}
               totalSaidasPendentes={totalSaidasPendentesMes}
+              totalLimiteDisponivel={cards.length > 0 ? totalLimiteDisponivel : undefined}
               saldoProjetado={saldoProjetadoMes}
               periodLabel="do mês"
             />

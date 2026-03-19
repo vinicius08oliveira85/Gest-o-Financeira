@@ -16,6 +16,8 @@ type DashboardCardsProps = {
   saldoProjetado?: number;
   /** Ex.: "do mês" para indicar que os valores são do período selecionado */
   periodLabel?: string;
+  /** Soma do limite disponível em todos os cartões de crédito no período */
+  totalLimiteDisponivel?: number;
 };
 
 export function DashboardCards({
@@ -30,6 +32,7 @@ export function DashboardCards({
   totalSaidasPendentes,
   saldoProjetado,
   periodLabel,
+  totalLimiteDisponivel,
 }: DashboardCardsProps) {
   const suffix = periodLabel ? ` ${periodLabel}` : '';
   return (
@@ -162,6 +165,28 @@ export function DashboardCards({
                 }`}
               >
                 {formatCurrency(saldoProjetado)}
+              </span>
+            </div>
+          </div>
+        )}
+        {totalLimiteDisponivel !== undefined && (
+          <div className="mt-2 space-y-0.5 border-t border-white/10 pt-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />
+                Limite cartões
+              </span>
+              <span className="font-medium text-blue-300">
+                {formatCurrency(totalLimiteDisponivel)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" />
+                Total disponível
+              </span>
+              <span className="font-medium text-white">
+                {formatCurrency(saldo + totalLimiteDisponivel)}
               </span>
             </div>
           </div>
