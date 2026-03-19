@@ -22,6 +22,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (import.meta.env.DEV) {
       console.error('ErrorBoundary caught:', error, errorInfo);
     }
+    // Recarrega automaticamente quando um chunk desatualizado falha ao ser carregado
+    if (
+      error.message.includes('Failed to fetch dynamically imported module') ||
+      error.message.includes('Importing a module script failed') ||
+      error.name === 'ChunkLoadError'
+    ) {
+      window.location.reload();
+    }
   }
 
   handleRetry = (): void => {
