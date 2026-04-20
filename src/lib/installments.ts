@@ -47,6 +47,7 @@ export function generateInstallmentEntries(input: BaseInstallmentInput): Entry[]
       isPaid: false,
       type,
       createdAt,
+      updatedAt: createdAt,
       category: category || undefined,
       tag: tag || undefined,
       installmentsCount: count,

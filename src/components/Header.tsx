@@ -1,5 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Wallet, Lock, Sun, Moon, MoreVertical, FileDown } from 'lucide-react';
+import {
+  Plus,
+  Wallet,
+  Lock,
+  Sun,
+  Moon,
+  MoreVertical,
+  FileDown,
+  Save,
+  CloudUpload,
+  Loader2,
+} from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { GuidedTooltip } from './GuidedTooltip';
 
@@ -10,6 +21,12 @@ type HeaderProps = {
   onNewEntry: () => void;
   onOpenChangePassword: () => void;
   showNewEntryHint?: boolean;
+  /** Persiste lançamentos no localStorage (manual) */
+  onSaveEntriesLocal?: () => void;
+  /** Envia estado local ao Supabase e refaz o merge com o servidor */
+  onSyncEntriesWithSupabase?: () => void | Promise<void>;
+  isSyncingEntries?: boolean;
+  showEntriesCloudSync?: boolean;
 };
 
 export function Header({
@@ -18,6 +35,10 @@ export function Header({
   onNewEntry,
   onOpenChangePassword,
   showNewEntryHint,
+  onSaveEntriesLocal,
+  onSyncEntriesWithSupabase,
+  isSyncingEntries = false,
+  showEntriesCloudSync = false,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -56,7 +77,35 @@ export function Header({
           >
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1 flex-wrap justify-end">
+            {onSaveEntriesLocal && (
+              <button
+                type="button"
+                onClick={onSaveEntriesLocal}
+                disabled={isSyncingEntries}
+                className="flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-3 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors disabled:opacity-50"
+                title="Salvar lançamentos neste dispositivo"
+              >
+                <Save size={16} />
+                Salvar
+              </button>
+            )}
+            {showEntriesCloudSync && onSyncEntriesWithSupabase && (
+              <button
+                type="button"
+                onClick={() => void onSyncEntriesWithSupabase()}
+                disabled={isSyncingEntries}
+                className="flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-3 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors disabled:opacity-50"
+                title="Enviar alterações ao Supabase e buscar atualizações"
+              >
+                {isSyncingEntries ? (
+                  <Loader2 size={16} className="animate-spin shrink-0" aria-hidden />
+                ) : (
+                  <CloudUpload size={16} />
+                )}
+                Sincronizar
+              </button>
+            )}
             <button
               type="button"
               onClick={onOpenChangePassword}
@@ -95,6 +144,38 @@ export function Header({
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-full mt-1 py-1 w-48 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-lg z-50">
+                {onSaveEntriesLocal && (
+                  <button
+                    type="button"
+                    disabled={isSyncingEntries}
+                    onClick={() => {
+                      onSaveEntriesLocal();
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    <Save size={16} />
+                    Salvar local
+                  </button>
+                )}
+                {showEntriesCloudSync && onSyncEntriesWithSupabase && (
+                  <button
+                    type="button"
+                    disabled={isSyncingEntries}
+                    onClick={() => {
+                      void onSyncEntriesWithSupabase();
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    {isSyncingEntries ? (
+                      <Loader2 size={16} className="animate-spin shrink-0" aria-hidden />
+                    ) : (
+                      <CloudUpload size={16} />
+                    )}
+                    Sincronizar
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {

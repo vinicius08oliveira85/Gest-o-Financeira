@@ -27,6 +27,8 @@ describe('rowToEntry', () => {
     expect(entry.isPaid).toBe(true);
     expect(entry.type).toBe('cash');
     expect(entry.createdAt).toBe(new Date('2025-03-01T10:00:00.000Z').getTime());
+    expect(entry.updatedAt).toBe(new Date('2025-03-01T10:00:00.000Z').getTime());
+    expect(entry.revision).toBe(0);
     expect(entry.category).toBe('Renda');
     expect(entry.tag).toBe('Empresa X');
     expect(entry.installmentsCount).toBeUndefined();
@@ -67,6 +69,21 @@ describe('rowToEntry', () => {
     expect(entry.tag).toBeUndefined();
   });
 
+  it('mapeia revision numérico do servidor', () => {
+    const row = {
+      id: 'r1',
+      name: 'X',
+      amount: 1,
+      due_date: '2025-01-01',
+      is_paid: false,
+      type: 'debt',
+      created_at: '2025-01-01T00:00:00.000Z',
+      revision: 7,
+    };
+    const entry = rowToEntry(row);
+    expect(entry.revision).toBe(7);
+  });
+
   it('converte parcelas quando preenchidas', () => {
     const row = {
       id: 'p1',
@@ -103,6 +120,8 @@ describe('entryToRow', () => {
     const row = entryToRow(entry);
     expect(row).not.toHaveProperty('id');
     expect(row).not.toHaveProperty('created_at');
+    expect(row.updated_at).toBe(new Date(1234567890).toISOString());
+    expect(row.revision).toBe(0);
     expect(row.name).toBe('Aluguel');
     expect(row.amount).toBe(1200);
     expect(row.due_date).toBe('2025-03-20');

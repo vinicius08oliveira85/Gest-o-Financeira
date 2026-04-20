@@ -49,6 +49,10 @@ vi.mock('./hooks/useEntries', () => ({
     sortOrder: 'desc',
     setSortOrder: vi.fn(),
     pendingPaidId: null,
+    saveEntriesLocal: vi.fn(),
+    syncEntriesWithSupabase: vi.fn(),
+    isSyncing: false,
+    entriesSyncAvailable: false,
   }),
 }));
 

@@ -57,6 +57,7 @@ export function generateMissingRecurringCopies(entries: Entry[]): Entry[] {
       if (alreadyExists) continue;
 
       const dueDate = copyDueDateForMonth(model.dueDate, m, y);
+      const now = Date.now();
       newCopies.push({
         id: crypto.randomUUID(),
         name: model.name,
@@ -64,7 +65,8 @@ export function generateMissingRecurringCopies(entries: Entry[]): Entry[] {
         dueDate,
         isPaid: false,
         type: model.type,
-        createdAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
         category: model.category,
         tag: model.tag,
         isRecurring: false,

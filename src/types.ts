@@ -8,6 +8,10 @@ export interface Entry {
   isPaid: boolean; // For cash, this could mean "received"
   type: EntryType;
   createdAt: number;
+  /** Última alteração lógica (ms); usado no merge de sincronização com o Supabase */
+  updatedAt?: number;
+  /** Revisão otimista vinda do servidor (incrementa a cada escrita aplicada); 0 = novo local ainda não persistido */
+  revision?: number;
   category?: string;
   tag?: string;
   installmentsCount?: number;

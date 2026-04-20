@@ -58,6 +58,7 @@ export function buildInvoiceEntry(
     month: 'long',
     year: 'numeric',
   });
+  const now = Date.now();
   return {
     id: existingId ?? crypto.randomUUID(),
     name: `Fatura ${card.name} — ${monthName}`,
@@ -65,7 +66,8 @@ export function buildInvoiceEntry(
     dueDate: getInvoiceDueDate(billingMonth, billingYear, card.dueDay),
     isPaid: false,
     type: 'debt',
-    createdAt: Date.now(),
+    createdAt: now,
+    updatedAt: now,
     category: 'Cartão de crédito',
     tag: card.name,
     cardId: card.id,

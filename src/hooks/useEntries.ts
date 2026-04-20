@@ -1,16 +1,14 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Entry, FilterType } from '../types';
 import { ENTRIES_STORAGE_KEY } from '../constants';
-import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { logError } from '../lib/logger';
 import { parseDateLocal } from '../lib/format';
 import {
   fetchEntries,
-  insertEntry,
   insertEntriesBatch,
-  updateEntry,
-  updateEntryIsPaid,
-  deleteEntry as deleteEntryDb,
+  syncEntriesDelta,
+  bumpEntryUpdatedAt,
 } from '../lib/entriesDb';
 import { generateMissingRecurringCopies, copyDueDateForMonth } from '../lib/recurringEntries';
 
@@ -28,7 +26,11 @@ export function useEntries() {
   const [useSupabaseSync, setUseSupabaseSync] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [pendingPaidId, setPendingPaidId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const entriesRef = useRef<Entry[]>([]);
+  entriesRef.current = entries;
+  /** Ids alterados localmente desde o último sync bem-sucedido (payload delta). */
+  const dirtyEntryIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +40,7 @@ export function useEntries() {
           const data = await fetchEntries();
           if (!cancelled) {
             setEntries(data);
+            dirtyEntryIdsRef.current.clear();
             setUseSupabaseSync(true);
           }
           const copies = generateMissingRecurringCopies(data);
@@ -59,7 +62,10 @@ export function useEntries() {
                   try {
                     await insertEntriesBatch(parsed);
                     const refetched = await fetchEntries();
-                    if (!cancelled) setEntries(refetched);
+                    if (!cancelled) {
+                      setEntries(refetched);
+                      dirtyEntryIdsRef.current.clear();
+                    }
                     localStorage.removeItem(ENTRIES_STORAGE_KEY);
                   } finally {
                     if (!cancelled) setIsMigrating(false);
@@ -80,7 +86,11 @@ export function useEntries() {
           const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
           if (saved) {
             try {
-              if (!cancelled) setEntries(JSON.parse(saved));
+              if (!cancelled) {
+                const parsed = JSON.parse(saved) as Entry[];
+                setEntries(parsed);
+                dirtyEntryIdsRef.current = new Set(parsed.map((e) => e.id));
+              }
             } catch {
               logError('Failed to parse localStorage entries', e);
             }
@@ -94,7 +104,9 @@ export function useEntries() {
         const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
         if (saved) {
           try {
-            setEntries(JSON.parse(saved));
+            const parsed = JSON.parse(saved) as Entry[];
+            setEntries(parsed);
+            dirtyEntryIdsRef.current = new Set(parsed.map((e) => e.id));
           } catch (e) {
             logError('Failed to parse entries', e);
           }
@@ -113,6 +125,7 @@ export function useEntries() {
     try {
       const data = await fetchEntries();
       setEntries(data);
+      dirtyEntryIdsRef.current.clear();
       setShowOfflineBanner(false);
     } catch (e) {
       logError('Failed to refetch entries', e);
@@ -120,32 +133,44 @@ export function useEntries() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!useSupabaseSync || !supabase) return;
-    let cancelled = false;
-    const channel = supabase
-      .channel('entries-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, async () => {
-        if (cancelled) return;
-        try {
-          const data = await fetchEntries();
-          if (!cancelled) setEntries(data);
-        } catch (e) {
-          logError('Realtime: failed to refetch entries', e);
-        }
-      })
-      .subscribe();
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
-  }, [useSupabaseSync]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !useSupabaseSync) {
-      localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(entries));
+  const saveEntriesLocal = useCallback(() => {
+    try {
+      localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(entriesRef.current));
+    } catch (e) {
+      logError('Failed to save entries to localStorage', e);
+      setSaveError('Não foi possível salvar localmente.');
     }
-  }, [entries, useSupabaseSync]);
+  }, []);
+
+  const syncEntriesWithSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    setIsSyncing(true);
+    setSaveError(null);
+    try {
+      const localSnapshot = entriesRef.current;
+      const presentIds = localSnapshot.map((e) => e.id);
+      const dirty = dirtyEntryIdsRef.current;
+      const changedEntries = localSnapshot.filter((e) => dirty.has(e.id));
+      await syncEntriesDelta(presentIds, changedEntries);
+      let merged = await fetchEntries();
+      const copies = generateMissingRecurringCopies(merged);
+      if (copies.length > 0) {
+        await insertEntriesBatch(copies);
+        merged = await fetchEntries();
+      }
+      setEntries(merged);
+      dirtyEntryIdsRef.current.clear();
+      setUseSupabaseSync(true);
+      setShowOfflineBanner(false);
+    } catch (e) {
+      logError('Falha na sincronização com Supabase', e);
+      setSaveError('Falha ao sincronizar. Tente de novo.');
+      setShowOfflineBanner(true);
+      throw e;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
 
   useEffect(() => {
     setSearchQuery('');
@@ -366,92 +391,45 @@ export function useEntries() {
 
   function addOrUpdateEntry(entry: Entry, isEdit: boolean): Promise<void> {
     if (isEdit) {
-      const previous = entries;
-      setEntries(entries.map((e) => (e.id === entry.id ? entry : e)));
-      if (useSupabaseSync) {
-        return updateEntry(entry).catch((err) => {
-          logError('Erro ao salvar no Supabase', err);
-          setSaveError('Falha ao salvar. Tente de novo.');
-          setEntries(previous);
-          throw err;
-        });
-      }
+      dirtyEntryIdsRef.current.add(entry.id);
+      setEntries((prev) => prev.map((e) => (e.id === entry.id ? bumpEntryUpdatedAt(entry) : e)));
       return Promise.resolve();
     }
-    const newList = [entry, ...entries];
-    setEntries(newList);
-    if (useSupabaseSync) {
-      return insertEntry(entry)
-        .then(async () => {
-          if (entry.isRecurring) {
-            const copies = generateMissingRecurringCopies(newList);
-            if (copies.length > 0) {
-              await insertEntriesBatch(copies);
-              setEntries((prev) => [...prev, ...copies]);
-            }
-          }
-        })
-        .catch((err) => {
-          logError('Erro ao salvar no Supabase', err);
-          setSaveError('Falha ao salvar. Tente de novo.');
-          setEntries((prev) => prev.filter((e) => e.id !== entry.id));
-          throw err;
-        });
-    }
-    if (entry.isRecurring) {
+    const stamped = bumpEntryUpdatedAt(entry);
+    dirtyEntryIdsRef.current.add(stamped.id);
+    setEntries((prev) => {
+      const newList = [stamped, ...prev];
+      if (!stamped.isRecurring) return newList;
       const copies = generateMissingRecurringCopies(newList);
-      if (copies.length > 0) setEntries((prev) => [...prev, ...copies]);
-    }
+      for (const c of copies) {
+        dirtyEntryIdsRef.current.add(c.id);
+      }
+      return copies.length > 0 ? [...newList, ...copies] : newList;
+    });
     return Promise.resolve();
   }
 
-  const togglePaid = useCallback(
-    (id: string) => {
-      const entry = entries.find((e) => e.id === id);
-      if (!entry) return;
-      const nextPaid = !entry.isPaid;
-      const paidDate = nextPaid ? new Date().toISOString().slice(0, 10) : undefined;
-      const previous = entries;
-      setPendingPaidId(id);
-      setEntries(entries.map((e) => (e.id === id ? { ...e, isPaid: nextPaid, paidDate } : e)));
-      if (useSupabaseSync) {
-        updateEntryIsPaid(id, nextPaid, paidDate)
-          .then(() => setPendingPaidId(null))
-          .catch((err) => {
-            logError('Erro ao atualizar no Supabase', err);
-            setSaveError('Falha ao atualizar. Tente de novo.');
-            setEntries(previous);
-            setPendingPaidId(null);
-          });
-      } else {
-        setPendingPaidId(null);
-      }
-    },
-    [entries, useSupabaseSync]
-  );
+  const togglePaid = useCallback((id: string) => {
+    dirtyEntryIdsRef.current.add(id);
+    setEntries((prev) =>
+      prev.map((e) => {
+        if (e.id !== id) return e;
+        const nextPaid = !e.isPaid;
+        const paidDate = nextPaid ? new Date().toISOString().slice(0, 10) : undefined;
+        return bumpEntryUpdatedAt({ ...e, isPaid: nextPaid, paidDate });
+      })
+    );
+  }, []);
 
-  const deleteEntry = useCallback(
-    (id: string) => {
-      const entry = entries.find((e) => e.id === id);
-      if (!entry) return;
-      setEntries(entries.filter((e) => e.id !== id));
-      if (useSupabaseSync) {
-        deleteEntryDb(id).catch((err) => {
-          logError('Erro ao excluir no Supabase', err);
-          setSaveError('Falha ao excluir. Tente de novo.');
-          setEntries((prev) => [...prev, entry]);
-        });
-      }
-    },
-    [entries, useSupabaseSync]
-  );
+  const deleteEntry = useCallback((id: string) => {
+    dirtyEntryIdsRef.current.delete(id);
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+  }, []);
 
-  const updateRecurringApplyToAll = useCallback(
-    (updatedEntry: Entry) => {
+  const updateRecurringApplyToAll = useCallback((updatedEntry: Entry) => {
+    setEntries((prev) => {
       const modelId = updatedEntry.recurrenceTemplateId ?? updatedEntry.id;
-      const toUpdate = entries.filter(
-        (e) => e.id === modelId || e.recurrenceTemplateId === modelId
-      );
+      const toUpdate = prev.filter((e) => e.id === modelId || e.recurrenceTemplateId === modelId);
       const merged = toUpdate.map((e) => {
         const isModel = e.id === modelId;
         const dueDate = isModel
@@ -460,51 +438,40 @@ export function useEntries() {
               const d = parseDateLocal(e.dueDate);
               return copyDueDateForMonth(updatedEntry.dueDate, d.getMonth(), d.getFullYear());
             })();
-        return {
+        return bumpEntryUpdatedAt({
           ...e,
           name: updatedEntry.name,
           amount: updatedEntry.amount,
           dueDate,
           category: updatedEntry.category,
           tag: updatedEntry.tag,
-        };
-      });
-      setEntries(
-        entries.map((e) => {
-          const u = merged.find((m) => m.id === e.id);
-          return u ?? e;
-        })
-      );
-      if (useSupabaseSync) {
-        Promise.all(merged.map((u) => updateEntry(u))).catch((err) => {
-          logError('Erro ao atualizar recorrentes no Supabase', err);
-          setSaveError('Falha ao salvar. Tente de novo.');
         });
+      });
+      for (const m of merged) {
+        dirtyEntryIdsRef.current.add(m.id);
       }
-    },
-    [entries, useSupabaseSync]
-  );
+      return prev.map((e) => {
+        const u = merged.find((m) => m.id === e.id);
+        return u ?? e;
+      });
+    });
+  }, []);
 
-  const deleteRecurringModel = useCallback(
-    (id: string, deleteAllCopies: boolean) => {
-      const entry = entries.find((e) => e.id === id);
-      if (!entry) return;
+  const deleteRecurringModel = useCallback((id: string, deleteAllCopies: boolean) => {
+    setEntries((prev) => {
+      const entry = prev.find((e) => e.id === id);
+      if (!entry) return prev;
       const toRemove =
         deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId
-          ? entries.filter((e) => e.id === id || e.recurrenceTemplateId === id)
+          ? prev.filter((e) => e.id === id || e.recurrenceTemplateId === id)
           : [entry];
       const ids = new Set(toRemove.map((e) => e.id));
-      setEntries(entries.filter((e) => !ids.has(e.id)));
-      if (useSupabaseSync) {
-        Promise.all(toRemove.map((e) => deleteEntryDb(e.id))).catch((err) => {
-          logError('Erro ao excluir no Supabase', err);
-          setSaveError('Falha ao excluir. Tente de novo.');
-          setEntries((prev) => [...prev, ...toRemove]);
-        });
+      for (const rid of ids) {
+        dirtyEntryIdsRef.current.delete(rid);
       }
-    },
-    [entries, useSupabaseSync]
-  );
+      return prev.filter((e) => !ids.has(e.id));
+    });
+  }, []);
 
   return {
     entries,
@@ -549,7 +516,7 @@ export function useEntries() {
     setSaveError,
     addOrUpdateEntry,
     togglePaid,
-    pendingPaidId,
+    pendingPaidId: null,
     deleteEntry,
     updateRecurringApplyToAll,
     deleteRecurringModel,
@@ -557,5 +524,9 @@ export function useEntries() {
     refetchEntries,
     getSaldoForMonth,
     getMetaBalanceForGoal,
+    saveEntriesLocal,
+    syncEntriesWithSupabase,
+    isSyncing,
+    entriesSyncAvailable: isSupabaseConfigured(),
   };
 }

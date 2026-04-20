@@ -34,10 +34,8 @@ vi.mock('../lib/supabase', () => ({
 
 vi.mock('../lib/entriesDb', () => ({
   fetchEntries: vi.fn(),
-  insertEntry: vi.fn(),
-  updateEntry: vi.fn(),
-  updateEntryIsPaid: vi.fn(),
-  deleteEntry: vi.fn(),
+  insertEntriesBatch: vi.fn(),
+  syncEntriesDelta: vi.fn(),
 }));
 
 describe('useEntries', () => {

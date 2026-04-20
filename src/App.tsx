@@ -124,6 +124,10 @@ export default function App() {
     refetchEntries,
     getSaldoForMonth,
     getMetaBalanceForGoal,
+    saveEntriesLocal,
+    syncEntriesWithSupabase,
+    isSyncing,
+    entriesSyncAvailable,
   } = useEntries();
 
   const { goals, upsertGoal, deleteGoal, isLoadingGoals } = useGoals();
@@ -213,6 +217,20 @@ export default function App() {
     sessionStorage.setItem(UNLOCK_KEY, '1');
   }, []);
 
+  const handleSaveEntriesLocal = useCallback(() => {
+    saveEntriesLocal();
+    showToast('Dados salvos localmente');
+  }, [saveEntriesLocal, showToast]);
+
+  const handleSyncEntriesWithSupabase = useCallback(async () => {
+    try {
+      await syncEntriesWithSupabase();
+      showToast('Sincronização com Supabase concluída');
+    } catch {
+      // Erro também aparece em saveError / banner
+    }
+  }, [syncEntriesWithSupabase, showToast]);
+
   const handleRegisterInvoice = useCallback(
     (card: CreditCard, month: number, year: number, total: number) => {
       // Verifica se já existe uma fatura gerada para esse cartão/período
@@ -253,6 +271,10 @@ export default function App() {
           onNewEntry={handleNewEntryWithStep}
           onOpenChangePassword={() => setShowChangePasswordModal(true)}
           showNewEntryHint={showNewEntryHint}
+          onSaveEntriesLocal={handleSaveEntriesLocal}
+          onSyncEntriesWithSupabase={handleSyncEntriesWithSupabase}
+          isSyncingEntries={isSyncing}
+          showEntriesCloudSync={entriesSyncAvailable}
         >
           <CashFlowSection
             totalEntradasLancadasMes={totalEntradasLancadasMes}

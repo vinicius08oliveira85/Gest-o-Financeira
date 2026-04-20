@@ -17,6 +17,10 @@ type MainLayoutProps = {
   onNewEntry: () => void;
   onOpenChangePassword: () => void;
   showNewEntryHint?: boolean;
+  onSaveEntriesLocal?: () => void;
+  onSyncEntriesWithSupabase?: () => void | Promise<void>;
+  isSyncingEntries?: boolean;
+  showEntriesCloudSync?: boolean;
   children: ReactNode;
 };
 
@@ -34,6 +38,10 @@ export function MainLayout({
   onNewEntry,
   onOpenChangePassword,
   showNewEntryHint,
+  onSaveEntriesLocal,
+  onSyncEntriesWithSupabase,
+  isSyncingEntries,
+  showEntriesCloudSync,
   children,
 }: MainLayoutProps) {
   return (
@@ -46,6 +54,10 @@ export function MainLayout({
             onNewEntry={onNewEntry}
             onOpenChangePassword={onOpenChangePassword}
             showNewEntryHint={showNewEntryHint}
+            onSaveEntriesLocal={onSaveEntriesLocal}
+            onSyncEntriesWithSupabase={onSyncEntriesWithSupabase}
+            isSyncingEntries={isSyncingEntries}
+            showEntriesCloudSync={showEntriesCloudSync}
           />
           <Banners
             showOfflineBanner={showOfflineBanner}
