@@ -1,6 +1,16 @@
 -- Revisão no servidor (OCC): `revision` incrementada só quando o cliente envia a revisão esperada.
 -- `updated_at` no servidor via trigger (clock_timestamp) em todo insert/update na tabela.
 
+-- Trigger usa NEW.updated_at: garantir coluna mesmo se migrações anteriores não rodaram neste projeto.
+alter table public.entries add column if not exists updated_at timestamptz;
+
+update public.entries
+set updated_at = coalesce(updated_at, created_at, now())
+where updated_at is null;
+
+alter table public.entries
+  alter column updated_at set default now();
+
 alter table public.entries add column if not exists revision bigint;
 
 update public.entries set revision = 1 where revision is null;
