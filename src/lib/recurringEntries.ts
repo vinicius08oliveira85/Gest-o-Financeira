@@ -8,6 +8,12 @@ function sameMonthYear(d: Date, month: number, year: number): boolean {
   return d.getMonth() === month && d.getFullYear() === year;
 }
 
+/** Chave estável para “modelo + mês de vencimento” (cópia apagada manualmente). */
+export function recurringSlotKey(templateId: string, dueDateIso: string): string {
+  const d = parseDateLocal(dueDateIso);
+  return `${templateId}|${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export function copyDueDateForMonth(
   baseDueDate: string,
   targetMonth: number,
@@ -27,7 +33,10 @@ export function copyDueDateForMonth(
  * Gera cópias de lançamentos recorrentes (modelos) para os meses futuros que ainda não possuem cópia.
  * Retorna apenas as novas entradas a serem inseridas.
  */
-export function generateMissingRecurringCopies(entries: Entry[]): Entry[] {
+export function generateMissingRecurringCopies(
+  entries: Entry[],
+  suppressedSlots?: ReadonlySet<string>
+): Entry[] {
   const models = entries.filter((e) => e.isRecurring === true && !e.recurrenceTemplateId);
   const newCopies: Entry[] = [];
   const limitMonths = DEFAULT_RECURRENCE_MONTHS;
@@ -49,14 +58,15 @@ export function generateMissingRecurringCopies(entries: Entry[]): Entry[] {
         m = 0;
         y += 1;
       }
+      const dueDate = copyDueDateForMonth(model.dueDate, m, y);
+      if (suppressedSlots?.has(recurringSlotKey(model.id, dueDate))) continue;
+
       const alreadyExists = entries.some((e) => {
         if (e.recurrenceTemplateId !== model.id) return false;
         const d = parseDateLocal(e.dueDate);
         return sameMonthYear(d, m, y);
       });
       if (alreadyExists) continue;
-
-      const dueDate = copyDueDateForMonth(model.dueDate, m, y);
       const now = Date.now();
       newCopies.push({
         id: crypto.randomUUID(),

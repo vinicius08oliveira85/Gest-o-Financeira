@@ -5,6 +5,9 @@ export const ONBOARDING_STORAGE_KEY = 'gestao-financeira-onboarding';
 export const PASSWORD_STORAGE_KEY = 'gestao-financeira-pw';
 export const DISMISSED_ALERTS_KEY = 'gestao-financeira-dismissed-alerts';
 
+/** Meses de recorrência que o utilizador apagou manualmente (não voltar a gerar após sync). */
+export const RECURRING_SUPPRESSED_SLOTS_KEY = 'gestao-financeira-suppressed-recurring-slots';
+
 /** Limiar (0–1) acima do qual uma categoria de saídas gera alerta de concentração. */
 export const ALERT_CONCENTRATION_RATIO = 0.35;
 

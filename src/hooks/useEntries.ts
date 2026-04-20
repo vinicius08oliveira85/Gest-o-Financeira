@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Entry, FilterType } from '../types';
-import { ENTRIES_STORAGE_KEY } from '../constants';
+import { ENTRIES_STORAGE_KEY, RECURRING_SUPPRESSED_SLOTS_KEY } from '../constants';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { logError } from '../lib/logger';
 import { parseDateLocal } from '../lib/format';
@@ -10,12 +10,44 @@ import {
   syncEntriesDelta,
   bumpEntryUpdatedAt,
 } from '../lib/entriesDb';
-import { generateMissingRecurringCopies, copyDueDateForMonth } from '../lib/recurringEntries';
+import {
+  generateMissingRecurringCopies,
+  copyDueDateForMonth,
+  recurringSlotKey,
+} from '../lib/recurringEntries';
 
-/** Busca do servidor e garante cópias recorrentes em falta na base. */
-async function fetchEntriesWithRecurringBackfill(): Promise<Entry[]> {
+function readSuppressedRecurringSlots(): Set<string> {
+  try {
+    const raw = localStorage.getItem(RECURRING_SUPPRESSED_SLOTS_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function persistSuppressedRecurringSlots(slots: Set<string>) {
+  try {
+    localStorage.setItem(RECURRING_SUPPRESSED_SLOTS_KEY, JSON.stringify([...slots]));
+  } catch {
+    // quota / private mode
+  }
+}
+
+function clearSuppressedSlotsForTemplate(slots: Set<string>, templateId: string) {
+  for (const key of [...slots]) {
+    if (key.startsWith(`${templateId}|`)) slots.delete(key);
+  }
+  persistSuppressedRecurringSlots(slots);
+}
+
+/** Busca do servidor e preenche cópias recorrentes em falta, exceto meses suprimidos pelo utilizador. */
+async function fetchMergedWithRecurringRespectSuppressed(
+  suppressedSlots: ReadonlySet<string>
+): Promise<Entry[]> {
   let merged = await fetchEntries();
-  const copies = generateMissingRecurringCopies(merged);
+  const copies = generateMissingRecurringCopies(merged, suppressedSlots);
   if (copies.length > 0) {
     await insertEntriesBatch(copies);
     merged = await fetchEntries();
@@ -42,6 +74,8 @@ export function useEntries() {
   entriesRef.current = entries;
   /** Ids alterados localmente desde o último sync bem-sucedido (payload delta). */
   const dirtyEntryIdsRef = useRef<Set<string>>(new Set());
+  /** Cópias de recorrência apagadas manualmente: não voltar a gerar após salvar/sincronizar. */
+  const suppressedRecurringSlotsRef = useRef<Set<string>>(readSuppressedRecurringSlots());
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +88,7 @@ export function useEntries() {
             dirtyEntryIdsRef.current.clear();
             setUseSupabaseSync(true);
           }
-          const copies = generateMissingRecurringCopies(data);
+          const copies = generateMissingRecurringCopies(data, suppressedRecurringSlotsRef.current);
           if (copies.length > 0 && !cancelled) {
             try {
               await insertEntriesBatch(copies);
@@ -134,7 +168,9 @@ export function useEntries() {
   const refetchEntries = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
     try {
-      const data = await fetchEntriesWithRecurringBackfill();
+      const data = await fetchMergedWithRecurringRespectSuppressed(
+        suppressedRecurringSlotsRef.current
+      );
       setEntries(data);
       dirtyEntryIdsRef.current.clear();
       setShowOfflineBanner(false);
@@ -164,7 +200,9 @@ export function useEntries() {
       const dirty = dirtyEntryIdsRef.current;
       const changedEntries = localSnapshot.filter((e) => dirty.has(e.id));
       await syncEntriesDelta(presentIds, changedEntries);
-      const merged = await fetchEntriesWithRecurringBackfill();
+      const merged = await fetchMergedWithRecurringRespectSuppressed(
+        suppressedRecurringSlotsRef.current
+      );
       setEntries(merged);
       dirtyEntryIdsRef.current.clear();
       setUseSupabaseSync(true);
@@ -185,7 +223,9 @@ export function useEntries() {
     setIsSyncing(true);
     setSaveError(null);
     try {
-      const merged = await fetchEntriesWithRecurringBackfill();
+      const merged = await fetchMergedWithRecurringRespectSuppressed(
+        suppressedRecurringSlotsRef.current
+      );
       setEntries(merged);
       dirtyEntryIdsRef.current.clear();
       setUseSupabaseSync(true);
@@ -428,7 +468,7 @@ export function useEntries() {
     setEntries((prev) => {
       const newList = [stamped, ...prev];
       if (!stamped.isRecurring) return newList;
-      const copies = generateMissingRecurringCopies(newList);
+      const copies = generateMissingRecurringCopies(newList, suppressedRecurringSlotsRef.current);
       for (const c of copies) {
         dirtyEntryIdsRef.current.add(c.id);
       }
@@ -450,6 +490,15 @@ export function useEntries() {
   }, []);
 
   const deleteEntry = useCallback((id: string) => {
+    const removed = entriesRef.current.find((e) => e.id === id);
+    if (removed?.isRecurring && !removed.recurrenceTemplateId) {
+      clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, removed.id);
+    } else if (removed?.recurrenceTemplateId) {
+      suppressedRecurringSlotsRef.current.add(
+        recurringSlotKey(removed.recurrenceTemplateId, removed.dueDate)
+      );
+      persistSuppressedRecurringSlots(suppressedRecurringSlotsRef.current);
+    }
     dirtyEntryIdsRef.current.delete(id);
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }, []);
@@ -486,13 +535,26 @@ export function useEntries() {
   }, []);
 
   const deleteRecurringModel = useCallback((id: string, deleteAllCopies: boolean) => {
+    const entry = entriesRef.current.find((e) => e.id === id);
+    if (entry) {
+      if (deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId) {
+        clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, entry.id);
+      } else if (!deleteAllCopies && entry.recurrenceTemplateId) {
+        suppressedRecurringSlotsRef.current.add(
+          recurringSlotKey(entry.recurrenceTemplateId, entry.dueDate)
+        );
+        persistSuppressedRecurringSlots(suppressedRecurringSlotsRef.current);
+      } else if (!deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId) {
+        clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, entry.id);
+      }
+    }
     setEntries((prev) => {
-      const entry = prev.find((e) => e.id === id);
-      if (!entry) return prev;
+      const entryInPrev = prev.find((e) => e.id === id);
+      if (!entryInPrev) return prev;
       const toRemove =
-        deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId
+        deleteAllCopies && entryInPrev.isRecurring && !entryInPrev.recurrenceTemplateId
           ? prev.filter((e) => e.id === id || e.recurrenceTemplateId === id)
-          : [entry];
+          : [entryInPrev];
       const ids = new Set(toRemove.map((e) => e.id));
       for (const rid of ids) {
         dirtyEntryIdsRef.current.delete(rid);
