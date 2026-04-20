@@ -12,6 +12,17 @@ import {
 } from '../lib/entriesDb';
 import { generateMissingRecurringCopies, copyDueDateForMonth } from '../lib/recurringEntries';
 
+/** Busca do servidor e garante cópias recorrentes em falta na base. */
+async function fetchEntriesWithRecurringBackfill(): Promise<Entry[]> {
+  let merged = await fetchEntries();
+  const copies = generateMissingRecurringCopies(merged);
+  if (copies.length > 0) {
+    await insertEntriesBatch(copies);
+    merged = await fetchEntries();
+  }
+  return merged;
+}
+
 export function useEntries() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -123,7 +134,7 @@ export function useEntries() {
   const refetchEntries = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
     try {
-      const data = await fetchEntries();
+      const data = await fetchEntriesWithRecurringBackfill();
       setEntries(data);
       dirtyEntryIdsRef.current.clear();
       setShowOfflineBanner(false);
@@ -142,7 +153,8 @@ export function useEntries() {
     }
   }, []);
 
-  const syncEntriesWithSupabase = useCallback(async () => {
+  /** Envia alterações locais (delta) ao Supabase e atualiza o estado com o retorno do servidor. */
+  const pushEntriesToSupabase = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
     setIsSyncing(true);
     setSaveError(null);
@@ -152,19 +164,35 @@ export function useEntries() {
       const dirty = dirtyEntryIdsRef.current;
       const changedEntries = localSnapshot.filter((e) => dirty.has(e.id));
       await syncEntriesDelta(presentIds, changedEntries);
-      let merged = await fetchEntries();
-      const copies = generateMissingRecurringCopies(merged);
-      if (copies.length > 0) {
-        await insertEntriesBatch(copies);
-        merged = await fetchEntries();
-      }
+      const merged = await fetchEntriesWithRecurringBackfill();
       setEntries(merged);
       dirtyEntryIdsRef.current.clear();
       setUseSupabaseSync(true);
       setShowOfflineBanner(false);
     } catch (e) {
-      logError('Falha na sincronização com Supabase', e);
-      setSaveError('Falha ao sincronizar. Tente de novo.');
+      logError('Falha ao gravar no Supabase', e);
+      setSaveError('Falha ao salvar no Supabase. Tente de novo.');
+      setShowOfflineBanner(true);
+      throw e;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
+  /** Apenas busca lançamentos do Supabase e substitui o estado local (sem enviar delta). */
+  const pullEntriesFromSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    setIsSyncing(true);
+    setSaveError(null);
+    try {
+      const merged = await fetchEntriesWithRecurringBackfill();
+      setEntries(merged);
+      dirtyEntryIdsRef.current.clear();
+      setUseSupabaseSync(true);
+      setShowOfflineBanner(false);
+    } catch (e) {
+      logError('Falha ao buscar lançamentos do Supabase', e);
+      setSaveError('Falha ao atualizar do servidor. Tente de novo.');
       setShowOfflineBanner(true);
       throw e;
     } finally {
@@ -525,7 +553,8 @@ export function useEntries() {
     getSaldoForMonth,
     getMetaBalanceForGoal,
     saveEntriesLocal,
-    syncEntriesWithSupabase,
+    pushEntriesToSupabase,
+    pullEntriesFromSupabase,
     isSyncing,
     entriesSyncAvailable: isSupabaseConfigured(),
   };

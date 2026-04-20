@@ -125,7 +125,8 @@ export function useAlerts({
 
     for (const entry of entries) {
       if (!entry.isCardInvoice || entry.isPaid) continue;
-      const dueD = parseDateLocal(entry.dueDate);
+      const payDue = entry.invoicePaymentDueDate ?? entry.dueDate;
+      const dueD = parseDateLocal(payDue);
       dueD.setHours(0, 0, 0, 0);
       const diffMs = dueD.getTime() - todayD.getTime();
       const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));

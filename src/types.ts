@@ -31,6 +31,8 @@ export interface Entry {
   cardId?: string;
   /** true quando o lançamento é uma fatura de cartão gerada automaticamente */
   isCardInvoice?: boolean;
+  /** Data de vencimento do pagamento (mês seguinte ao ciclo); dueDate é o fechamento no ciclo */
+  invoicePaymentDueDate?: string;
 }
 
 export type FilterType = 'all' | 'pending' | 'paid' | 'debt' | 'cash';

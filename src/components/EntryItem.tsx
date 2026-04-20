@@ -9,6 +9,13 @@ function isOverdueByDate(dueDateStr: string): boolean {
   return dueDateStr < today;
 }
 
+/** Para fatura de cartão, atraso considera o vencimento do pagamento, não o fechamento. */
+function debtPaymentDueDate(entry: Entry): string {
+  if (entry.type !== 'debt') return entry.dueDate;
+  if (entry.isCardInvoice) return entry.invoicePaymentDueDate ?? entry.dueDate;
+  return entry.dueDate;
+}
+
 type EntryItemProps = {
   entry: Entry;
   onTogglePaid: (id: string) => void;
@@ -26,7 +33,8 @@ function EntryItemInner({
   pendingPaidId = null,
   compact = false,
 }: EntryItemProps) {
-  const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(entry.dueDate);
+  const paymentDue = debtPaymentDueDate(entry);
+  const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(paymentDue);
   const isTogglingPaid = pendingPaidId === entry.id;
 
   return (
@@ -79,9 +87,24 @@ function EntryItemInner({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-          <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+          <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 flex-wrap">
             <Calendar size={12} />
-            {entry.type === 'debt' ? 'Vence em' : 'Data:'} {formatDate(entry.dueDate)}
+            {entry.isCardInvoice ? (
+              entry.invoicePaymentDueDate ? (
+                <>
+                  Fecha em {formatDate(entry.dueDate)}
+                  <span className="text-slate-500 dark:text-slate-400">
+                    · Vence em {formatDate(entry.invoicePaymentDueDate)}
+                  </span>
+                </>
+              ) : (
+                <>Vence em {formatDate(entry.dueDate)}</>
+              )
+            ) : (
+              <>
+                {entry.type === 'debt' ? 'Vence em' : 'Data:'} {formatDate(entry.dueDate)}
+              </>
+            )}
           </span>
           {entry.isPaid && entry.paidDate && (
             <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">

@@ -21,6 +21,7 @@ export type EntryRow = {
   paid_date?: string | null;
   card_id?: string | null;
   is_card_invoice?: boolean | null;
+  invoice_payment_due_date?: string | null;
   updated_at?: string | null;
   revision?: number | null;
 };
@@ -46,6 +47,7 @@ export function rowToEntry(row: EntryRow): Entry {
     paidDate: row.paid_date ?? undefined,
     cardId: row.card_id ?? undefined,
     isCardInvoice: row.is_card_invoice ?? undefined,
+    invoicePaymentDueDate: row.invoice_payment_due_date ?? undefined,
     updatedAt: row.updated_at
       ? new Date(row.updated_at).getTime()
       : new Date(row.created_at).getTime(),
@@ -80,6 +82,8 @@ export function entryToRow(entry: Entry): Omit<EntryRow, 'created_at' | 'id'> {
   if (entry.paidDate != null) extended.paid_date = entry.paidDate;
   if (entry.cardId != null) extended.card_id = entry.cardId;
   if (entry.isCardInvoice != null) extended.is_card_invoice = entry.isCardInvoice;
+  if (entry.invoicePaymentDueDate != null)
+    extended.invoice_payment_due_date = entry.invoicePaymentDueDate;
   return {
     ...base,
     ...extended,

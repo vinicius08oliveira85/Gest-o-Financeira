@@ -17,8 +17,12 @@ type MainLayoutProps = {
   onNewEntry: () => void;
   onOpenChangePassword: () => void;
   showNewEntryHint?: boolean;
+  /** Sem Supabase: backup no dispositivo */
   onSaveEntriesLocal?: () => void;
-  onSyncEntriesWithSupabase?: () => void | Promise<void>;
+  /** Com Supabase: gravar alterações locais no servidor */
+  onSaveEntriesToSupabase?: () => void | Promise<void>;
+  /** Com Supabase: buscar estado do servidor (sem enviar delta) */
+  onPullEntriesFromSupabase?: () => void | Promise<void>;
   isSyncingEntries?: boolean;
   showEntriesCloudSync?: boolean;
   children: ReactNode;
@@ -39,7 +43,8 @@ export function MainLayout({
   onOpenChangePassword,
   showNewEntryHint,
   onSaveEntriesLocal,
-  onSyncEntriesWithSupabase,
+  onSaveEntriesToSupabase,
+  onPullEntriesFromSupabase,
   isSyncingEntries,
   showEntriesCloudSync,
   children,
@@ -55,7 +60,8 @@ export function MainLayout({
             onOpenChangePassword={onOpenChangePassword}
             showNewEntryHint={showNewEntryHint}
             onSaveEntriesLocal={onSaveEntriesLocal}
-            onSyncEntriesWithSupabase={onSyncEntriesWithSupabase}
+            onSaveEntriesToSupabase={onSaveEntriesToSupabase}
+            onPullEntriesFromSupabase={onPullEntriesFromSupabase}
             isSyncingEntries={isSyncingEntries}
             showEntriesCloudSync={showEntriesCloudSync}
           />

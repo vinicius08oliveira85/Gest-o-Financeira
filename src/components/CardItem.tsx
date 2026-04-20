@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, CreditCard as CreditCardIcon, ListChecks, Send, Pencil } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry } from '../types';
-import { getInvoiceDueDate } from '../lib/cardInvoice';
+import { getInvoiceClosingDate, getInvoiceDueDate } from '../lib/cardInvoice';
 
 type InvoiceSummary = {
   month: number;
@@ -47,7 +47,16 @@ export function CardItem({
       const total = expenses
         .filter((e) => e.billingMonth === month && e.billingYear === year)
         .reduce((sum, e) => sum + e.amount, 0);
-      const hasEntry = invoiceEntries.some((e) => e.cardId === card.id);
+      const closingIso = getInvoiceClosingDate(month, year, card.closingDay);
+      const paymentIso = getInvoiceDueDate(month, year, card.dueDay);
+      const hasEntry = invoiceEntries.some(
+        (e) =>
+          e.cardId === card.id &&
+          e.isCardInvoice &&
+          (e.dueDate === closingIso ||
+            e.invoicePaymentDueDate === paymentIso ||
+            (!e.invoicePaymentDueDate && e.dueDate === paymentIso))
+      );
       result.push({ month, year, total, hasEntry });
     }
     return result;

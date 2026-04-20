@@ -8,7 +8,7 @@ import {
   MoreVertical,
   FileDown,
   Save,
-  CloudUpload,
+  CloudDownload,
   Loader2,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -21,10 +21,12 @@ type HeaderProps = {
   onNewEntry: () => void;
   onOpenChangePassword: () => void;
   showNewEntryHint?: boolean;
-  /** Persiste lançamentos no localStorage (manual) */
+  /** Sem nuvem: backup no localStorage */
   onSaveEntriesLocal?: () => void;
-  /** Envia estado local ao Supabase e refaz o merge com o servidor */
-  onSyncEntriesWithSupabase?: () => void | Promise<void>;
+  /** Grava alterações locais na tabela do Supabase */
+  onSaveEntriesToSupabase?: () => void | Promise<void>;
+  /** Atualiza a app com os dados do Supabase (somente leitura do servidor) */
+  onPullEntriesFromSupabase?: () => void | Promise<void>;
   isSyncingEntries?: boolean;
   showEntriesCloudSync?: boolean;
 };
@@ -36,7 +38,8 @@ export function Header({
   onOpenChangePassword,
   showNewEntryHint,
   onSaveEntriesLocal,
-  onSyncEntriesWithSupabase,
+  onSaveEntriesToSupabase,
+  onPullEntriesFromSupabase,
   isSyncingEntries = false,
   showEntriesCloudSync = false,
 }: HeaderProps) {
@@ -78,7 +81,19 @@ export function Header({
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
           <div className="hidden md:flex items-center gap-1 flex-wrap justify-end">
-            {onSaveEntriesLocal && (
+            {showEntriesCloudSync && onSaveEntriesToSupabase && (
+              <button
+                type="button"
+                onClick={() => void onSaveEntriesToSupabase()}
+                disabled={isSyncingEntries}
+                className="flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-3 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors disabled:opacity-50"
+                title="Gravar alterações locais no Supabase"
+              >
+                <Save size={16} />
+                Salvar
+              </button>
+            )}
+            {!showEntriesCloudSync && onSaveEntriesLocal && (
               <button
                 type="button"
                 onClick={onSaveEntriesLocal}
@@ -90,18 +105,18 @@ export function Header({
                 Salvar
               </button>
             )}
-            {showEntriesCloudSync && onSyncEntriesWithSupabase && (
+            {showEntriesCloudSync && onPullEntriesFromSupabase && (
               <button
                 type="button"
-                onClick={() => void onSyncEntriesWithSupabase()}
+                onClick={() => void onPullEntriesFromSupabase()}
                 disabled={isSyncingEntries}
                 className="flex text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 px-3 py-2 rounded-full text-sm font-medium items-center gap-2 transition-colors disabled:opacity-50"
-                title="Enviar alterações ao Supabase e buscar atualizações"
+                title="Atualizar a lista com os dados do Supabase"
               >
                 {isSyncingEntries ? (
                   <Loader2 size={16} className="animate-spin shrink-0" aria-hidden />
                 ) : (
-                  <CloudUpload size={16} />
+                  <CloudDownload size={16} />
                 )}
                 Sincronizar
               </button>
@@ -144,7 +159,21 @@ export function Header({
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-full mt-1 py-1 w-48 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-lg z-50">
-                {onSaveEntriesLocal && (
+                {showEntriesCloudSync && onSaveEntriesToSupabase && (
+                  <button
+                    type="button"
+                    disabled={isSyncingEntries}
+                    onClick={() => {
+                      void onSaveEntriesToSupabase();
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    <Save size={16} />
+                    Salvar
+                  </button>
+                )}
+                {!showEntriesCloudSync && onSaveEntriesLocal && (
                   <button
                     type="button"
                     disabled={isSyncingEntries}
@@ -155,15 +184,15 @@ export function Header({
                     className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
                   >
                     <Save size={16} />
-                    Salvar local
+                    Salvar
                   </button>
                 )}
-                {showEntriesCloudSync && onSyncEntriesWithSupabase && (
+                {showEntriesCloudSync && onPullEntriesFromSupabase && (
                   <button
                     type="button"
                     disabled={isSyncingEntries}
                     onClick={() => {
-                      void onSyncEntriesWithSupabase();
+                      void onPullEntriesFromSupabase();
                       setMenuOpen(false);
                     }}
                     className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
@@ -171,7 +200,7 @@ export function Header({
                     {isSyncingEntries ? (
                       <Loader2 size={16} className="animate-spin shrink-0" aria-hidden />
                     ) : (
-                      <CloudUpload size={16} />
+                      <CloudDownload size={16} />
                     )}
                     Sincronizar
                   </button>

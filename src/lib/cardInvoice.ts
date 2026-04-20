@@ -25,6 +25,23 @@ export function getBillingPeriod(
 }
 
 /**
+ * Data de fechamento da fatura no ciclo (closingDay do mês de cobrança).
+ * Usada como dueDate do lançamento para aparecer no mês correto do fluxo.
+ */
+export function getInvoiceClosingDate(
+  billingMonth: number,
+  billingYear: number,
+  closingDay: number
+): string {
+  const lastDay = new Date(billingYear, billingMonth + 1, 0).getDate();
+  const safeDay = Math.min(closingDay, lastDay);
+  const d = new Date(billingYear, billingMonth, safeDay);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/**
  * Calcula a data de vencimento da fatura.
  * A fatura do ciclo billingMonth/billingYear vence no dueDay do mês seguinte.
  */
@@ -59,11 +76,14 @@ export function buildInvoiceEntry(
     year: 'numeric',
   });
   const now = Date.now();
+  const closingDate = getInvoiceClosingDate(billingMonth, billingYear, card.closingDay);
+  const paymentDue = getInvoiceDueDate(billingMonth, billingYear, card.dueDay);
   return {
     id: existingId ?? crypto.randomUUID(),
     name: `Fatura ${card.name} — ${monthName}`,
     amount: total,
-    dueDate: getInvoiceDueDate(billingMonth, billingYear, card.dueDay),
+    dueDate: closingDate,
+    invoicePaymentDueDate: paymentDue,
     isPaid: false,
     type: 'debt',
     createdAt: now,

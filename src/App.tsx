@@ -8,7 +8,7 @@ import { useAlerts } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { exportEntriesToCSV } from './lib/format';
-import { buildInvoiceEntry } from './lib/cardInvoice';
+import { buildInvoiceEntry, getInvoiceClosingDate, getInvoiceDueDate } from './lib/cardInvoice';
 import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
 import type { CreditCard, Entry, Goal } from './types';
 import { PeriodProvider } from './contexts/PeriodContext';
@@ -125,7 +125,8 @@ export default function App() {
     getSaldoForMonth,
     getMetaBalanceForGoal,
     saveEntriesLocal,
-    syncEntriesWithSupabase,
+    pushEntriesToSupabase,
+    pullEntriesFromSupabase,
     isSyncing,
     entriesSyncAvailable,
   } = useEntries();
@@ -222,19 +223,36 @@ export default function App() {
     showToast('Dados salvos localmente');
   }, [saveEntriesLocal, showToast]);
 
-  const handleSyncEntriesWithSupabase = useCallback(async () => {
+  const handleSaveEntriesToSupabase = useCallback(async () => {
     try {
-      await syncEntriesWithSupabase();
-      showToast('Sincronização com Supabase concluída');
+      await pushEntriesToSupabase();
+      showToast('Dados gravados no Supabase');
     } catch {
       // Erro também aparece em saveError / banner
     }
-  }, [syncEntriesWithSupabase, showToast]);
+  }, [pushEntriesToSupabase, showToast]);
+
+  const handlePullEntriesFromSupabase = useCallback(async () => {
+    try {
+      await pullEntriesFromSupabase();
+      showToast('Dados atualizados do Supabase');
+    } catch {
+      // Erro também aparece em saveError / banner
+    }
+  }, [pullEntriesFromSupabase, showToast]);
 
   const handleRegisterInvoice = useCallback(
     (card: CreditCard, month: number, year: number, total: number) => {
-      // Verifica se já existe uma fatura gerada para esse cartão/período
-      const existing = entries.find((e) => e.isCardInvoice && e.cardId === card.id);
+      const closingDate = getInvoiceClosingDate(month, year, card.closingDay);
+      const paymentDue = getInvoiceDueDate(month, year, card.dueDay);
+      const existing = entries.find(
+        (e) =>
+          e.isCardInvoice &&
+          e.cardId === card.id &&
+          (e.dueDate === closingDate ||
+            e.invoicePaymentDueDate === paymentDue ||
+            (!e.invoicePaymentDueDate && e.dueDate === paymentDue))
+      );
       const entry = buildInvoiceEntry(card, month, year, total, existing?.id);
       addOrUpdateEntry(entry, existing != null);
       showToast('Fatura registrada no fluxo de caixa');
@@ -271,8 +289,11 @@ export default function App() {
           onNewEntry={handleNewEntryWithStep}
           onOpenChangePassword={() => setShowChangePasswordModal(true)}
           showNewEntryHint={showNewEntryHint}
-          onSaveEntriesLocal={handleSaveEntriesLocal}
-          onSyncEntriesWithSupabase={handleSyncEntriesWithSupabase}
+          onSaveEntriesLocal={entriesSyncAvailable ? undefined : handleSaveEntriesLocal}
+          onSaveEntriesToSupabase={entriesSyncAvailable ? handleSaveEntriesToSupabase : undefined}
+          onPullEntriesFromSupabase={
+            entriesSyncAvailable ? handlePullEntriesFromSupabase : undefined
+          }
           isSyncingEntries={isSyncing}
           showEntriesCloudSync={entriesSyncAvailable}
         >
