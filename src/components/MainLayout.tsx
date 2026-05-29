@@ -16,7 +16,6 @@ type MainLayoutProps = {
   onExportCSVCurrentMonth?: () => void;
   onNewEntry: () => void;
   onOpenChangePassword: () => void;
-  showNewEntryHint?: boolean;
   /** Sem Supabase: backup no dispositivo */
   onSaveEntriesLocal?: () => void;
   /** Com Supabase: gravar alterações locais no servidor */
@@ -41,7 +40,6 @@ export function MainLayout({
   onExportCSVCurrentMonth,
   onNewEntry,
   onOpenChangePassword,
-  showNewEntryHint,
   onSaveEntriesLocal,
   onSaveEntriesToSupabase,
   onPullEntriesFromSupabase,
@@ -58,7 +56,6 @@ export function MainLayout({
             onExportCSVCurrentMonth={onExportCSVCurrentMonth}
             onNewEntry={onNewEntry}
             onOpenChangePassword={onOpenChangePassword}
-            showNewEntryHint={showNewEntryHint}
             onSaveEntriesLocal={onSaveEntriesLocal}
             onSaveEntriesToSupabase={onSaveEntriesToSupabase}
             onPullEntriesFromSupabase={onPullEntriesFromSupabase}

@@ -288,7 +288,6 @@ export default function App() {
           }
           onNewEntry={handleNewEntryWithStep}
           onOpenChangePassword={() => setShowChangePasswordModal(true)}
-          showNewEntryHint={showNewEntryHint}
           onSaveEntriesLocal={entriesSyncAvailable ? undefined : handleSaveEntriesLocal}
           onSaveEntriesToSupabase={entriesSyncAvailable ? handleSaveEntriesToSupabase : undefined}
           onPullEntriesFromSupabase={

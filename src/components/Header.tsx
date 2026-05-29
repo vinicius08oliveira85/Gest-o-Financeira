@@ -12,7 +12,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { GuidedTooltip } from './GuidedTooltip';
 
 type HeaderProps = {
   onExportCSV: () => void;
@@ -20,7 +19,6 @@ type HeaderProps = {
   onExportCSVCurrentMonth?: () => void;
   onNewEntry: () => void;
   onOpenChangePassword: () => void;
-  showNewEntryHint?: boolean;
   /** Sem nuvem: backup no localStorage */
   onSaveEntriesLocal?: () => void;
   /** Grava alterações locais na tabela do Supabase */
@@ -36,7 +34,6 @@ export function Header({
   onExportCSVCurrentMonth,
   onNewEntry,
   onOpenChangePassword,
-  showNewEntryHint,
   onSaveEntriesLocal,
   onSaveEntriesToSupabase,
   onPullEntriesFromSupabase,
@@ -246,15 +243,12 @@ export function Header({
             </div>
           )}
         </div>
-        <div className="relative shrink-0">
+        <div className="shrink-0">
           <button onClick={onNewEntry} className="neu-btn-primary btn-action">
             <Plus size={16} />
             <span className="hidden sm:inline">Novo Registro</span>
             <span className="sm:hidden">Novo</span>
           </button>
-          {showNewEntryHint && (
-            <GuidedTooltip text="Comece criando o seu primeiro lançamento por aqui." />
-          )}
         </div>
       </div>
     </div>
