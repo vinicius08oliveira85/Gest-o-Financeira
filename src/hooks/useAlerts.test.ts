@@ -41,11 +41,11 @@ describe('useAlerts', () => {
 
   it('saídas não pagas com vencimento nos próximos 5 dias geram alerta due-soon', () => {
     const today = new Date();
-    const month = today.getMonth();
-    const year = today.getFullYear();
     const dueIn3Days = new Date(today);
     dueIn3Days.setDate(today.getDate() + 3);
     const dueDateStr = dueIn3Days.toISOString().slice(0, 10);
+    const month = dueIn3Days.getMonth();
+    const year = dueIn3Days.getFullYear();
 
     const entries: Entry[] = [entry('1', 'debt', 100, dueDateStr, false)];
 

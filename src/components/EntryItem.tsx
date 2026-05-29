@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { CheckCircle2, Circle, Calendar, Pencil, Trash2, Loader2, Tag } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Entry } from '../types';
@@ -43,8 +43,8 @@ function EntryItemInner({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className={`group flex flex-wrap sm:flex-nowrap items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
-        compact ? 'px-3 py-2.5 text-sm' : 'p-3 sm:p-4'
+      className={`group neu-list-item flex flex-wrap sm:flex-nowrap items-center ${
+        compact ? 'px-3 py-2 sm:px-4 sm:py-2.5 text-sm' : 'p-3 sm:p-4'
       }`}
     >
       <button
@@ -80,11 +80,7 @@ function EntryItemInner({
           >
             {entry.name}
           </h3>
-          {entry.type === 'cash' && (
-            <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded">
-              Entrada
-            </span>
-          )}
+          {entry.type === 'cash' && <span className="neu-chip-cash">Entrada</span>}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
           <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 flex-wrap">
@@ -113,23 +109,15 @@ function EntryItemInner({
             </span>
           )}
           <span
-            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              entry.isPaid
-                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                : isOverdue
-                  ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                  : 'bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300'
-            }`}
+            className={
+              entry.isPaid ? 'neu-chip-success' : isOverdue ? 'neu-chip-danger' : 'neu-chip-pending'
+            }
           >
             {entry.isPaid ? 'Finalizado' : isOverdue ? 'Atrasado' : 'Pendente'}
           </span>
-          {entry.category && (
-            <span className="bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 text-[10px] font-medium px-1.5 py-0.5 rounded-full">
-              {entry.category}
-            </span>
-          )}
+          {entry.category && <span className="neu-chip">{entry.category}</span>}
           {entry.installmentsCount && entry.installmentNumber && (
-            <span className="bg-slate-900 dark:bg-slate-500 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+            <span className="neu-chip-dark">
               {entry.installmentNumber}/{entry.installmentsCount}
             </span>
           )}
@@ -167,7 +155,7 @@ function EntryItemInner({
           <button
             type="button"
             onClick={() => onEdit(entry)}
-            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-600/50"
+            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400"
             aria-label="Editar"
           >
             <Pencil size={18} className="sm:w-4 sm:h-4" />
@@ -175,7 +163,7 @@ function EntryItemInner({
           <button
             type="button"
             onClick={() => onDeleteRequest(entry.id)}
-            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-600/50"
+            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400"
             aria-label="Excluir"
           >
             <Trash2 size={18} className="sm:w-4 sm:h-4" />

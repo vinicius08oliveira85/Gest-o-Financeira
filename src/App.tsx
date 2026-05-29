@@ -319,6 +319,12 @@ export default function App() {
             onWithdrawFromGoal={(goal) => setMetaMovement({ goal, type: 'withdraw' })}
             filter={filter}
             setFilter={setFilter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            sortOrder={sortOrder}
+            setSortOrder={setSortOrder}
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             filteredEntries={filteredEntries}

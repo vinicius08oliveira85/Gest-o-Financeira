@@ -1,12 +1,12 @@
 type GuidedTooltipProps = {
   text: string;
+  className?: string;
 };
 
-export function GuidedTooltip({ text }: GuidedTooltipProps) {
+export function GuidedTooltip({ text, className = '' }: GuidedTooltipProps) {
   return (
-    <div className="mt-1 inline-flex max-w-xs items-start gap-2 rounded-xl bg-slate-900 text-white px-3 py-2 text-[11px] shadow-lg">
+    <div className={`guided-tooltip ${className}`.trim()} role="status">
       <span>{text}</span>
     </div>
   );
 }
-

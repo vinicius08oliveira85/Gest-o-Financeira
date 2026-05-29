@@ -1,3 +1,804 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* —— Neumorfismo: tokens —— */
+:root {
+  --neu-bg: #e4e9f0;
+  --neu-surface: #e4e9f0;
+  --neu-light: #ffffff;
+  --neu-dark: #b8c0cc;
+  --neu-raised: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light);
+  --neu-raised-sm: 5px 5px 10px var(--neu-dark), -5px -5px 10px var(--neu-light);
+  --neu-raised-lg: 12px 12px 24px var(--neu-dark), -12px -12px 24px var(--neu-light);
+  --neu-inset: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
+  --neu-inset-sm: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
+  --neu-modal-surface: #e8edf4;
+  /* Layout responsivo por dispositivo */
+  --page-max: 72rem;
+  --page-px: clamp(0.75rem, 3vw, 1rem);
+  --page-py: clamp(0.625rem, 2.5vw, 1.125rem);
+  --stack-gap: clamp(0.625rem, 2vw, 1rem);
+  --section-gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  --card-p: clamp(0.75rem, 2vw, 1.125rem);
+  --card-gap: clamp(0.625rem, 1.5vw, 0.875rem);
+  --inline-gap: clamp(0.375rem, 1.2vw, 0.625rem);
+  --header-py: clamp(0.5rem, 1.5vw, 0.75rem);
+  --header-h: auto;
+  --modal-p: clamp(0.875rem, 3vw, 1.125rem);
+  --modal-max-sm: min(100%, clamp(18rem, 92vw, 24rem));
+  --modal-max-md: min(100%, clamp(20rem, 94vw, 28rem));
+  --modal-root-p: clamp(0.75rem, 3vw, 1rem);
+  --fab-offset: clamp(1rem, 4vw, 1.5rem);
+  --goals-max: min(100%, 36rem);
+  --control-py: clamp(0.375rem, 0.8vw, 0.5rem);
+  --control-px: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --page-px: clamp(0.875rem, 3vw, 1.375rem);
+    --page-py: clamp(0.875rem, 3vw, 1.5rem);
+    --stack-gap: clamp(0.875rem, 2.5vw, 1.25rem);
+    --section-gap: clamp(0.625rem, 2vw, 0.875rem);
+    --card-p: clamp(0.875rem, 2vw, 1.375rem);
+    --card-gap: clamp(0.75rem, 2vw, 1rem);
+    --inline-gap: clamp(0.5rem, 1.2vw, 0.75rem);
+    --header-py: clamp(0.625rem, 1.8vw, 0.875rem);
+    --modal-p: clamp(1rem, 3vw, 1.25rem);
+    --control-py: clamp(0.4375rem, 0.9vw, 0.5625rem);
+    --control-px: clamp(0.8125rem, 1.6vw, 1.0625rem);
+  }
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --page-px: clamp(1rem, 3vw, 1.75rem);
+    --page-py: clamp(1.25rem, 4vw, 2.25rem);
+    --stack-gap: clamp(1rem, 3vw, 1.5rem);
+    --section-gap: clamp(0.75rem, 2vw, 1.125rem);
+    --card-p: clamp(1rem, 2vw, 1.5rem);
+    --card-gap: clamp(0.875rem, 2vw, 1.125rem);
+    --inline-gap: clamp(0.5rem, 1.2vw, 0.875rem);
+    --header-py: clamp(0.75rem, 2vw, 1rem);
+    --modal-p: clamp(1.125rem, 3vw, 1.5rem);
+    --modal-root-p: clamp(1rem, 3vw, 1.5rem);
+    --control-py: clamp(0.5rem, 1vw, 0.625rem);
+    --control-px: clamp(0.875rem, 1.5vw, 1.125rem);
+  }
+}
+
+.dark {
+  --neu-bg: #1a2030;
+  --neu-surface: #1a2030;
+  --neu-light: #242b3d;
+  --neu-dark: #0f1219;
+  --neu-modal-surface: #242b3d;
+  --neu-raised: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light);
+  --neu-raised-sm: 5px 5px 10px var(--neu-dark), -5px -5px 10px var(--neu-light);
+  --neu-raised-lg: 12px 12px 24px var(--neu-dark), -12px -12px 24px var(--neu-light);
+  --neu-inset: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
+  --neu-inset-sm: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  body {
+    background-color: var(--neu-bg);
+    color: #1e293b;
+  }
+
+  .dark body {
+    color: #e2e8f0;
+  }
+}
+
+@layer components {
+  /* —— Layout responsivo —— */
+  .app-container {
+    width: 100%;
+    max-width: var(--page-max);
+    margin-inline: auto;
+    padding-inline: var(--page-px);
+  }
+
+  .page-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--stack-gap);
+    padding-block: var(--page-py);
+  }
+
+  .section-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap);
+  }
+
+  .header-shell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap);
+    padding-block: var(--header-py);
+  }
+
+  .header-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--inline-gap);
+    width: 100%;
+  }
+
+  .page-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--inline-gap);
+    width: 100%;
+  }
+
+  .page-title {
+    @apply text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+  }
+
+  .card-pad {
+    padding: var(--card-p);
+  }
+
+  .info-bar {
+    @apply rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm leading-snug text-slate-500 dark:text-slate-400;
+    background-color: color-mix(in srgb, var(--neu-surface) 90%, transparent);
+    box-shadow: var(--neu-inset-sm);
+    border: 1px dashed color-mix(in srgb, var(--neu-dark) 15%, transparent);
+  }
+
+  .guided-tooltip {
+    @apply absolute right-0 top-full z-50 mt-1 w-max max-w-[16rem] rounded-xl px-2.5 py-1.5 text-[11px] leading-snug;
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised);
+  }
+
+  .btn-action {
+    @apply inline-flex items-center gap-1.5 sm:gap-2 rounded-full text-sm sm:text-base font-medium;
+    padding: var(--control-py) calc(var(--control-px) + 0.25rem);
+  }
+
+  .toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--inline-gap);
+  }
+
+  .banner-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--inline-gap);
+    padding: var(--card-p);
+    width: 100%;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--section-gap);
+    padding-block: clamp(1.5rem, 6vw, 3rem);
+    text-align: center;
+  }
+
+  .goals-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap);
+    max-width: var(--goals-max);
+    width: 100%;
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--card-gap);
+    width: 100%;
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--card-gap);
+    width: 100%;
+  }
+
+  .reports-kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--card-gap);
+    width: 100%;
+  }
+
+  .reports-split-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--card-gap);
+    width: 100%;
+  }
+
+  .min-h-panel {
+    min-height: clamp(6rem, 28vh, 12rem);
+  }
+
+  .min-h-panel-sm {
+    min-height: clamp(4rem, 18vh, 6rem);
+  }
+
+  @media (min-width: 40rem) {
+    .dashboard-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cards-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .reports-kpi-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 48rem) {
+    .reports-split-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .dashboard-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-height: 31.25rem) and (orientation: landscape) {
+    :root {
+      --page-py: clamp(0.5rem, 2vw, 0.875rem);
+      --stack-gap: clamp(0.625rem, 2vw, 0.875rem);
+      --section-gap: clamp(0.375rem, 1.5vw, 0.625rem);
+      --card-p: clamp(0.625rem, 1.5vw, 0.875rem);
+      --header-py: 0.5rem;
+    }
+  }
+
+  .neu-bg {
+    background-color: var(--neu-bg);
+  }
+
+  .neu-surface {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+  }
+
+  .neu-surface-lg {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-lg);
+    border: none;
+  }
+
+  .neu-inset {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset);
+    border: none;
+  }
+
+  .neu-inset-sm {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+  }
+
+  .neu-input {
+    background-color: color-mix(in srgb, var(--neu-modal-surface) 55%, var(--neu-light));
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+    @apply text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500;
+  }
+
+  .neu-input:focus {
+    outline: none;
+    box-shadow:
+      var(--neu-inset),
+      0 0 0 2px rgb(16 185 129 / 0.25);
+  }
+
+  .neu-header {
+    background-color: color-mix(in srgb, var(--neu-bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+  }
+
+  .neu-btn {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+    @apply transition-all duration-200;
+  }
+
+  .neu-btn:hover {
+    box-shadow: var(--neu-raised);
+  }
+
+  .neu-btn:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-btn-primary {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+    @apply text-slate-800 dark:text-emerald-400 font-medium transition-all duration-200;
+  }
+
+  .neu-btn-primary:hover {
+    box-shadow: var(--neu-raised);
+  }
+
+  .neu-btn-primary:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-pill-active {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-slate-900 dark:text-emerald-400;
+  }
+
+  .neu-filter-active {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-emerald-700 dark:text-emerald-400 font-semibold;
+  }
+
+  .neu-hover-row {
+    @apply transition-all duration-200;
+  }
+
+  .neu-hover-row:hover {
+    box-shadow: var(--neu-inset-sm);
+    background-color: color-mix(in srgb, var(--neu-surface) 80%, var(--neu-light));
+  }
+
+  .neu-dropdown {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised);
+    border: none;
+  }
+
+  .neu-divide > * + * {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--neu-dark) 35%, transparent);
+  }
+
+  .neu-sticky-label {
+    background-color: color-mix(in srgb, var(--neu-surface) 95%, var(--neu-light));
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-modal-backdrop {
+    @apply absolute inset-0 z-0 border-0 cursor-default;
+    pointer-events: auto;
+    background-color: rgb(15 23 42 / 0.4);
+  }
+
+  .dark .neu-modal-backdrop {
+    background-color: rgb(0 0 0 / 0.55);
+  }
+
+  .neu-modal-root {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    padding: var(--modal-root-p);
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .neu-icon-badge {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    @apply rounded-full;
+  }
+
+  .neu-icon-badge-emerald {
+    background-color: color-mix(in srgb, var(--neu-surface) 70%, #10b981);
+    box-shadow: var(--neu-inset-sm);
+    @apply rounded-full;
+  }
+
+  .neu-tab-track {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset);
+    border: none;
+  }
+
+  .neu-tab-active {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    @apply text-slate-900 dark:text-slate-100;
+  }
+
+  .neu-fab {
+    background-color: color-mix(in srgb, var(--neu-surface) 70%, #10b981);
+    box-shadow: var(--neu-raised);
+    border: none;
+    @apply text-emerald-700 dark:text-emerald-300 transition-all duration-200;
+  }
+
+  .neu-fab:hover {
+    box-shadow: var(--neu-raised-lg);
+  }
+
+  .neu-fab:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-toast {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised);
+    border: none;
+  }
+
+  .neu-surface-accent-dark {
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    box-shadow: var(--neu-raised);
+    border: none;
+    @apply text-white;
+  }
+
+  .neu-surface-accent-danger {
+    background: linear-gradient(145deg, #b91c1c, #991b1b);
+    box-shadow: var(--neu-raised);
+    border: none;
+    @apply text-white;
+  }
+
+  .neu-surface-glass {
+    background-color: color-mix(in srgb, var(--neu-surface) 75%, transparent);
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+  }
+
+  .neu-banner-warn {
+    background-color: color-mix(in srgb, var(--neu-surface) 85%, #f59e0b);
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+  }
+
+  .neu-banner-error {
+    background-color: color-mix(in srgb, var(--neu-surface) 85%, #ef4444);
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+  }
+
+  .neu-icon-badge-red {
+    background-color: color-mix(in srgb, var(--neu-surface) 70%, #ef4444);
+    box-shadow: var(--neu-inset-sm);
+    @apply rounded-full;
+  }
+
+  .neu-btn-emerald {
+    background-color: color-mix(in srgb, var(--neu-surface) 75%, #10b981);
+    box-shadow: var(--neu-raised-sm);
+    @apply text-emerald-800 dark:text-emerald-200 transition-all duration-200;
+  }
+
+  .neu-btn-emerald:hover {
+    box-shadow: var(--neu-raised);
+  }
+
+  .neu-btn-emerald:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-progress-track {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    @apply rounded-full overflow-hidden;
+  }
+
+  .neu-chip {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-slate-600 dark:text-slate-300 text-[10px] font-medium px-1.5 py-0.5 rounded-full;
+  }
+
+  .neu-chip-dark {
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full;
+  }
+
+  .neu-calendar-day {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+  }
+
+  .neu-calendar-today {
+    background-color: color-mix(in srgb, var(--neu-surface) 80%, #10b981);
+    box-shadow:
+      var(--neu-raised-sm),
+      0 0 0 2px #10b981;
+    border: none;
+  }
+
+  .neu-calendar-installment {
+    background-color: color-mix(in srgb, var(--neu-surface) 85%, #6366f1);
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+  }
+
+  .neu-btn-danger {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+    @apply text-red-600 dark:text-red-400 font-medium transition-all duration-200;
+  }
+
+  .neu-btn-danger:hover {
+    box-shadow: var(--neu-raised);
+  }
+
+  .neu-btn-danger:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-btn-success {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+    @apply text-emerald-700 dark:text-emerald-400 font-semibold transition-all duration-200;
+  }
+
+  .neu-btn-success:hover {
+    box-shadow: var(--neu-raised);
+  }
+
+  .neu-btn-success:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-chip-pending {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-slate-600 dark:text-slate-300 text-xs px-2 py-0.5 rounded-full font-medium;
+  }
+
+  .neu-chip-success {
+    background-color: color-mix(in srgb, var(--neu-surface) 75%, #10b981);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-emerald-700 dark:text-emerald-300 text-xs px-2 py-0.5 rounded-full font-medium;
+  }
+
+  .neu-chip-danger {
+    background-color: color-mix(in srgb, var(--neu-surface) 75%, #ef4444);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-red-700 dark:text-red-300 text-xs px-2 py-0.5 rounded-full font-medium;
+  }
+
+  /* —— Botões —— */
+  .neu-btn-toolbar {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+    padding: var(--control-py) var(--control-px);
+    @apply inline-flex items-center gap-1.5 sm:gap-2 rounded-full text-xs sm:text-sm lg:text-base font-medium text-slate-600 dark:text-slate-400 transition-all duration-200 disabled:opacity-50 whitespace-nowrap;
+  }
+
+  .neu-btn-toolbar:hover {
+    box-shadow: var(--neu-raised);
+    @apply text-slate-900 dark:text-slate-100;
+  }
+
+  .neu-btn-toolbar:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-modal-close {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+    @apply p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0 transition-all duration-200;
+  }
+
+  .neu-modal-close:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-btn-link {
+    @apply w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-center;
+  }
+
+  .neu-btn-danger-soft {
+    background-color: color-mix(in srgb, var(--neu-surface) 82%, #ef4444);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+    @apply text-red-600 dark:text-red-400 font-medium transition-all duration-200;
+  }
+
+  .neu-btn-danger-soft:hover {
+    box-shadow: var(--neu-raised);
+  }
+
+  .neu-btn-danger-soft:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  /* —— Listas —— */
+  .neu-list {
+    @apply p-1 space-y-1;
+  }
+
+  .neu-list-item {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-raised-sm);
+    border: none;
+    @apply rounded-xl transition-all duration-200;
+  }
+
+  .neu-list-item:hover {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  .neu-list-item-selected {
+    background-color: var(--neu-surface);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-emerald-700 dark:text-emerald-400 font-semibold;
+  }
+
+  .neu-list-menu-item {
+    @apply flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg transition-all duration-200;
+  }
+
+  .neu-list-menu-item:hover {
+    box-shadow: var(--neu-inset-sm);
+    background-color: color-mix(in srgb, var(--neu-surface) 85%, var(--neu-light));
+  }
+
+  /* —— Modais —— */
+  .neu-modal {
+    background-color: var(--neu-modal-surface);
+    box-shadow: var(--neu-raised-lg);
+    border: none;
+    position: relative;
+    z-index: 10;
+    width: var(--modal-max-sm);
+    max-height: min(90dvh, 100%);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--neu-light) 55%, transparent) transparent;
+    @apply rounded-3xl;
+  }
+
+  .neu-modal--md {
+    width: var(--modal-max-md);
+  }
+
+  .neu-modal::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .neu-modal::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--neu-light) 50%, transparent);
+    border-radius: 9999px;
+  }
+
+  .neu-modal-divider {
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--neu-dark) 35%, transparent);
+  }
+
+  .neu-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--inline-gap);
+    padding: var(--modal-p);
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--neu-dark) 35%, transparent);
+  }
+
+  .neu-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap);
+    padding: var(--modal-p);
+  }
+
+  .neu-modal-footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--inline-gap);
+    padding: var(--modal-p);
+    padding-top: 0;
+  }
+
+  @media (min-width: 40rem) {
+    .neu-modal-footer {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+  }
+
+  .neu-feedback-error {
+    background-color: color-mix(in srgb, var(--neu-surface) 85%, #ef4444);
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+    @apply p-2.5 rounded-xl text-red-700 dark:text-red-300 text-sm;
+  }
+
+  .neu-feedback-success {
+    background-color: color-mix(in srgb, var(--neu-surface) 85%, #10b981);
+    box-shadow: var(--neu-inset-sm);
+    border: none;
+    @apply p-2.5 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm;
+  }
+
+  .neu-toggle-track {
+    box-shadow: var(--neu-inset-sm);
+    background-color: color-mix(in srgb, var(--neu-surface) 65%, var(--neu-dark));
+    @apply w-10 h-6 rounded-full transition-colors relative flex-shrink-0 cursor-pointer;
+  }
+
+  .neu-toggle-track-on {
+    background-color: color-mix(in srgb, var(--neu-surface) 45%, #10b981);
+  }
+
+  .neu-toggle-thumb {
+    background-color: var(--neu-light);
+    box-shadow: var(--neu-raised-sm);
+    @apply absolute top-1 w-4 h-4 rounded-full transition-all;
+  }
+
+  .neu-modal-body .neu-input {
+    padding-block: var(--control-py);
+    padding-inline: var(--control-px);
+    font-size: 0.875rem;
+  }
+
+  .neu-modal-body button.w-full[class*='neu-btn'] {
+    padding-block: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .neu-modal-header h2,
+  .neu-modal-header h3 {
+    @apply text-base font-semibold;
+  }
+
+  .neu-chip-cash {
+    background-color: color-mix(in srgb, var(--neu-surface) 75%, #10b981);
+    box-shadow: var(--neu-inset-sm);
+    @apply text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded;
+  }
+}

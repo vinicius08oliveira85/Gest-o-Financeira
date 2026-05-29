@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
 import {
   hasStoredPassword,
@@ -63,19 +63,19 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-[#F5F5F5] dark:bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen neu-bg flex items-center justify-center p-4">
         <div className="text-slate-500 dark:text-slate-400">Carregando...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] dark:bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-600 p-8">
+    <div className="min-h-screen neu-bg flex items-center justify-center p-[var(--page-px)]">
+      <div className="w-full max-w-[min(100%,28rem)]">
+        <div className="neu-surface-lg rounded-2xl card-pad">
           <div className="flex justify-center mb-6">
-            <div className="bg-slate-900 dark:bg-slate-700 p-4 rounded-2xl">
-              <Lock className="text-white w-10 h-10" />
+            <div className="neu-icon-badge-emerald p-4 rounded-2xl">
+              <Lock className="text-emerald-500 dark:text-emerald-400 w-10 h-10" />
             </div>
           </div>
           <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 text-center mb-1">
@@ -87,11 +87,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
               : 'Digite a senha para acessar'}
           </p>
 
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
-              {error}
-            </div>
-          )}
+          {error && <div className="mb-4 neu-feedback-error">{error}</div>}
 
           {needsSetup ? (
             <form onSubmit={handleSetPassword} className="space-y-4">
@@ -106,7 +102,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                   required
                   minLength={MIN_PASSWORD_LENGTH_EXPORT}
                   placeholder="Mínimo 4 caracteres"
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500"
+                  className="w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100"
                 />
               </div>
               <div>
@@ -120,12 +116,12 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                   required
                   minLength={MIN_PASSWORD_LENGTH_EXPORT}
                   placeholder="Repita a senha"
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500"
+                  className="w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full bg-slate-900 dark:bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 dark:hover:bg-emerald-500 transition-colors"
+                className="w-full neu-btn-primary py-3 rounded-xl font-semibold"
               >
                 Cadastrar e entrar
               </button>
@@ -142,12 +138,12 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                   autoComplete="current-password"
                   required
                   placeholder="Digite sua senha"
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:focus:ring-emerald-500/20 focus:border-slate-500 dark:focus:border-emerald-500"
+                  className="w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full bg-slate-900 dark:bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 dark:hover:bg-emerald-500 transition-colors"
+                className="w-full neu-btn-primary py-3 rounded-xl font-semibold"
               >
                 Entrar
               </button>

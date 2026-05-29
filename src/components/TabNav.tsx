@@ -1,3 +1,4 @@
+﻿import type { ComponentType } from 'react';
 import { LayoutDashboard, ListTodo, BarChart3, Target, CreditCard } from 'lucide-react';
 
 export type TabId = 'resumo' | 'lancamentos' | 'relatorios' | 'metas' | 'cartoes';
@@ -5,13 +6,14 @@ export type TabId = 'resumo' | 'lancamentos' | 'relatorios' | 'metas' | 'cartoes
 const TABS: {
   id: TabId;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  shortLabel: string;
+  icon: ComponentType<{ size?: number; className?: string }>;
 }[] = [
-  { id: 'resumo', label: 'Resumo', icon: LayoutDashboard },
-  { id: 'lancamentos', label: 'Lançamentos', icon: ListTodo },
-  { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-  { id: 'metas', label: 'Metas', icon: Target },
-  { id: 'cartoes', label: 'Cartões', icon: CreditCard },
+  { id: 'resumo', label: 'Resumo', shortLabel: 'Resumo', icon: LayoutDashboard },
+  { id: 'lancamentos', label: 'Lançamentos', shortLabel: 'Lanç.', icon: ListTodo },
+  { id: 'relatorios', label: 'Relatórios', shortLabel: 'Rel.', icon: BarChart3 },
+  { id: 'metas', label: 'Metas', shortLabel: 'Metas', icon: Target },
+  { id: 'cartoes', label: 'Cartões', shortLabel: 'Cart.', icon: CreditCard },
 ];
 
 type TabNavProps = {
@@ -22,23 +24,26 @@ type TabNavProps = {
 export function TabNav({ activeTab, onTabChange }: TabNavProps) {
   return (
     <nav
-      className="flex gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 overflow-x-auto"
+      className="neu-tab-track flex gap-1 sm:gap-1.5 p-1 sm:p-1.5 rounded-xl overflow-x-auto"
       aria-label="Navegação principal"
     >
-      {TABS.map(({ id, label, icon: Icon }) => (
+      {TABS.map(({ id, label, shortLabel, icon: Icon }) => (
         <button
           key={id}
           type="button"
           onClick={() => onTabChange(id)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-base font-medium whitespace-nowrap transition-colors ${
             activeTab === id
-              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm border border-slate-200 dark:border-slate-600'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+              ? 'neu-tab-active'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           }`}
           aria-current={activeTab === id ? 'page' : undefined}
+          title={label}
         >
-          <Icon size={18} className="shrink-0" />
-          {label}
+          <Icon size={16} className="shrink-0 sm:hidden" />
+          <Icon size={18} className="shrink-0 hidden sm:block" />
+          <span className="hidden sm:inline">{label}</span>
+          <span className="sm:hidden">{shortLabel}</span>
         </button>
       ))}
     </nav>

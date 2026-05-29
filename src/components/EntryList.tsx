@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { Filter } from 'lucide-react';
 import type { Entry } from '../types';
@@ -52,17 +52,17 @@ export function EntryList({
   );
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-600 overflow-hidden">
+    <div className="neu-surface rounded-2xl overflow-hidden p-1.5">
       <AnimatePresence mode="popLayout">
         {entries.length > 0 ? (
           groupedByDate ? (
-            <div className="divide-y divide-slate-100 dark:divide-slate-600">
+            <div className="neu-list">
               {Array.from(groupedByDate.entries()).map(([dateKey, dayEntries]) => (
-                <div key={dateKey}>
-                  <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-700/80 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-600">
+                <div key={dateKey} className="space-y-1">
+                  <div className="neu-sticky-label mx-0.5 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider rounded-lg">
                     {formatDateGroupLabel(dateKey)}
                   </div>
-                  <div className="divide-y divide-slate-100 dark:divide-slate-600">
+                  <div className="space-y-1">
                     {dayEntries.map((entry) => (
                       <React.Fragment key={entry.id}>
                         <EntryItem
@@ -80,7 +80,7 @@ export function EntryList({
               ))}
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-600">
+            <div className="neu-list">
               {entries.map((entry) => (
                 <React.Fragment key={entry.id}>
                   <EntryItem
@@ -96,8 +96,8 @@ export function EntryList({
             </div>
           )
         ) : (
-          <div className="p-12 text-center">
-            <div className="bg-slate-50 dark:bg-slate-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="empty-state card-pad">
+            <div className="neu-inset w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <Filter className="text-slate-300 dark:text-slate-500 w-8 h-8" />
             </div>
             <h3 className="text-slate-900 dark:text-slate-100 font-medium">
@@ -109,7 +109,7 @@ export function EntryList({
             <button
               type="button"
               onClick={() => onEdit()}
-              className="mt-4 px-4 py-2.5 rounded-xl font-medium bg-slate-900 dark:bg-emerald-600 text-white hover:bg-slate-800 dark:hover:bg-emerald-500 transition-colors text-sm"
+              className="mt-4 neu-btn-primary px-4 py-2.5 rounded-xl font-medium text-sm"
             >
               Adicionar primeiro lançamento
             </button>

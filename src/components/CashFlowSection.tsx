@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useMemo } from 'react';
+﻿import { useState, lazy, Suspense, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry, FilterType, Goal } from '../types';
 import type { Alert } from '../hooks/useAlerts';
@@ -146,94 +146,56 @@ export function CashFlowSection({
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 space-y-6">
-      <section className="space-y-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-              Fluxo de Caixa
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">
-              Acompanhe seus lançamentos, entradas, saídas e saldo por mês.
-            </p>
-          </div>
+    <div className="app-container page-stack">
+      <section className="section-stack">
+        <div className="page-title-row">
+          <h1 className="page-title">Fluxo de Caixa</h1>
 
-          {/* Mobile: navegação compacta em uma linha */}
-          <div className="flex items-center justify-between gap-2 lg:hidden">
+          <div className="toolbar-row">
             <button
               type="button"
               onClick={goToPreviousMonth}
               aria-label="Mês anterior"
-              className="shrink-0 p-2 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="neu-btn shrink-0 p-1.5 rounded-full text-slate-700 dark:text-slate-200"
             >
-              <ChevronLeft size={20} />
-            </button>
-            <div className="flex flex-col items-center min-w-0 flex-1 px-2">
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize truncate w-full text-center">
-                {new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </span>
-              {!isCurrentMonth && (
-                <button
-                  type="button"
-                  onClick={goToCurrentMonth}
-                  className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline mt-0.5"
-                >
-                  Ir para hoje
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={goToNextMonth}
-              aria-label="Próximo mês"
-              className="shrink-0 p-2 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-
-          {/* Desktop: botões com texto */}
-          <div className="hidden lg:flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-3">
-            <button
-              type="button"
-              onClick={goToPreviousMonth}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
-            >
-              Mês anterior
+              <ChevronLeft size={18} />
             </button>
             {!isCurrentMonth && (
               <button
                 type="button"
                 onClick={goToCurrentMonth}
-                className="inline-flex items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 shadow-sm hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                className="neu-btn-emerald rounded-full px-2.5 py-1 text-xs font-medium"
               >
                 Hoje
               </button>
             )}
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize">
+            <span className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200 capitalize whitespace-nowrap">
               {new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', {
-                month: 'long',
+                month: 'short',
                 year: 'numeric',
               })}
             </span>
             <button
               type="button"
               onClick={goToNextMonth}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
+              aria-label="Próximo mês"
+              className="neu-btn shrink-0 p-1.5 rounded-full text-slate-700 dark:text-slate-200"
             >
-              Próximo mês
+              <ChevronRight size={18} />
             </button>
             {showMonthNavHint && (
-              <GuidedTooltip text="Use estes botões para navegar entre os meses." />
+              <div className="relative">
+                <GuidedTooltip
+                  text="Use estes botões para navegar entre os meses."
+                  className="right-auto left-0"
+                />
+              </div>
             )}
             {showSkipButton && (
               <button
                 type="button"
                 onClick={skip}
-                className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 underline underline-offset-2 lg:mt-0"
+                className="text-[10px] text-slate-400 dark:text-slate-500 underline underline-offset-2"
               >
                 Pular dicas
               </button>
@@ -244,7 +206,7 @@ export function CashFlowSection({
         <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
 
         {activeTab === 'resumo' && (
-          <section className="space-y-4">
+          <section className="section-stack">
             <DashboardCards
               totalEntradasLancadas={totalEntradasLancadasMes}
               totalSaidasLancadas={totalSaidasLancadasMes}
@@ -259,13 +221,11 @@ export function CashFlowSection({
               saldoProjetado={saldoProjetadoMes}
               periodLabel="do mês"
             />
-            <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 p-3">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                O saldo considera apenas lançamentos marcados como{' '}
-                <span className="font-semibold">finalizados</span>. Entradas aumentam seu saldo e
-                saídas diminuem.
-              </p>
-            </div>
+            <p className="info-bar">
+              O saldo considera apenas lançamentos{' '}
+              <span className="font-semibold">finalizados</span>. Entradas aumentam e saídas
+              diminuem o saldo.
+            </p>
             <AlertsPanel alerts={alerts} onDismiss={onDismissAlert} />
             {showReportsHint && (
               <GuidedTooltip text="Use as abas para ver Lançamentos, Relatórios e Metas." />
@@ -274,8 +234,8 @@ export function CashFlowSection({
         )}
 
         {activeTab === 'lancamentos' && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
+          <section className="section-stack">
+            <div className="toolbar-row justify-between">
               <FilterBar
                 filter={filter}
                 onFilterChange={setFilter}
@@ -291,13 +251,13 @@ export function CashFlowSection({
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
               />
-              <div className="flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-full p-1 shadow-sm text-xs">
+              <div className="neu-inset flex rounded-full p-1 text-xs">
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
-                  className={`px-3 py-1.5 rounded-full font-medium ${
+                  className={`px-3 py-1 rounded-full font-medium ${
                     viewMode === 'list'
-                      ? 'bg-slate-900 dark:bg-emerald-600 text-white'
+                      ? 'neu-filter-active'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
@@ -306,9 +266,9 @@ export function CashFlowSection({
                 <button
                   type="button"
                   onClick={() => setViewMode('calendar')}
-                  className={`px-3 py-1.5 rounded-full font-medium ${
+                  className={`px-3 py-1 rounded-full font-medium ${
                     viewMode === 'calendar'
-                      ? 'bg-slate-900 dark:bg-emerald-600 text-white'
+                      ? 'neu-filter-active'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
@@ -332,7 +292,7 @@ export function CashFlowSection({
             ) : (
               <Suspense
                 fallback={
-                  <div className="min-h-[280px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
+                  <div className="min-h-panel neu-surface-glass rounded-2xl animate-pulse" />
                 }
               >
                 <CalendarView entries={filteredEntries} month={currentMonth} year={currentYear} />
@@ -344,7 +304,7 @@ export function CashFlowSection({
         {activeTab === 'relatorios' && (
           <Suspense
             fallback={
-              <div className="min-h-[120px] rounded-2xl border border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/60 animate-pulse" />
+              <div className="min-h-panel-sm neu-surface-glass rounded-2xl animate-pulse" />
             }
           >
             <ReportsPanel
@@ -358,7 +318,7 @@ export function CashFlowSection({
         )}
 
         {activeTab === 'metas' && (
-          <section className="space-y-4 max-w-xl">
+          <section className="goals-stack">
             {isLoadingGoals ? (
               <GoalsCard
                 goal={null}

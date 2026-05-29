@@ -1,4 +1,4 @@
-import type { Entry } from '../types';
+﻿import type { Entry } from '../types';
 import { formatCurrency, parseDateLocal } from '../lib/format';
 
 type CalendarViewProps = {
@@ -57,19 +57,19 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
   const todayDay = today.getDate();
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-600 p-3 md:p-4">
-      <div className="grid grid-cols-7 gap-1 mb-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 text-center">
+    <div className="neu-surface rounded-2xl card-pad">
+      <div className="grid grid-cols-7 gap-[var(--inline-gap)] mb-[var(--inline-gap)] text-[11px] font-medium text-slate-500 dark:text-slate-400 text-center">
         {WEEK_DAYS.map((d) => (
           <div key={d}>{d}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-xs">
+      <div className="grid grid-cols-7 gap-[var(--inline-gap)] text-xs">
         {cells.map((bucket, idx) => {
           if (!bucket) {
             return (
               <div
                 key={idx}
-                className="h-12 sm:h-16 md:h-20 rounded-lg sm:rounded-xl border border-transparent"
+                className="min-h-[clamp(3rem,12vw,5rem)] rounded-lg sm:rounded-xl border border-transparent"
               />
             );
           }
@@ -101,12 +101,12 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
           return (
             <div
               key={idx}
-              className={`h-12 sm:h-20 md:h-24 rounded-lg sm:rounded-xl border px-1 py-1 sm:px-1.5 flex flex-col gap-0.5 ${
+              className={`min-h-[clamp(3rem,14vw,6rem)] rounded-lg sm:rounded-xl px-1 py-1 sm:px-1.5 flex flex-col gap-0.5 ${
                 isToday
-                  ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700'
+                  ? 'neu-calendar-today'
                   : hasInstallments
-                    ? 'border-indigo-200 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-900/20'
-                    : 'border-slate-100 dark:border-slate-600 bg-slate-50/60 dark:bg-slate-700/60'
+                    ? 'neu-calendar-installment'
+                    : 'neu-calendar-day'
               }`}
             >
               {/* Número do dia — sempre visível */}

@@ -1,4 +1,4 @@
-import { Component, type ReactNode, type ErrorInfo } from 'react';
+﻿import { Component, type ReactNode, type ErrorInfo } from 'react';
 
 type ErrorBoundaryState = {
   hasError: boolean;
@@ -39,8 +39,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-6">
-          <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
+        <div className="min-h-screen neu-bg flex items-center justify-center p-[var(--page-px)]">
+          <div className="w-full max-w-[min(100%,28rem)] neu-surface-lg rounded-2xl card-pad text-center">
             <h1 className="text-xl font-semibold text-slate-900 mb-2">Algo deu errado</h1>
             <p className="text-slate-600 text-sm mb-6">
               Ocorreu um erro inesperado. Você pode tentar novamente ou recarregar a página.
@@ -48,7 +48,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <button
               type="button"
               onClick={this.handleRetry}
-              className="w-full py-3 px-4 rounded-xl font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+              className="w-full neu-btn-primary py-3 px-4 rounded-xl font-medium"
             >
               Tentar novamente
             </button>

@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+﻿import { motion } from 'motion/react';
 import { TrendingDown, DollarSign, ArrowUpRight } from 'lucide-react';
 import { formatCurrency } from '../lib/format';
 
@@ -36,28 +36,28 @@ export function DashboardCards({
 }: DashboardCardsProps) {
   const suffix = periodLabel ? ` ${periodLabel}` : '';
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+    <div className="dashboard-grid">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-600 flex flex-col h-full"
+        className="neu-surface card-pad rounded-xl flex flex-col h-full"
       >
-        <div className="flex items-start justify-between mb-4 flex-wrap">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Total Entradas{suffix}
           </span>
-          <div className="bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-full">
+          <div className="neu-icon-badge-emerald p-1.5">
             <ArrowUpRight className="text-emerald-500 w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl sm:text-3xl font-light tracking-tight text-emerald-600 dark:text-emerald-400 mt-auto">
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-emerald-600 dark:text-emerald-400">
           {formatCurrency(totalEntradasLancadas)}
         </div>
-        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-          <span>{entradasCount} entradas lançadas</span>
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {entradasCount} entradas lançadas
         </div>
         {(totalEntradasFinalizadas !== undefined || totalEntradasPendentes !== undefined) && (
-          <div className="mt-2 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-2">
+          <div className="mt-1.5 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1.5">
             {totalEntradasFinalizadas !== undefined && (
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
@@ -88,24 +88,24 @@ export function DashboardCards({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-600 flex flex-col h-full"
+        className="neu-surface card-pad rounded-xl flex flex-col h-full"
       >
-        <div className="flex items-start justify-between mb-4 flex-wrap">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Total Saídas{suffix}
           </span>
-          <div className="bg-red-50 dark:bg-red-900/30 p-2 rounded-full">
+          <div className="neu-icon-badge-red p-1.5">
             <TrendingDown className="text-red-500 w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl sm:text-3xl font-light tracking-tight text-red-600 dark:text-red-400 mt-auto">
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-red-600 dark:text-red-400">
           {formatCurrency(totalSaidasLancadas)}
         </div>
-        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-          <span>{saidasCount} saídas lançadas</span>
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {saidasCount} saídas lançadas
         </div>
         {(totalSaidasFinalizadas !== undefined || totalSaidasPendentes !== undefined) && (
-          <div className="mt-2 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-2">
+          <div className="mt-1.5 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1.5">
             {totalSaidasFinalizadas !== undefined && (
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
@@ -136,24 +136,24 @@ export function DashboardCards({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className={`p-4 sm:p-6 rounded-2xl shadow-sm border flex flex-col h-full ${
-          saldo >= 0 ? 'bg-slate-900 border-slate-800' : 'bg-red-800 border-red-700'
+        className={`card-pad rounded-xl flex flex-col h-full ${
+          saldo >= 0 ? 'neu-surface-accent-dark' : 'neu-surface-accent-danger'
         }`}
       >
-        <div className="flex items-start justify-between mb-4 flex-wrap">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Saldo{suffix}
           </span>
-          <div className="bg-white/10 p-2 rounded-full">
+          <div className="neu-inset-sm p-1.5 rounded-full">
             <DollarSign className="text-white w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl sm:text-3xl font-light tracking-tight text-white mt-auto">
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-white">
           {formatCurrency(saldo)}
         </div>
-        <div className="mt-2 text-xs text-slate-400">Só entradas e saídas finalizadas</div>
+        <div className="mt-1 text-xs text-slate-400">Só entradas e saídas finalizadas</div>
         {saldoProjetado !== undefined && (
-          <div className="mt-2 space-y-0.5 border-t border-white/10 pt-2">
+          <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400" />
@@ -170,7 +170,7 @@ export function DashboardCards({
           </div>
         )}
         {totalLimiteDisponivel !== undefined && (
-          <div className="mt-2 space-y-0.5 border-t border-white/10 pt-2">
+          <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />

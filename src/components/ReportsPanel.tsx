@@ -1,4 +1,4 @@
-import type { CardExpense, CreditCard, Entry } from '../types';
+﻿import type { CardExpense, CreditCard, Entry } from '../types';
 import { formatCurrency, parseDateLocal } from '../lib/format';
 
 type ReportsPanelProps = {
@@ -76,7 +76,7 @@ export function ReportsPanel({
   const cycleLabel = `Ciclo: ${formatCycleDate(cycleStart)} a ${formatCycleDate(cycleEnd)}`;
 
   return (
-    <section className="mt-8 space-y-4">
+    <section className="section-stack">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -86,13 +86,13 @@ export function ReportsPanel({
             Visão rápida de entradas, saídas e categorias.
           </p>
         </div>
-        <p className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 w-fit">
+        <p className="neu-inset-sm text-xs font-medium text-slate-600 dark:text-slate-300 rounded-lg px-3 py-2 w-fit">
           {cycleLabel}
         </p>
       </div>
 
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3">
+      <div className="reports-kpi-grid">
+        <div className="neu-surface rounded-xl card-pad">
           <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Total entradas
           </p>
@@ -100,7 +100,7 @@ export function ReportsPanel({
             {formatCurrency(totalByType.entradas)}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3">
+        <div className="neu-surface rounded-xl card-pad">
           <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Total saídas
           </p>
@@ -108,7 +108,7 @@ export function ReportsPanel({
             {formatCurrency(totalByType.saidas)}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3">
+        <div className="neu-surface rounded-xl card-pad">
           <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Saldo do mês
           </p>
@@ -118,8 +118,8 @@ export function ReportsPanel({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
+      <div className="reports-split-grid">
+        <div className="neu-surface rounded-2xl card-pad section-stack">
           <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Entradas x Saídas
           </h3>
@@ -130,7 +130,7 @@ export function ReportsPanel({
                 {formatCurrency(totalByType.entradas)}
               </span>
             </div>
-            <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
+            <div className="h-2 neu-progress-track">
               <div
                 className="h-full bg-emerald-500 transition-all"
                 style={{
@@ -149,7 +149,7 @@ export function ReportsPanel({
                 {formatCurrency(totalByType.saidas)}
               </span>
             </div>
-            <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
+            <div className="h-2 neu-progress-track">
               <div
                 className="h-full bg-red-500 transition-all"
                 style={{
@@ -165,7 +165,7 @@ export function ReportsPanel({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
+        <div className="neu-surface rounded-2xl card-pad section-stack">
           <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Categorias (saídas)
           </h3>
@@ -183,7 +183,7 @@ export function ReportsPanel({
                       {formatCurrency(value)}
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
+                  <div className="h-1.5 neu-progress-track">
                     <div
                       className="h-full bg-red-500 dark:bg-red-600 transition-all"
                       style={{
@@ -198,7 +198,7 @@ export function ReportsPanel({
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
+        <div className="neu-surface rounded-2xl card-pad section-stack">
           <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Categorias (entradas)
           </h3>
@@ -216,7 +216,7 @@ export function ReportsPanel({
                       {formatCurrency(value)}
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
+                  <div className="h-1.5 neu-progress-track">
                     <div
                       className="h-full bg-emerald-500 dark:bg-emerald-600 transition-all"
                       style={{
@@ -235,7 +235,7 @@ export function ReportsPanel({
       </div>
 
       {cards.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3">
+        <div className="neu-surface rounded-2xl card-pad section-stack">
           <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Faturas do mês
           </h3>
@@ -262,7 +262,7 @@ export function ReportsPanel({
                       <span className="text-slate-400">/ {formatCurrency(card.limitAmount)}</span>
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                  <div className="h-1.5 neu-progress-track">
                     <div
                       className={`h-full rounded-full transition-all ${progressColor}`}
                       style={{ width: `${Math.min(usageRatio * 100, 100)}%` }}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 
 type ToastProps = {
   message: string | null;
@@ -26,7 +26,7 @@ export function Toast({ message, action, onDismiss, durationMs = 5000 }: ToastPr
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium shadow-lg transition-opacity duration-200 border border-slate-700 dark:border-slate-600"
+      className="neu-toast fixed bottom-[var(--fab-offset)] left-1/2 -translate-x-1/2 z-[100] flex items-center gap-[var(--inline-gap)] px-[var(--card-p)] py-[var(--inline-gap)] rounded-xl text-slate-800 dark:text-slate-100 text-sm font-medium transition-opacity duration-200 max-w-[min(100%,24rem)]"
     >
       <span>{message}</span>
       {action && (

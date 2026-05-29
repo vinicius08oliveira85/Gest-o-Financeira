@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { ModalShell } from './ModalShell';
 
 const TITLE_ID = 'apply-recurrence-modal-title';
 
@@ -41,76 +41,48 @@ export function ApplyRecurrenceModal({
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 dark:bg-black/50 backdrop-blur-sm"
-          />
-          <motion.div
-            ref={contentRef}
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={TITLE_ID}
-            className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-600"
-            tabIndex={-1}
-          >
-            <div className="p-6 border-b border-slate-100 dark:border-slate-600 flex items-center justify-between">
-              <h2
-                id={TITLE_ID}
-                className="text-xl font-semibold text-slate-900 dark:text-slate-100"
-              >
-                Aplicar alteração em
-              </h2>
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                aria-label="Fechar"
-              >
-                <X size={24} />
-              </button>
-            </div>
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      contentRef={contentRef}
+      size="md"
+      rootClassName="z-[60]"
+      aria-labelledby={TITLE_ID}
+    >
+      <div className="neu-modal-header">
+        <h2 id={TITLE_ID} className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+          Aplicar alteração em
+        </h2>
+        <button type="button" onClick={onClose} className="neu-modal-close" aria-label="Fechar">
+          <X size={24} />
+        </button>
+      </div>
 
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Este registro é recorrente. Deseja aplicar as alterações apenas nos próximos meses
-                ou em todos os meses (já gerados e futuros)?
-              </p>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={handleFuture}
-                  className="w-full px-4 py-3 rounded-xl font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors text-left"
-                >
-                  Apenas nos próximos meses
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAll}
-                  className="w-full px-4 py-3 rounded-xl font-medium text-white bg-slate-900 hover:bg-slate-800 transition-colors text-left"
-                >
-                  Em todos os meses (já gerados e futuros)
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-              >
-                Cancelar
-              </button>
-            </div>
-          </motion.div>
+      <div className="neu-modal-body">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Este registro é recorrente. Deseja aplicar as alterações apenas nos próximos meses ou em
+          todos os meses (já gerados e futuros)?
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleFuture}
+            className="w-full neu-btn px-4 py-3 rounded-xl font-medium text-slate-700 dark:text-slate-200 text-left"
+          >
+            Apenas nos próximos meses
+          </button>
+          <button
+            type="button"
+            onClick={handleAll}
+            className="w-full neu-btn-primary px-4 py-3 rounded-xl font-medium text-left"
+          >
+            Em todos os meses (já gerados e futuros)
+          </button>
         </div>
-      )}
-    </AnimatePresence>
+        <button type="button" onClick={onClose} className="neu-btn-link">
+          Cancelar
+        </button>
+      </div>
+    </ModalShell>
   );
 }

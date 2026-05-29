@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { ModalShell } from './ModalShell';
 
 const CONFIRM_DELETE_TITLE_ID = 'confirm-delete-modal-title';
 
@@ -40,66 +40,44 @@ export function ConfirmDeleteModal({
   }, [open, onClose]);
 
   return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 dark:bg-black/50 backdrop-blur-sm"
-          />
-          <motion.div
-            ref={contentRef}
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={CONFIRM_DELETE_TITLE_ID}
-            className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-600"
-            tabIndex={-1}
-          >
-            <div className="p-6 border-b border-slate-100 dark:border-slate-600 flex items-center justify-between">
-              <h2
-                id={CONFIRM_DELETE_TITLE_ID}
-                className="text-xl font-semibold text-slate-900 dark:text-slate-100"
-              >
-                {title}
-              </h2>
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                aria-label="Fechar"
-              >
-                <X size={24} />
-              </button>
-            </div>
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      contentRef={contentRef}
+      size="md"
+      aria-labelledby={CONFIRM_DELETE_TITLE_ID}
+    >
+      <div className="neu-modal-header">
+        <h2
+          id={CONFIRM_DELETE_TITLE_ID}
+          className="text-xl font-semibold text-slate-900 dark:text-slate-100"
+        >
+          {title}
+        </h2>
+        <button type="button" onClick={onClose} className="neu-modal-close" aria-label="Fechar">
+          <X size={24} />
+        </button>
+      </div>
 
-            <div className="p-6 space-y-6">
-              <p className="text-slate-600 dark:text-slate-300">{message}</p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirm}
-                  className="px-4 py-2.5 rounded-xl font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 transition-colors"
-                >
-                  {confirmLabel}
-                </button>
-              </div>
-            </div>
-          </motion.div>
+      <div className="neu-modal-body space-y-6">
+        <p className="text-slate-600 dark:text-slate-300">{message}</p>
+        <div className="neu-modal-footer !p-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="neu-btn px-4 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-200"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="neu-btn-danger px-4 py-2.5 rounded-xl font-medium"
+          >
+            {confirmLabel}
+          </button>
         </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </ModalShell>
   );
 }
