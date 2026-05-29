@@ -54,7 +54,6 @@ type CashFlowSectionProps = {
   entries: Entry[];
   alerts: Alert[];
   showNewEntryHint: boolean;
-  showMonthNavHint: boolean;
   showReportsHint: boolean;
   skip: () => void;
   onTogglePaid: (id: string) => void;
@@ -105,7 +104,6 @@ export function CashFlowSection({
   entries,
   alerts,
   showNewEntryHint,
-  showMonthNavHint,
   showReportsHint,
   skip,
   onTogglePaid,
@@ -129,7 +127,7 @@ export function CashFlowSection({
     isCurrentMonth,
   } = usePeriod();
   const [activeTab, setActiveTab] = useState<TabId>('resumo');
-  const showSkipButton = !showNewEntryHint && !showMonthNavHint && !showReportsHint;
+  const showSkipButton = !showNewEntryHint && !showReportsHint;
 
   const totalLimiteDisponivel = useMemo(
     () =>
@@ -183,14 +181,6 @@ export function CashFlowSection({
             >
               <ChevronRight size={18} />
             </button>
-            {showMonthNavHint && (
-              <div className="relative">
-                <GuidedTooltip
-                  text="Use estes botões para navegar entre os meses."
-                  className="right-auto left-0"
-                />
-              </div>
-            )}
             {showSkipButton && (
               <button
                 type="button"

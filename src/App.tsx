@@ -170,8 +170,7 @@ export default function App() {
       return next;
     });
   }, []);
-  const { showNewEntryHint, showMonthNavHint, showReportsHint, completeStep, skip } =
-    useOnboarding();
+  const { showNewEntryHint, showReportsHint, completeStep, skip } = useOnboarding();
 
   const form = useEntryForm(
     (entry, isEdit) => {
@@ -335,7 +334,6 @@ export default function App() {
             alerts={visibleAlerts}
             onDismissAlert={handleDismissAlert}
             showNewEntryHint={showNewEntryHint}
-            showMonthNavHint={showMonthNavHint}
             showReportsHint={showReportsHint}
             skip={skip}
             onTogglePaid={togglePaid}
