@@ -57,7 +57,6 @@ type CashFlowSectionProps = {
   showReportsHint: boolean;
   skip: () => void;
   onTogglePaid: (id: string) => void;
-  pendingPaidId?: string | null;
   onEdit: (entry?: Entry) => void;
   onDeleteRequest: (entry: Entry) => void;
   onDismissAlert?: (id: string) => void;
@@ -107,7 +106,6 @@ export function CashFlowSection({
   showReportsHint,
   skip,
   onTogglePaid,
-  pendingPaidId = null,
   onEdit,
   onDeleteRequest,
   onDismissAlert,
@@ -275,7 +273,6 @@ export function CashFlowSection({
                   const entry = filteredEntries.find((e) => e.id === id);
                   if (entry) onDeleteRequest(entry);
                 }}
-                pendingPaidId={pendingPaidId}
                 compact
                 groupByDate
               />

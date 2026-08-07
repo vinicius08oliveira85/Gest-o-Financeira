@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { CheckCircle2, Circle, Calendar, Pencil, Trash2, Loader2, Tag } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, Pencil, Trash2, Tag } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Entry } from '../types';
 import { formatCurrency, formatDate } from '../lib/format';
@@ -21,7 +21,6 @@ type EntryItemProps = {
   onTogglePaid: (id: string) => void;
   onEdit: (entry: Entry) => void;
   onDeleteRequest: (id: string) => void;
-  pendingPaidId?: string | null;
   compact?: boolean;
 };
 
@@ -30,12 +29,10 @@ function EntryItemInner({
   onTogglePaid,
   onEdit,
   onDeleteRequest,
-  pendingPaidId = null,
   compact = false,
 }: EntryItemProps) {
   const paymentDue = debtPaymentDueDate(entry);
   const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(paymentDue);
-  const isTogglingPaid = pendingPaidId === entry.id;
 
   return (
     <motion.div
@@ -49,20 +46,15 @@ function EntryItemInner({
     >
       <button
         type="button"
-        onClick={() => !isTogglingPaid && onTogglePaid(entry.id)}
-        disabled={isTogglingPaid}
+        onClick={() => onTogglePaid(entry.id)}
         title={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (abate no saldo)'}
         className={`mr-3 transition-colors self-start mt-1 sm:self-center sm:mt-0 ${
-          isTogglingPaid
-            ? 'text-slate-400 dark:text-slate-500 cursor-wait'
-            : entry.isPaid
-              ? 'text-emerald-500'
-              : 'text-slate-300 dark:text-slate-500 hover:text-slate-400 dark:hover:text-slate-400'
+          entry.isPaid
+            ? 'text-emerald-500'
+            : 'text-slate-300 dark:text-slate-500 hover:text-slate-400 dark:hover:text-slate-400'
         }`}
       >
-        {isTogglingPaid ? (
-          <Loader2 size={compact ? 18 : 22} className="animate-spin" />
-        ) : entry.isPaid ? (
+        {entry.isPaid ? (
           <CheckCircle2 size={compact ? 18 : 22} />
         ) : (
           <Circle size={compact ? 18 : 22} />

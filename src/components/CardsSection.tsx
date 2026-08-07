@@ -1,5 +1,4 @@
-﻿import React from 'react';
-import { Plus, CreditCard as CreditCardIcon } from 'lucide-react';
+﻿import { Plus, CreditCard as CreditCardIcon } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry } from '../types';
 import { CardItem } from './CardItem';
 

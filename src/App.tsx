@@ -93,11 +93,6 @@ export default function App() {
     goToNextMonth,
     goToCurrentMonth,
     filteredEntries,
-    totalEntradasLancadas,
-    totalSaidasLancadas,
-    saldo,
-    entradasCount,
-    saidasCount,
     entriesDoMes,
     totalEntradasLancadasMes,
     totalSaidasLancadasMes,
@@ -116,13 +111,11 @@ export default function App() {
     setSaveError,
     addOrUpdateEntry,
     togglePaid,
-    pendingPaidId,
     deleteEntry,
     updateRecurringApplyToAll,
     deleteRecurringModel,
     availableCategories,
     refetchEntries,
-    getSaldoForMonth,
     getMetaBalanceForGoal,
     saveEntriesLocal,
     pushEntriesToSupabase,
@@ -337,7 +330,6 @@ export default function App() {
             showReportsHint={showReportsHint}
             skip={skip}
             onTogglePaid={togglePaid}
-            pendingPaidId={pendingPaidId}
             onEdit={handleOpenForm}
             onDeleteRequest={handleDeleteRequest}
             cards={cards}

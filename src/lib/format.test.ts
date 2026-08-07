@@ -43,9 +43,9 @@ describe('exportEntriesToCSV', () => {
   it('gera CSV com headers e uma linha para uma entrada', () => {
     let capturedParts: BlobPart[] = [];
     const RealBlob = global.Blob;
-    vi.spyOn(global, 'Blob').mockImplementation((parts: BlobPart[], opts?: BlobPropertyBag) => {
-      capturedParts = Array.isArray(parts) ? [...parts] : [parts];
-      return new RealBlob(parts, opts);
+    vi.spyOn(global, 'Blob').mockImplementation((parts?: BlobPart[], opts?: BlobPropertyBag) => {
+      capturedParts = parts ? [...parts] : [];
+      return new RealBlob(parts ?? [], opts);
     });
     const entry: Entry = {
       id: '1',

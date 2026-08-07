@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { Entry, EntryType } from '../types';
 import { generateInstallmentEntries } from '../lib/installments';
 import { todayLocalISO } from '../lib/format';

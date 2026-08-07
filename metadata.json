@@ -1,5 +1,5 @@
 {
-  "name": "Gestão de Dívidas Pessoais",
-  "description": "Um aplicativo moderno para organizar suas dívidas, controlar pagamentos e visualizar seu saldo devedor.",
+  "name": "Gestão Financeira",
+  "description": "Controle de fluxo de caixa pessoal: lançamentos de entradas e saídas, metas, alertas, cartões de crédito e exportação CSV. PWA instalável com sincronização opcional via Supabase.",
   "requestFramePermissions": []
 }

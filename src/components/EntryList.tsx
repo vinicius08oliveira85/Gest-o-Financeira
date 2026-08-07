@@ -9,7 +9,6 @@ type EntryListProps = {
   onTogglePaid: (id: string) => void;
   onEdit: (entry?: Entry) => void;
   onDeleteRequest: (id: string) => void;
-  pendingPaidId?: string | null;
   compact?: boolean;
   /** Agrupa os itens por data de vencimento com um cabeçalho por dia */
   groupByDate?: boolean;
@@ -42,7 +41,6 @@ export function EntryList({
   onTogglePaid,
   onEdit,
   onDeleteRequest,
-  pendingPaidId = null,
   compact = false,
   groupByDate = false,
 }: EntryListProps) {
@@ -70,7 +68,6 @@ export function EntryList({
                           onTogglePaid={onTogglePaid}
                           onEdit={onEdit}
                           onDeleteRequest={onDeleteRequest}
-                          pendingPaidId={pendingPaidId}
                           compact={compact}
                         />
                       </React.Fragment>
@@ -88,7 +85,6 @@ export function EntryList({
                     onTogglePaid={onTogglePaid}
                     onEdit={onEdit}
                     onDeleteRequest={onDeleteRequest}
-                    pendingPaidId={pendingPaidId}
                     compact={compact}
                   />
                 </React.Fragment>

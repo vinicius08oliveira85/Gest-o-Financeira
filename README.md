@@ -10,11 +10,7 @@ App de controle de fluxo de caixa: lançamentos de entradas e saídas por mês, 
 
 ---
 
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally. Stack: React, Vite, Tailwind CSS, Supabase (opcional).
-
-View your app in AI Studio: https://ai.studio/apps/6b1a159b-4885-4319-bd7b-bc9c90bc5ea8
+Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Supabase (opcional).
 
 ## Run Locally
 
@@ -29,6 +25,7 @@ View your app in AI Studio: https://ai.studio/apps/6b1a159b-4885-4319-bd7b-bc9c9
    - `20250316000000_create_goals_table.sql` — cria a tabela `goals`
    - `20250316000001_goals_rls_policies.sql` — políticas RLS para `goals`
    - `20250316000002_insert_entries_batch_rpc.sql` — função RPC para inserção em lote de lançamentos
+   - `20260807000000_sync_entries_delta_safe_merge.sql` — sync seguro (sem "delete cego"; deleção explícita via `deleted_ids`)
      No Dashboard do Supabase, ative **Realtime** para a tabela `entries` (Database > Replication); opcionalmente, ative também para `goals`. Defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em `.env.local`. As variáveis estão listadas em [.env.example](.env.example).
 3. Run the app:
    `npm run dev`

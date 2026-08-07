@@ -107,13 +107,6 @@ export async function fetchEntries(): Promise<Entry[]> {
   return (data ?? []).map((row) => rowToEntry(row as EntryRow));
 }
 
-export async function insertEntry(entry: Entry): Promise<void> {
-  if (!supabase) return;
-  const row = { ...entryToRow(entry), id: entry.id };
-  const { error } = await supabase.from('entries').insert(row);
-  if (error) throw error;
-}
-
 function entryToBatchRow(entry: Entry): Record<string, unknown> {
   const row = entryToRow(entry);
   return {
@@ -130,53 +123,22 @@ export async function insertEntriesBatch(entries: Entry[]): Promise<void> {
   if (error) throw error;
 }
 
-/** Snapshot completo: remove no servidor o que não está no array e faz upsert (uma RPC, uma transação). */
-export async function syncEntriesSnapshot(entries: Entry[]): Promise<void> {
-  if (!supabase) return;
-  const payload = entries.map(entryToBatchRow);
-  const { error } = await supabase.rpc('sync_entries_snapshot', { entries_json: payload });
-  if (error) throw error;
-}
-
 /**
- * Sincronização delta: `presentIds` define quais ids permanecem (o restante é apagado no servidor);
- * `changedEntries` são os corpos a inserir/atualizar com merge por `updated_at`.
+ * Sincronização delta: `changedEntries` são os corpos a inserir/atualizar (merge por id + revision);
+ * `deletedIds` são os ids que o cliente removeu explicitamente — somente esses são apagados no servidor
+ * (evita "delete cego" de registros criados em outros dispositivos).
  */
 export async function syncEntriesDelta(
   presentIds: string[],
-  changedEntries: Entry[]
+  changedEntries: Entry[],
+  deletedIds: string[] = []
 ): Promise<void> {
   if (!supabase) return;
   const changesPayload = changedEntries.map(entryToBatchRow);
   const { error } = await supabase.rpc('sync_entries_delta', {
     present_ids: presentIds,
     changes_json: changesPayload,
+    deleted_ids: deletedIds,
   });
-  if (error) throw error;
-}
-
-export async function updateEntry(entry: Entry): Promise<void> {
-  if (!supabase) return;
-  const row = entryToRow(entry);
-  const { error } = await supabase.from('entries').update(row).eq('id', entry.id);
-  if (error) throw error;
-}
-
-export async function updateEntryIsPaid(
-  id: string,
-  isPaid: boolean,
-  paidDate?: string
-): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase
-    .from('entries')
-    .update({ is_paid: isPaid, paid_date: paidDate ?? null })
-    .eq('id', id);
-  if (error) throw error;
-}
-
-export async function deleteEntry(id: string): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase.from('entries').delete().eq('id', id);
   if (error) throw error;
 }

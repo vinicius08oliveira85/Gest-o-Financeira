@@ -66,7 +66,6 @@ export function useEntries() {
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
   const [isMigrating, setIsMigrating] = useState(false);
-  const [useSupabaseSync, setUseSupabaseSync] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -74,6 +73,8 @@ export function useEntries() {
   entriesRef.current = entries;
   /** Ids alterados localmente desde o último sync bem-sucedido (payload delta). */
   const dirtyEntryIdsRef = useRef<Set<string>>(new Set());
+  /** Ids removidos localmente desde o último sync (propagação explícita de deleção, sem "delete cego"). */
+  const deletedEntryIdsRef = useRef<Set<string>>(new Set());
   /** Cópias de recorrência apagadas manualmente: não voltar a gerar após salvar/sincronizar. */
   const suppressedRecurringSlotsRef = useRef<Set<string>>(readSuppressedRecurringSlots());
 
@@ -86,7 +87,6 @@ export function useEntries() {
           if (!cancelled) {
             setEntries(data);
             dirtyEntryIdsRef.current.clear();
-            setUseSupabaseSync(true);
           }
           const copies = generateMissingRecurringCopies(data, suppressedRecurringSlotsRef.current);
           if (copies.length > 0 && !cancelled) {
@@ -125,7 +125,6 @@ export function useEntries() {
         } catch (e) {
           logError('Failed to load entries from Supabase', e);
           if (!cancelled) {
-            setUseSupabaseSync(false);
             setShowOfflineBanner(true);
           }
           const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
@@ -199,13 +198,14 @@ export function useEntries() {
       const presentIds = localSnapshot.map((e) => e.id);
       const dirty = dirtyEntryIdsRef.current;
       const changedEntries = localSnapshot.filter((e) => dirty.has(e.id));
-      await syncEntriesDelta(presentIds, changedEntries);
+      const deletedIds = [...deletedEntryIdsRef.current];
+      await syncEntriesDelta(presentIds, changedEntries, deletedIds);
       const merged = await fetchMergedWithRecurringRespectSuppressed(
         suppressedRecurringSlotsRef.current
       );
       setEntries(merged);
       dirtyEntryIdsRef.current.clear();
-      setUseSupabaseSync(true);
+      deletedEntryIdsRef.current.clear();
       setShowOfflineBanner(false);
     } catch (e) {
       logError('Falha ao gravar no Supabase', e);
@@ -228,7 +228,6 @@ export function useEntries() {
       );
       setEntries(merged);
       dirtyEntryIdsRef.current.clear();
-      setUseSupabaseSync(true);
       setShowOfflineBanner(false);
     } catch (e) {
       logError('Falha ao buscar lançamentos do Supabase', e);
@@ -270,7 +269,7 @@ export function useEntries() {
     const mult = sortOrder === 'asc' ? 1 : -1;
     result = [...result].sort((a, b) => {
       if (sortBy === 'dueDate') {
-        return mult * (new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+        return mult * (parseDateLocal(a.dueDate).getTime() - parseDateLocal(b.dueDate).getTime());
       }
       if (sortBy === 'amount') {
         return mult * (a.amount - b.amount);
@@ -432,23 +431,21 @@ export function useEntries() {
   }, [entries]);
 
   function goToPreviousMonth() {
-    setCurrentMonth((prev) => {
-      if (prev === 0) {
-        setCurrentYear((y) => y - 1);
-        return 11;
-      }
-      return prev - 1;
-    });
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear((y) => y - 1);
+    } else {
+      setCurrentMonth((m) => m - 1);
+    }
   }
 
   function goToNextMonth() {
-    setCurrentMonth((prev) => {
-      if (prev === 11) {
-        setCurrentYear((y) => y + 1);
-        return 0;
-      }
-      return prev + 1;
-    });
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear((y) => y + 1);
+    } else {
+      setCurrentMonth((m) => m + 1);
+    }
   }
 
   function goToCurrentMonth() {
@@ -500,6 +497,7 @@ export function useEntries() {
       persistSuppressedRecurringSlots(suppressedRecurringSlotsRef.current);
     }
     dirtyEntryIdsRef.current.delete(id);
+    deletedEntryIdsRef.current.add(id);
     setEntries((prev) => {
       const next = prev.filter((e) => e.id !== id);
       entriesRef.current = next;
@@ -562,6 +560,7 @@ export function useEntries() {
       const ids = new Set(toRemove.map((e) => e.id));
       for (const rid of ids) {
         dirtyEntryIdsRef.current.delete(rid);
+        deletedEntryIdsRef.current.add(rid);
       }
       const next = prev.filter((e) => !ids.has(e.id));
       entriesRef.current = next;
@@ -605,14 +604,12 @@ export function useEntries() {
     totalSaidasPendentesMes,
     isLoading,
     isMigrating,
-    useSupabaseSync,
     showOfflineBanner,
     setShowOfflineBanner,
     saveError,
     setSaveError,
     addOrUpdateEntry,
     togglePaid,
-    pendingPaidId: null,
     deleteEntry,
     updateRecurringApplyToAll,
     deleteRecurringModel,
