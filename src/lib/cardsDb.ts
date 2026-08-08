@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { CreditCard } from '../types';
+import { randomUUID } from './uuid';
 
 export type CreditCardRow = {
   id: string;
@@ -49,7 +50,7 @@ export async function upsertCard(
   card: Omit<CreditCard, 'id'> & { id?: string }
 ): Promise<CreditCard> {
   if (!supabase) throw new Error('Supabase not configured');
-  const id = card.id ?? crypto.randomUUID();
+  const id = card.id ?? randomUUID();
   const row = cardToRow(card);
   const payload = { id, ...row };
   const { data, error } = await supabase

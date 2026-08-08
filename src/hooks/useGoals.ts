@@ -4,6 +4,7 @@ import { GOALS_STORAGE_KEY } from '../constants';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { logError } from '../lib/logger';
 import { fetchGoals, upsertGoal as upsertGoalDb, deleteGoal as deleteGoalDb } from '../lib/goalsDb';
+import { randomUUID } from '../lib/uuid';
 
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -85,7 +86,7 @@ export function useGoals() {
     (goal: Omit<Goal, 'id'> & { id?: string }) => {
       if (useSupabaseSync) {
         const prev = goals;
-        const optimisticId = goal.id ?? crypto.randomUUID();
+        const optimisticId = goal.id ?? randomUUID();
         const optimistic: Goal = { ...(goal as Omit<Goal, 'id'>), id: optimisticId };
         setGoals((g) =>
           goal.id ? g.map((x) => (x.id === goal.id ? optimistic : x)) : [...g, optimistic]
@@ -103,7 +104,7 @@ export function useGoals() {
           if (goal.id) {
             return prev.map((g) => (g.id === goal.id ? (goal as Goal) : g));
           }
-          const id = crypto.randomUUID();
+          const id = randomUUID();
           const createdAt = new Date().toISOString();
           return [...prev, { ...(goal as Omit<Goal, 'id'>), id, createdAt }];
         });

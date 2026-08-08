@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { CardExpense } from '../types';
+import { randomUUID } from './uuid';
 
 export type CardExpenseRow = {
   id: string;
@@ -76,7 +77,7 @@ export async function fetchAllExpenses(): Promise<CardExpense[]> {
 
 export async function insertExpense(expense: Omit<CardExpense, 'id'>): Promise<CardExpense> {
   if (!supabase) throw new Error('Supabase not configured');
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const row = expenseToRow(expense);
   const payload = { id, ...row };
   const { data, error } = await supabase.from('card_expenses').insert(payload).select('*').single();

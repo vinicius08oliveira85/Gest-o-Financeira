@@ -18,15 +18,25 @@ Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Supabase (opcional).
 
 1. Install dependencies:
    `npm install`
-2. (Opcional) Para sincronizar dados com Supabase: execute as migrações em `supabase/migrations/` no SQL Editor **nesta ordem**:
+2. (Opcional) Para sincronizar dados com Supabase, execute as migrações em `supabase/migrations/` **em ordem cronológica** (todas são idempotentes — rodá-las de novo é seguro). A forma mais simples é usar o CLI: `supabase db push`. Manualmente (SQL Editor), rode nesta ordem:
    - `20250306000000_create_entries_table.sql` — cria a tabela `entries`
-   - `add_missing_fields.sql` ou `20250316000003_entries_optional_columns_snake.sql` — colunas opcionais em `entries`
    - `20250309000000_entries_rls_policies.sql` — políticas RLS para `entries`
    - `20250316000000_create_goals_table.sql` — cria a tabela `goals`
    - `20250316000001_goals_rls_policies.sql` — políticas RLS para `goals`
-   - `20250316000002_insert_entries_batch_rpc.sql` — função RPC para inserção em lote de lançamentos
+   - `20250316000002_insert_entries_batch_rpc.sql` — RPC `insert_entries_batch`
+   - `20250316000003_entries_optional_columns_snake.sql` — colunas opcionais em `entries` (category, tag, parcelas)
+   - `20250317000000_goals_target_date.sql` — coluna `target_date` em metas
+   - `20250317000001_entries_recurring.sql` — colunas de recorrência em `entries`
+   - `20250317000002_insert_entries_batch_recurring.sql` — RPC atualizado com recorrência
+   - `20250318000000_entries_goal_id.sql` / `20250318000001_insert_entries_batch_goal_id.sql` — vínculo lançamento ↔ meta
+   - `20250319000000_create_credit_cards_table.sql` / `20250319000001_credit_cards_rls_policies.sql` — tabelas e RLS de cartões e gastos
+   - Migrações `2026042*` — sincronização (snapshot, coluna `updated_at`, `sync_entries_delta`, coluna `revision`, `insert_entries_batch` robusto, coluna `invoice_payment_due_date`)
    - `20260807000000_sync_entries_delta_safe_merge.sql` — sync seguro (sem "delete cego"; deleção explícita via `deleted_ids`)
-     No Dashboard do Supabase, ative **Realtime** para a tabela `entries` (Database > Replication); opcionalmente, ative também para `goals`. Defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em `.env.local`. As variáveis estão listadas em [.env.example](.env.example).
+
+   > **Atenção:** ignore `add_missing_fields.sql` — é legado (cria colunas camelCase que o app não usa); use `20250316000003_entries_optional_columns_snake.sql`.
+
+   No Dashboard do Supabase, ative **Realtime** para a tabela `entries` (Database > Replication); opcionalmente, ative também para `goals`. Defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em `.env.local`. As variáveis estão listadas em [.env.example](.env.example).
+
 3. Run the app:
    `npm run dev`
 

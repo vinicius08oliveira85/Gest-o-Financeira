@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Goal } from '../types';
+import { randomUUID } from './uuid';
 
 export type GoalRow = {
   id: string;
@@ -45,7 +46,7 @@ export async function fetchGoals(): Promise<Goal[]> {
 
 export async function upsertGoal(goal: Omit<Goal, 'id'> & { id?: string }): Promise<Goal> {
   if (!supabase) throw new Error('Supabase not configured');
-  const id = goal.id ?? crypto.randomUUID();
+  const id = goal.id ?? randomUUID();
   const row = goalToRow(goal);
   const payload = { id, ...row };
   const { data, error } = await supabase

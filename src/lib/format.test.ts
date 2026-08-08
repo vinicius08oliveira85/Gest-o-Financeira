@@ -78,4 +78,33 @@ describe('exportEntriesToCSV', () => {
 
     vi.restoreAllMocks();
   });
+
+  it('sanitiza células que começam com caracteres de fórmula', () => {
+    let capturedParts: BlobPart[] = [];
+    const RealBlob = global.Blob;
+    vi.spyOn(global, 'Blob').mockImplementation((parts?: BlobPart[], opts?: BlobPropertyBag) => {
+      capturedParts = parts ? [...parts] : [];
+      return new RealBlob(parts ?? [], opts);
+    });
+    const entry: Entry = {
+      id: '1',
+      name: '=SUM(A1:A10)',
+      amount: 100,
+      dueDate: '2025-03-10',
+      isPaid: false,
+      type: 'debt',
+      createdAt: Date.now(),
+      category: '+CAT',
+      tag: '@user',
+    };
+
+    exportEntriesToCSV([entry]);
+
+    const csvContent = String(capturedParts[0]);
+    expect(csvContent).toContain(`'=SUM(A1:A10)`);
+    expect(csvContent).toContain(`'+CAT`);
+    expect(csvContent).toContain(`'@user`);
+
+    vi.restoreAllMocks();
+  });
 });

@@ -1,5 +1,6 @@
 import type { Entry, EntryType } from '../types';
 import { parseDateLocal } from './format';
+import { randomUUID } from './uuid';
 
 function copyDueDateForMonth(baseDueDate: string, targetMonth: number, targetYear: number): string {
   const base = parseDateLocal(baseDueDate);
@@ -27,7 +28,7 @@ export function generateInstallmentEntries(input: BaseInstallmentInput): Entry[]
 
   const baseDate = parseDateLocal(firstDueDate);
   const createdAt = Date.now();
-  const groupId = crypto.randomUUID();
+  const groupId = randomUUID();
 
   const entries: Entry[] = [];
 
@@ -37,7 +38,7 @@ export function generateInstallmentEntries(input: BaseInstallmentInput): Entry[]
     const normalizedMonth = ((targetMonth % 12) + 12) % 12;
     const dueDate = copyDueDateForMonth(firstDueDate, normalizedMonth, targetYear);
 
-    const id = i === 0 ? groupId : crypto.randomUUID();
+    const id = i === 0 ? groupId : randomUUID();
 
     entries.push({
       id,

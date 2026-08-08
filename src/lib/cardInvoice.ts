@@ -1,5 +1,7 @@
-import type { CreditCard, Entry } from '../types';
+import type { CardExpense, CreditCard, Entry } from '../types';
 import { parseDateLocal } from './format';
+import { copyDueDateForMonth } from './recurringEntries';
+import { randomUUID } from './uuid';
 
 /**
  * Determina a qual fatura (mês/ano) pertence uma compra, levando em conta o
@@ -79,7 +81,7 @@ export function buildInvoiceEntry(
   const closingDate = getInvoiceClosingDate(billingMonth, billingYear, card.closingDay);
   const paymentDue = getInvoiceDueDate(billingMonth, billingYear, card.dueDay);
   return {
-    id: existingId ?? crypto.randomUUID(),
+    id: existingId ?? randomUUID(),
     name: `Fatura ${card.name} — ${monthName}`,
     amount: total,
     dueDate: closingDate,
@@ -93,4 +95,57 @@ export function buildInvoiceEntry(
     cardId: card.id,
     isCardInvoice: true,
   };
+}
+
+export type CardExpenseInstallmentInput = {
+  cardId: string;
+  name: string;
+  totalAmount: number;
+  date: string;
+  closingDay: number;
+  count: number;
+  category?: string;
+  tag?: string;
+  parentId?: string;
+};
+
+/**
+ * Gera as parcelas de um gasto de cartão.
+ *
+ * Usa aritmética de datas LOCAL (parseDateLocal + copyDueDateForMonth), evitando
+ * dois problemas do `new Date(date)` + `toISOString()`:
+ *  - deslocamento de fuso horário (no Brasil, UTC-3, a data podia "voltar" um dia);
+ *  - "vazamento" do dia 31 em meses curtos (31/01 + 1 mês virava 03/03).
+ * Cada parcela cai na fatura (billingMonth/billingYear) do mês correto.
+ */
+export function buildInstallmentCardExpenses(
+  input: CardExpenseInstallmentInput
+): Array<Omit<CardExpense, 'id' | 'createdAt'>> {
+  const { cardId, name, totalAmount, date, closingDay, count, category, tag, parentId } = input;
+  const safeCount = Math.max(1, Math.floor(count));
+  const installmentAmount = safeCount > 1 ? totalAmount / safeCount : totalAmount;
+  const base = parseDateLocal(date);
+
+  const rows: Array<Omit<CardExpense, 'id' | 'createdAt'>> = [];
+  for (let i = 0; i < safeCount; i++) {
+    const targetMonth = base.getMonth() + i;
+    const targetYear = base.getFullYear() + Math.floor(targetMonth / 12);
+    const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+    const dueDate = copyDueDateForMonth(date, normalizedMonth, targetYear);
+    const billing = getBillingPeriod(dueDate, closingDay);
+    rows.push({
+      cardId,
+      name,
+      amount: installmentAmount,
+      date: dueDate,
+      billingMonth: billing.month,
+      billingYear: billing.year,
+      category,
+      tag,
+      installmentsCount: safeCount > 1 ? safeCount : undefined,
+      installmentNumber: safeCount > 1 ? i + 1 : undefined,
+      parentInstallmentId: parentId,
+    });
+  }
+  return rows;
 }

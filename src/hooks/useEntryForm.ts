@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import type { Entry, EntryType } from '../types';
 import { generateInstallmentEntries } from '../lib/installments';
 import { todayLocalISO } from '../lib/format';
+import { randomUUID } from '../lib/uuid';
 
 export type FormErrors = { name?: boolean; amount?: boolean; dueDate?: boolean };
 
@@ -128,7 +129,7 @@ export function useEntryForm(
         if (Number.isNaN(count) || count <= 1) {
           // se inválido, cai para criação simples
           const single: Entry = {
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             name,
             amount: parseFloat(amount),
             dueDate,
@@ -155,7 +156,7 @@ export function useEntryForm(
         }
       } else {
         const newEntry: Entry = {
-          id: crypto.randomUUID(),
+          id: randomUUID(),
           name,
           amount: parseFloat(amount),
           dueDate,

@@ -71,6 +71,11 @@ export function useEntries() {
   const [isSyncing, setIsSyncing] = useState(false);
   const entriesRef = useRef<Entry[]>([]);
   entriesRef.current = entries;
+  /** Aplica uma nova lista mantendo entriesRef sincronizado (permite acumular várias mudanças no mesmo tick). */
+  const commitEntries = useCallback((next: Entry[]) => {
+    entriesRef.current = next;
+    setEntries(next);
+  }, []);
   /** Ids alterados localmente desde o último sync bem-sucedido (payload delta). */
   const dirtyEntryIdsRef = useRef<Set<string>>(new Set());
   /** Ids removidos localmente desde o último sync (propagação explícita de deleção, sem "delete cego"). */
@@ -457,20 +462,22 @@ export function useEntries() {
   function addOrUpdateEntry(entry: Entry, isEdit: boolean): Promise<void> {
     if (isEdit) {
       dirtyEntryIdsRef.current.add(entry.id);
-      setEntries((prev) => prev.map((e) => (e.id === entry.id ? bumpEntryUpdatedAt(entry) : e)));
+      const updated = bumpEntryUpdatedAt(entry);
+      commitEntries(entriesRef.current.map((e) => (e.id === entry.id ? updated : e)));
       return Promise.resolve();
     }
     const stamped = bumpEntryUpdatedAt(entry);
     dirtyEntryIdsRef.current.add(stamped.id);
-    setEntries((prev) => {
-      const newList = [stamped, ...prev];
-      if (!stamped.isRecurring) return newList;
-      const copies = generateMissingRecurringCopies(newList, suppressedRecurringSlotsRef.current);
+    const base = [stamped, ...entriesRef.current];
+    let next = base;
+    if (stamped.isRecurring) {
+      const copies = generateMissingRecurringCopies(base, suppressedRecurringSlotsRef.current);
       for (const c of copies) {
         dirtyEntryIdsRef.current.add(c.id);
       }
-      return copies.length > 0 ? [...newList, ...copies] : newList;
-    });
+      next = copies.length > 0 ? [...base, ...copies] : base;
+    }
+    commitEntries(next);
     return Promise.resolve();
   }
 
@@ -486,29 +493,30 @@ export function useEntries() {
     );
   }, []);
 
-  const deleteEntry = useCallback((id: string) => {
-    const removed = entriesRef.current.find((e) => e.id === id);
-    if (removed?.isRecurring && !removed.recurrenceTemplateId) {
-      clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, removed.id);
-    } else if (removed?.recurrenceTemplateId) {
-      suppressedRecurringSlotsRef.current.add(
-        recurringSlotKey(removed.recurrenceTemplateId, removed.dueDate)
-      );
-      persistSuppressedRecurringSlots(suppressedRecurringSlotsRef.current);
-    }
-    dirtyEntryIdsRef.current.delete(id);
-    deletedEntryIdsRef.current.add(id);
-    setEntries((prev) => {
-      const next = prev.filter((e) => e.id !== id);
-      entriesRef.current = next;
-      return next;
-    });
-  }, []);
+  const deleteEntry = useCallback(
+    (id: string) => {
+      const removed = entriesRef.current.find((e) => e.id === id);
+      if (removed?.isRecurring && !removed.recurrenceTemplateId) {
+        clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, removed.id);
+      } else if (removed?.recurrenceTemplateId) {
+        suppressedRecurringSlotsRef.current.add(
+          recurringSlotKey(removed.recurrenceTemplateId, removed.dueDate)
+        );
+        persistSuppressedRecurringSlots(suppressedRecurringSlotsRef.current);
+      }
+      dirtyEntryIdsRef.current.delete(id);
+      deletedEntryIdsRef.current.add(id);
+      commitEntries(entriesRef.current.filter((e) => e.id !== id));
+    },
+    [commitEntries]
+  );
 
-  const updateRecurringApplyToAll = useCallback((updatedEntry: Entry) => {
-    setEntries((prev) => {
+  const updateRecurringApplyToAll = useCallback(
+    (updatedEntry: Entry) => {
       const modelId = updatedEntry.recurrenceTemplateId ?? updatedEntry.id;
-      const toUpdate = prev.filter((e) => e.id === modelId || e.recurrenceTemplateId === modelId);
+      const toUpdate = entriesRef.current.filter(
+        (e) => e.id === modelId || e.recurrenceTemplateId === modelId
+      );
       const merged = toUpdate.map((e) => {
         const isModel = e.id === modelId;
         const dueDate = isModel
@@ -529,44 +537,42 @@ export function useEntries() {
       for (const m of merged) {
         dirtyEntryIdsRef.current.add(m.id);
       }
-      return prev.map((e) => {
-        const u = merged.find((m) => m.id === e.id);
-        return u ?? e;
-      });
-    });
-  }, []);
+      const mergedById = new Map(merged.map((m) => [m.id, m]));
+      commitEntries(entriesRef.current.map((e) => mergedById.get(e.id) ?? e));
+    },
+    [commitEntries]
+  );
 
-  const deleteRecurringModel = useCallback((id: string, deleteAllCopies: boolean) => {
-    const entry = entriesRef.current.find((e) => e.id === id);
-    if (entry) {
-      if (deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId) {
-        clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, entry.id);
-      } else if (!deleteAllCopies && entry.recurrenceTemplateId) {
-        suppressedRecurringSlotsRef.current.add(
-          recurringSlotKey(entry.recurrenceTemplateId, entry.dueDate)
-        );
-        persistSuppressedRecurringSlots(suppressedRecurringSlotsRef.current);
-      } else if (!deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId) {
-        clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, entry.id);
+  const deleteRecurringModel = useCallback(
+    (id: string, deleteAllCopies: boolean) => {
+      const entry = entriesRef.current.find((e) => e.id === id);
+      if (entry) {
+        if (deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId) {
+          clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, entry.id);
+        } else if (!deleteAllCopies && entry.recurrenceTemplateId) {
+          suppressedRecurringSlotsRef.current.add(
+            recurringSlotKey(entry.recurrenceTemplateId, entry.dueDate)
+          );
+          persistSuppressedRecurringSlots(suppressedRecurringSlotsRef.current);
+        } else if (!deleteAllCopies && entry.isRecurring && !entry.recurrenceTemplateId) {
+          clearSuppressedSlotsForTemplate(suppressedRecurringSlotsRef.current, entry.id);
+        }
       }
-    }
-    setEntries((prev) => {
-      const entryInPrev = prev.find((e) => e.id === id);
-      if (!entryInPrev) return prev;
+      const entryInCurrent = entriesRef.current.find((e) => e.id === id);
+      if (!entryInCurrent) return;
       const toRemove =
-        deleteAllCopies && entryInPrev.isRecurring && !entryInPrev.recurrenceTemplateId
-          ? prev.filter((e) => e.id === id || e.recurrenceTemplateId === id)
-          : [entryInPrev];
+        deleteAllCopies && entryInCurrent.isRecurring && !entryInCurrent.recurrenceTemplateId
+          ? entriesRef.current.filter((e) => e.id === id || e.recurrenceTemplateId === id)
+          : [entryInCurrent];
       const ids = new Set(toRemove.map((e) => e.id));
       for (const rid of ids) {
         dirtyEntryIdsRef.current.delete(rid);
         deletedEntryIdsRef.current.add(rid);
       }
-      const next = prev.filter((e) => !ids.has(e.id));
-      entriesRef.current = next;
-      return next;
-    });
-  }, []);
+      commitEntries(entriesRef.current.filter((e) => !ids.has(e.id)));
+    },
+    [commitEntries]
+  );
 
   return {
     entries,

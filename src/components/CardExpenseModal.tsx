@@ -1,7 +1,9 @@
 ﻿import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { CardExpense, CreditCard } from '../types';
-import { getBillingPeriod } from '../lib/cardInvoice';
+import { buildInstallmentCardExpenses, getBillingPeriod } from '../lib/cardInvoice';
+import { todayLocalISO } from '../lib/format';
+import { randomUUID } from '../lib/uuid';
 import { ModalShell } from './ModalShell';
 
 const MODAL_TITLE_ID = 'card-expense-modal-title';
@@ -15,7 +17,7 @@ type Props = {
 };
 
 export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
 
   const [name, setName] = React.useState('');
   const [amount, setAmount] = React.useState('');
@@ -75,41 +77,22 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
 
     const inst = parseInt(installments, 10);
     const totalAmount = parseFloat(amount);
-    const installmentAmount = inst > 1 ? totalAmount / inst : totalAmount;
-    const parentId = inst > 1 ? crypto.randomUUID() : undefined;
+    const parentId = inst > 1 ? randomUUID() : undefined;
 
-    const base: Omit<CardExpense, 'id' | 'createdAt'> = {
+    const rows = buildInstallmentCardExpenses({
       cardId: card.id,
       name: name.trim(),
-      amount: installmentAmount,
+      totalAmount,
       date,
-      billingMonth: billing.month,
-      billingYear: billing.year,
+      closingDay: card.closingDay,
+      count: inst,
       category: category.trim() || undefined,
       tag: tag.trim() || undefined,
-      installmentsCount: inst > 1 ? inst : undefined,
-      installmentNumber: inst > 1 ? 1 : undefined,
-      parentInstallmentId: parentId,
-    };
+      parentId,
+    });
 
-    onSave(base);
-
-    // Gerar parcelas adicionais
-    if (inst > 1) {
-      for (let i = 2; i <= inst; i++) {
-        const futureDate = new Date(date);
-        futureDate.setMonth(futureDate.getMonth() + (i - 1));
-        const futureIso = futureDate.toISOString().slice(0, 10);
-        const futureBilling = getBillingPeriod(futureIso, card.closingDay);
-        onSave({
-          ...base,
-          date: futureIso,
-          billingMonth: futureBilling.month,
-          billingYear: futureBilling.year,
-          installmentNumber: i,
-          parentInstallmentId: parentId,
-        });
-      }
+    for (const row of rows) {
+      onSave(row);
     }
 
     onClose();

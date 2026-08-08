@@ -9,6 +9,7 @@ import {
   updateExpense as updateExpenseDb,
   deleteExpense as deleteExpenseDb,
 } from '../lib/cardExpensesDb';
+import { randomUUID } from '../lib/uuid';
 
 export function useCardExpenses() {
   const [expenses, setExpenses] = useState<CardExpense[]>([]);
@@ -68,7 +69,7 @@ export function useCardExpenses() {
     async (expense: Omit<CardExpense, 'id' | 'createdAt'>) => {
       const newExpense: CardExpense = {
         ...expense,
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         createdAt: Date.now(),
       };
       if (useSupabaseSync) {

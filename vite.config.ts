@@ -37,6 +37,28 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Separa vendor em chunks cacheados (reduz o bundle inicial ~600 kB).
+          manualChunks(id: string) {
+            if (!id.includes('node_modules')) return undefined;
+            if (id.includes('@supabase')) return 'supabase';
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/scheduler/') ||
+              id.includes('/react-is/')
+            ) {
+              return 'react-vendor';
+            }
+            if (id.includes('framer-motion') || id.includes('/motion/')) return 'motion';
+            if (id.includes('lucide-react')) return 'lucide';
+            return undefined;
+          },
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

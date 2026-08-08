@@ -30,13 +30,18 @@ export function todayLocalISO(): string {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
 }
 
-/** Escapa um valor para uso em CSV (aspas e vírgulas). */
+/**
+ * Escapa um valor para uso em CSV: aspas, vírgulas e injeção de fórmulas
+ * (Excel/LibreOffice). Células que começam com =, +, -, @, tab ou CR recebem
+ * um apóstrofo na frente para não serem interpretadas como fórmula.
+ */
 function escapeCsvCell(value: string | number): string {
   const str = String(value);
-  if (str.includes('"') || str.includes(',') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
+  const sanitized = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  if (sanitized.includes('"') || sanitized.includes(',') || sanitized.includes('\n')) {
+    return `"${sanitized.replace(/"/g, '""')}"`;
   }
-  return str;
+  return sanitized;
 }
 
 export type ExportCSVOptions = {

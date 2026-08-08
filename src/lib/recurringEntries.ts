@@ -1,5 +1,6 @@
 import type { Entry } from '../types';
 import { parseDateLocal } from './format';
+import { randomUUID } from './uuid';
 
 const MAX_RECURRENCE_MONTHS = 24;
 const DEFAULT_RECURRENCE_MONTHS = 12;
@@ -69,7 +70,7 @@ export function generateMissingRecurringCopies(
 
       const now = Date.now();
       newCopies.push({
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         name: model.name,
         amount: model.amount,
         dueDate,

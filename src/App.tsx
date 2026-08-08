@@ -9,6 +9,7 @@ import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { exportEntriesToCSV } from './lib/format';
 import { buildInvoiceEntry, getInvoiceClosingDate, getInvoiceDueDate } from './lib/cardInvoice';
+import { randomUUID } from './lib/uuid';
 import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
 import type { CreditCard, Entry, Goal } from './types';
 import { PeriodProvider } from './contexts/PeriodContext';
@@ -452,7 +453,7 @@ export default function App() {
             if (!metaMovement) return;
             const isDeposit = metaMovement.type === 'deposit';
             const entry: Entry = {
-              id: crypto.randomUUID(),
+              id: randomUUID(),
               name: note || (isDeposit ? 'Depósito na meta' : 'Saque da meta'),
               amount,
               dueDate: date,

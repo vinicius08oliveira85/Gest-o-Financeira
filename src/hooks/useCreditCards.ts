@@ -4,6 +4,7 @@ import { CARDS_STORAGE_KEY } from '../constants';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { logError } from '../lib/logger';
 import { fetchCards, upsertCard as upsertCardDb, deleteCard as deleteCardDb } from '../lib/cardsDb';
+import { randomUUID } from '../lib/uuid';
 
 export function useCreditCards() {
   const [cards, setCards] = useState<CreditCard[]>([]);
@@ -85,7 +86,7 @@ export function useCreditCards() {
     (card: Omit<CreditCard, 'id'> & { id?: string }) => {
       if (useSupabaseSync) {
         const prev = cards;
-        const optimisticId = card.id ?? crypto.randomUUID();
+        const optimisticId = card.id ?? randomUUID();
         const optimistic: CreditCard = { ...(card as Omit<CreditCard, 'id'>), id: optimisticId };
         setCards((c) =>
           card.id ? c.map((x) => (x.id === card.id ? optimistic : x)) : [...c, optimistic]
@@ -103,7 +104,7 @@ export function useCreditCards() {
           if (card.id) {
             return prev.map((c) => (c.id === card.id ? (card as CreditCard) : c));
           }
-          const id = crypto.randomUUID();
+          const id = randomUUID();
           const createdAt = new Date().toISOString();
           return [...prev, { ...(card as Omit<CreditCard, 'id'>), id, createdAt }];
         });
