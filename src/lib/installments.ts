@@ -1,17 +1,7 @@
 import type { Entry, EntryType } from '../types';
 import { parseDateLocal } from './format';
+import { copyDueDateForMonth } from './recurringEntries';
 import { randomUUID } from './uuid';
-
-function copyDueDateForMonth(baseDueDate: string, targetMonth: number, targetYear: number): string {
-  const base = parseDateLocal(baseDueDate);
-  const day = base.getDate();
-  const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
-  const safeDay = Math.min(day, lastDay);
-  const d = new Date(targetYear, targetMonth, safeDay);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
 
 type BaseInstallmentInput = {
   name: string;

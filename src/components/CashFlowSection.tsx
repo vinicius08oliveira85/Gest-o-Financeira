@@ -65,6 +65,7 @@ type CashFlowSectionProps = {
   onNewCard: () => void;
   onEditCard: (card: CreditCard) => void;
   onAddExpense: (card: CreditCard) => void;
+  onEditExpense: (expense: CardExpense) => void;
   onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
 };
 
@@ -114,6 +115,7 @@ export function CashFlowSection({
   onNewCard,
   onEditCard,
   onAddExpense,
+  onEditExpense,
   onRegisterInvoice,
 }: CashFlowSectionProps) {
   const {
@@ -350,6 +352,7 @@ export function CashFlowSection({
               onNewCard={onNewCard}
               onEditCard={onEditCard}
               onAddExpense={onAddExpense}
+              onEditExpense={onEditExpense}
               onRegisterInvoice={onRegisterInvoice}
             />
           </section>

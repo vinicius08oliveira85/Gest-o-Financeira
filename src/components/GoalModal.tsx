@@ -95,6 +95,7 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
           <input
             id="goal-modal-target"
             type="number"
+            inputMode="decimal"
             step="0.01"
             min="0.01"
             required

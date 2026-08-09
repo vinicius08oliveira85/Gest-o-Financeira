@@ -11,7 +11,7 @@ import { exportEntriesToCSV } from './lib/format';
 import { buildInvoiceEntry, getInvoiceClosingDate, getInvoiceDueDate } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
 import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
-import type { CreditCard, Entry, Goal } from './types';
+import type { CardExpense, CreditCard, Entry, Goal } from './types';
 import { PeriodProvider } from './contexts/PeriodContext';
 import {
   MainLayout,
@@ -71,10 +71,11 @@ export default function App() {
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<CreditCard | null>(null);
   const [expenseModalCard, setExpenseModalCard] = useState<CreditCard | null>(null);
+  const [expenseToEdit, setExpenseToEdit] = useState<CardExpense | null>(null);
   const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
 
   const { cards, upsertCard, deleteCard } = useCreditCards();
-  const { expenses: cardExpenses, addExpense } = useCardExpenses();
+  const { expenses: cardExpenses, addExpense, updateExpense } = useCardExpenses();
 
   const {
     entries,
@@ -247,7 +248,11 @@ export default function App() {
             (!e.invoicePaymentDueDate && e.dueDate === paymentDue))
       );
       const entry = buildInvoiceEntry(card, month, year, total, existing?.id);
-      addOrUpdateEntry(entry, existing != null);
+      // Re-registrar a fatura não pode zerar o status de pagamento já registrado.
+      addOrUpdateEntry(
+        { ...entry, isPaid: existing?.isPaid ?? false, paidDate: existing?.paidDate },
+        existing != null
+      );
       showToast('Fatura registrada no fluxo de caixa');
     },
     [entries, addOrUpdateEntry, showToast]
@@ -343,7 +348,17 @@ export default function App() {
               setCardToEdit(card);
               setCardModalOpen(true);
             }}
-            onAddExpense={(card) => setExpenseModalCard(card)}
+            onAddExpense={(card) => {
+              setExpenseToEdit(null);
+              setExpenseModalCard(card);
+            }}
+            onEditExpense={(expense) => {
+              const card = cards.find((c) => c.id === expense.cardId);
+              if (card) {
+                setExpenseToEdit(expense);
+                setExpenseModalCard(card);
+              }
+            }}
             onRegisterInvoice={handleRegisterInvoice}
           />
         </MainLayout>
@@ -558,11 +573,24 @@ export default function App() {
           <CardExpenseModal
             open={expenseModalCard !== null}
             card={expenseModalCard}
-            expense={null}
-            onSave={(expense) => {
-              addExpense(expense);
+            expense={expenseToEdit}
+            onSave={(partial) => {
+              if (expenseToEdit) {
+                updateExpense({
+                  ...expenseToEdit,
+                  ...partial,
+                  id: expenseToEdit.id,
+                  createdAt: expenseToEdit.createdAt,
+                });
+                showToast('Gasto atualizado');
+              } else {
+                addExpense(partial);
+              }
             }}
-            onClose={() => setExpenseModalCard(null)}
+            onClose={() => {
+              setExpenseModalCard(null);
+              setExpenseToEdit(null);
+            }}
           />
         )}
       </Suspense>

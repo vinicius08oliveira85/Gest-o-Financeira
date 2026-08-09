@@ -144,6 +144,7 @@ export function CreditCardModal({ open, card, onSave, onRequestDelete, onClose }
             <input
               id="cc-closing"
               type="number"
+              inputMode="numeric"
               min="1"
               max="31"
               value={closingDay}
@@ -159,6 +160,7 @@ export function CreditCardModal({ open, card, onSave, onRequestDelete, onClose }
             <input
               id="cc-due"
               type="number"
+              inputMode="numeric"
               min="1"
               max="31"
               value={dueDay}

@@ -3,7 +3,7 @@ import type { Entry, FilterType } from '../types';
 import { ENTRIES_STORAGE_KEY, RECURRING_SUPPRESSED_SLOTS_KEY } from '../constants';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { logError } from '../lib/logger';
-import { parseDateLocal } from '../lib/format';
+import { parseDateLocal, todayLocalISO } from '../lib/format';
 import {
   fetchEntries,
   insertEntriesBatch,
@@ -461,12 +461,16 @@ export function useEntries() {
 
   function addOrUpdateEntry(entry: Entry, isEdit: boolean): Promise<void> {
     if (isEdit) {
+      // Se o lançamento foi excluído e agora está sendo restaurado, cancela a deleção pendente.
+      deletedEntryIdsRef.current.delete(entry.id);
       dirtyEntryIdsRef.current.add(entry.id);
       const updated = bumpEntryUpdatedAt(entry);
       commitEntries(entriesRef.current.map((e) => (e.id === entry.id ? updated : e)));
       return Promise.resolve();
     }
     const stamped = bumpEntryUpdatedAt(entry);
+    // Restauração via "desfazer" não deve ser enviada como deleção no próximo sync.
+    deletedEntryIdsRef.current.delete(stamped.id);
     dirtyEntryIdsRef.current.add(stamped.id);
     const base = [stamped, ...entriesRef.current];
     let next = base;
@@ -487,7 +491,8 @@ export function useEntries() {
       prev.map((e) => {
         if (e.id !== id) return e;
         const nextPaid = !e.isPaid;
-        const paidDate = nextPaid ? new Date().toISOString().slice(0, 10) : undefined;
+        // Data local (fuso do dispositivo), não UTC: toISOString podia gravar ontem/amanhã.
+        const paidDate = nextPaid ? todayLocalISO() : undefined;
         return bumpEntryUpdatedAt({ ...e, isPaid: nextPaid, paidDate });
       })
     );

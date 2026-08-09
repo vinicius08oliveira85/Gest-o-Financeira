@@ -18,6 +18,7 @@ type Props = {
   currentYear: number;
   onEditCard: (card: CreditCard) => void;
   onAddExpense: (card: CreditCard) => void;
+  onEditExpense: (expense: CardExpense) => void;
   onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
 };
 
@@ -33,6 +34,7 @@ export function CardItem({
   currentYear,
   onEditCard,
   onAddExpense,
+  onEditExpense,
   onRegisterInvoice,
 }: Props) {
   const [showExpenses, setShowExpenses] = useState(false);
@@ -166,25 +168,33 @@ export function CardItem({
               <p className="text-xs text-slate-400 text-center py-2">Nenhum gasto nesta fatura</p>
             ) : (
               currentExpenses.map((exp) => (
-                <div
+                <button
                   key={exp.id}
-                  className="neu-list-item flex items-center justify-between text-sm px-3 py-2"
+                  type="button"
+                  onClick={() => onEditExpense(exp)}
+                  title="Editar gasto"
+                  className="neu-list-item w-full flex items-center justify-between text-sm px-3 py-2 text-left cursor-pointer hover:opacity-75 active:scale-[0.99] transition-all"
                 >
-                  <div>
-                    <p className="text-slate-800 dark:text-slate-200 font-medium">
+                  <span className="min-w-0">
+                    <span className="block text-slate-800 dark:text-slate-200 font-medium truncate">
                       {exp.name}
                       {exp.installmentsCount && exp.installmentsCount > 1 && (
                         <span className="ml-1 text-xs text-slate-400">
                           ({exp.installmentNumber}/{exp.installmentsCount})
                         </span>
                       )}
-                    </p>
-                    {exp.category && <p className="text-xs text-slate-400">{exp.category}</p>}
-                  </div>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
-                    {formatCurrency(exp.amount)}
+                    </span>
+                    {exp.category && (
+                      <span className="block text-xs text-slate-400">{exp.category}</span>
+                    )}
                   </span>
-                </div>
+                  <span className="flex items-center gap-1.5 shrink-0">
+                    <Pencil size={12} className="text-slate-300 dark:text-slate-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      {formatCurrency(exp.amount)}
+                    </span>
+                  </span>
+                </button>
               ))
             )}
           </div>

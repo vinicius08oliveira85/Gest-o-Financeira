@@ -280,6 +280,7 @@ export function ModalForm({
               <input
                 id="modal-form-installments"
                 type="number"
+                inputMode="numeric"
                 min={2}
                 value={installmentsCount}
                 onChange={(e) => setInstallmentsCount(e.target.value)}
@@ -307,6 +308,7 @@ export function ModalForm({
               <input
                 id="modal-form-recurrence-count"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 value={recurrenceCount}
                 onChange={(e) => setRecurrenceCount(e.target.value)}

@@ -91,21 +91,49 @@ export function useCardExpenses() {
     [expenses, useSupabaseSync]
   );
 
+  /**
+   * Atualiza um gasto. Se ele pertencer a um grupo parcelado (parentInstallmentId),
+   * propaga os campos compartilhados (nome, valor, cartão, nº de parcelas, categoria e tag)
+   * para todas as parcelas do grupo, preservando data/fatura/nº da parcela de cada uma.
+   */
   const updateExpense = useCallback(
     async (expense: CardExpense) => {
+      const groupId = expense.parentInstallmentId;
+      const applyChange = (list: CardExpense[]): CardExpense[] =>
+        list.map((e) => {
+          if (e.id === expense.id) return expense;
+          if (groupId && e.parentInstallmentId === groupId) {
+            return {
+              ...e,
+              name: expense.name,
+              amount: expense.amount,
+              cardId: expense.cardId,
+              installmentsCount: expense.installmentsCount,
+              category: expense.category,
+              tag: expense.tag,
+            };
+          }
+          return e;
+        });
+
       if (useSupabaseSync) {
         const prev = expenses;
-        setExpenses((e) => e.map((x) => (x.id === expense.id ? expense : x)));
+        const optimistic = applyChange(expenses);
+        setExpenses(optimistic);
         try {
-          const saved = await updateExpenseDb(expense);
-          setExpenses((e) => e.map((x) => (x.id === saved.id ? saved : x)));
+          const changed = optimistic.filter(
+            (e) => e.id === expense.id || (groupId && e.parentInstallmentId === groupId)
+          );
+          const saved = await Promise.all(changed.map((e) => updateExpenseDb(e)));
+          const savedById = new Map(saved.map((s) => [s.id, s]));
+          setExpenses((e) => e.map((x) => savedById.get(x.id) ?? x));
         } catch (err) {
           logError('Failed to update card expense', err);
           setExpenses(prev);
           throw err;
         }
       } else {
-        setExpenses((prev) => prev.map((x) => (x.id === expense.id ? expense : x)));
+        setExpenses((prev) => applyChange(prev));
       }
     },
     [expenses, useSupabaseSync]

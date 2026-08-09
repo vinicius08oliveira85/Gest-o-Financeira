@@ -77,22 +77,41 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
 
     const inst = parseInt(installments, 10);
     const totalAmount = parseFloat(amount);
-    const parentId = inst > 1 ? randomUUID() : undefined;
 
-    const rows = buildInstallmentCardExpenses({
-      cardId: card.id,
-      name: name.trim(),
-      totalAmount,
-      date,
-      closingDay: card.closingDay,
-      count: inst,
-      category: category.trim() || undefined,
-      tag: tag.trim() || undefined,
-      parentId,
-    });
+    if (expense) {
+      // Edição: emite apenas a parcela editada (com parentId estável). O pai
+      // (useCardExpenses.updateExpense) propaga os campos compartilhados para
+      // as demais parcelas do mesmo grupo, preservando data/fatura/parcela de cada uma.
+      onSave({
+        cardId: card.id,
+        name: name.trim(),
+        amount: inst > 1 ? totalAmount / inst : totalAmount,
+        date,
+        billingMonth: billing.month,
+        billingYear: billing.year,
+        category: category.trim() || undefined,
+        tag: tag.trim() || undefined,
+        installmentsCount: inst > 1 ? inst : undefined,
+        installmentNumber: expense.installmentNumber,
+        parentInstallmentId: expense.parentInstallmentId,
+      });
+    } else {
+      const parentId = inst > 1 ? randomUUID() : undefined;
+      const rows = buildInstallmentCardExpenses({
+        cardId: card.id,
+        name: name.trim(),
+        totalAmount,
+        date,
+        closingDay: card.closingDay,
+        count: inst,
+        category: category.trim() || undefined,
+        tag: tag.trim() || undefined,
+        parentId,
+      });
 
-    for (const row of rows) {
-      onSave(row);
+      for (const row of rows) {
+        onSave(row);
+      }
     }
 
     onClose();
@@ -178,7 +197,8 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
                 year: 'numeric',
               })}
             </strong>
-            {parseInt(installments, 10) > 1 && ` — parcela 1/${installments}`}
+            {parseInt(installments, 10) > 1 &&
+              ` — parcela ${expense?.installmentNumber ?? 1}/${installments}`}
           </p>
         )}
 
@@ -189,6 +209,7 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
           <input
             id="ce-installments"
             type="number"
+            inputMode="numeric"
             min="1"
             max="48"
             value={installments}

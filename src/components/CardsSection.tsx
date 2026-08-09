@@ -11,6 +11,7 @@ type Props = {
   onNewCard: () => void;
   onEditCard: (card: CreditCard) => void;
   onAddExpense: (card: CreditCard) => void;
+  onEditExpense: (expense: CardExpense) => void;
   onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
 };
 
@@ -23,6 +24,7 @@ export function CardsSection({
   onNewCard,
   onEditCard,
   onAddExpense,
+  onEditExpense,
   onRegisterInvoice,
 }: Props) {
   return (
@@ -67,6 +69,7 @@ export function CardsSection({
                 currentYear={currentYear}
                 onEditCard={onEditCard}
                 onAddExpense={onAddExpense}
+                onEditExpense={onEditExpense}
                 onRegisterInvoice={onRegisterInvoice}
               />
             );
