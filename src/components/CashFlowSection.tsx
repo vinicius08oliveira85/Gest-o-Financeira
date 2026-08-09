@@ -1,4 +1,4 @@
-﻿import { useState, lazy, Suspense, useMemo } from 'react';
+﻿import { lazy, Suspense, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry, FilterType, Goal } from '../types';
 import type { Alert } from '../hooks/useAlerts';
@@ -52,7 +52,10 @@ type CashFlowSectionProps = {
   viewMode: 'list' | 'calendar';
   setViewMode: (v: 'list' | 'calendar') => void;
   entries: Entry[];
+  activeTab: TabId;
+  onTabChange: (tab: TabId) => void;
   alerts: Alert[];
+  onAlertAction?: (alert: Alert) => void;
   showNewEntryHint: boolean;
   showReportsHint: boolean;
   skip: () => void;
@@ -102,7 +105,10 @@ export function CashFlowSection({
   viewMode,
   setViewMode,
   entries,
+  activeTab,
+  onTabChange,
   alerts,
+  onAlertAction,
   showNewEntryHint,
   showReportsHint,
   skip,
@@ -126,7 +132,6 @@ export function CashFlowSection({
     goToCurrentMonth,
     isCurrentMonth,
   } = usePeriod();
-  const [activeTab, setActiveTab] = useState<TabId>('resumo');
   const showSkipButton = !showNewEntryHint && !showReportsHint;
 
   const totalLimiteDisponivel = useMemo(
@@ -185,7 +190,7 @@ export function CashFlowSection({
               <button
                 type="button"
                 onClick={skip}
-                className="text-[10px] text-slate-400 dark:text-slate-500 underline underline-offset-2"
+                className="text-2xs text-slate-400 dark:text-slate-500 underline underline-offset-2"
               >
                 Pular dicas
               </button>
@@ -193,7 +198,7 @@ export function CashFlowSection({
           </div>
         </div>
 
-        <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabNav activeTab={activeTab} onTabChange={onTabChange} />
 
         {activeTab === 'resumo' && (
           <section className="section-stack">
@@ -216,7 +221,7 @@ export function CashFlowSection({
               <span className="font-semibold">finalizados</span>. Entradas aumentam e saídas
               diminuem o saldo.
             </p>
-            <AlertsPanel alerts={alerts} onDismiss={onDismissAlert} />
+            <AlertsPanel alerts={alerts} onDismiss={onDismissAlert} onAction={onAlertAction} />
             {showReportsHint && (
               <GuidedTooltip text="Use as abas para ver Lançamentos, Relatórios e Metas." />
             )}

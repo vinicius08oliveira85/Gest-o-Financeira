@@ -3,6 +3,11 @@ import { X } from 'lucide-react';
 import type { Goal } from '../types';
 import { DateInput } from './DateInput';
 import { ModalShell } from './ModalShell';
+import {
+  formatCurrencyForInput,
+  maskCurrencyInput,
+  parseCurrencyInput,
+} from '../lib/currencyInput';
 
 const GOAL_MODAL_TITLE_ID = 'goal-modal-title';
 
@@ -22,7 +27,7 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
 
   React.useEffect(() => {
     setName(goal?.name ?? '');
-    setTarget(goal ? goal.targetAmount.toString() : '');
+    setTarget(goal ? formatCurrencyForInput(goal.targetAmount) : '');
     setTargetDate(goal?.targetDate ?? '');
   }, [goal, open]);
 
@@ -38,8 +43,8 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !target) return;
-    const targetAmount = parseFloat(target);
-    if (Number.isNaN(targetAmount) || targetAmount <= 0) return;
+    const targetAmount = parseCurrencyInput(target);
+    if (targetAmount === null || targetAmount <= 0) return;
 
     onSave({
       id: goal?.id,
@@ -94,13 +99,11 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
           </label>
           <input
             id="goal-modal-target"
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="0.01"
-            min="0.01"
             required
             value={target}
-            onChange={(e) => setTarget(e.target.value)}
+            onChange={(e) => setTarget(maskCurrencyInput(e.target.value))}
             placeholder="0,00"
             className="w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 transition-all"
           />
@@ -121,7 +124,7 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
           />
         </div>
 
-        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+        <p className="text-3xs text-slate-500 dark:text-slate-400">
           Os depósitos acumulam ao longo dos meses até atingir o valor alvo.
         </p>
 

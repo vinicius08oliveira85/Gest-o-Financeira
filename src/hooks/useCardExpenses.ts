@@ -10,6 +10,7 @@ import {
   deleteExpense as deleteExpenseDb,
 } from '../lib/cardExpensesDb';
 import { randomUUID } from '../lib/uuid';
+import { propagateInstallmentUpdate } from '../lib/installments';
 
 export function useCardExpenses() {
   const [expenses, setExpenses] = useState<CardExpense[]>([]);
@@ -100,21 +101,7 @@ export function useCardExpenses() {
     async (expense: CardExpense) => {
       const groupId = expense.parentInstallmentId;
       const applyChange = (list: CardExpense[]): CardExpense[] =>
-        list.map((e) => {
-          if (e.id === expense.id) return expense;
-          if (groupId && e.parentInstallmentId === groupId) {
-            return {
-              ...e,
-              name: expense.name,
-              amount: expense.amount,
-              cardId: expense.cardId,
-              installmentsCount: expense.installmentsCount,
-              category: expense.category,
-              tag: expense.tag,
-            };
-          }
-          return e;
-        });
+        propagateInstallmentUpdate(list, expense);
 
       if (useSupabaseSync) {
         const prev = expenses;

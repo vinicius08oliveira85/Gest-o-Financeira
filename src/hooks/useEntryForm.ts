@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import type { Entry, EntryType } from '../types';
 import { generateInstallmentEntries } from '../lib/installments';
 import { todayLocalISO } from '../lib/format';
+import { formatCurrencyForInput, parseCurrencyInput } from '../lib/currencyInput';
 import { randomUUID } from '../lib/uuid';
 
 export type FormErrors = { name?: boolean; amount?: boolean; dueDate?: boolean };
@@ -58,7 +59,7 @@ export function useEntryForm(
     if (entry) {
       setEditingEntry(entry);
       setName(entry.name);
-      setAmount(entry.amount.toString());
+      setAmount(formatCurrencyForInput(entry.amount));
       setDueDate(entry.dueDate);
       setType(entry.type);
       setCategory(entry.category ?? '');
@@ -87,20 +88,21 @@ export function useEntryForm(
     e.preventDefault();
     const errors: FormErrors = {};
     if (!name.trim()) errors.name = true;
-    const amountNum = parseFloat(amount);
-    if (!amount || Number.isNaN(amountNum) || amountNum <= 0) errors.amount = true;
+    const amountNum = parseCurrencyInput(amount);
+    if (amountNum === null || amountNum <= 0) errors.amount = true;
     if (!dueDate) errors.dueDate = true;
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
     setFormErrors({});
+    const amountValue = amountNum ?? 0;
 
     if (editingEntry) {
       const updated: Entry = {
         ...editingEntry,
         name,
-        amount: parseFloat(amount),
+        amount: amountValue,
         dueDate,
         type,
         category: category || undefined,
@@ -131,7 +133,7 @@ export function useEntryForm(
           const single: Entry = {
             id: randomUUID(),
             name,
-            amount: parseFloat(amount),
+            amount: amountValue,
             dueDate,
             isPaid: false,
             type,
@@ -143,7 +145,7 @@ export function useEntryForm(
         } else {
           const entries = generateInstallmentEntries({
             name,
-            amountPerInstallment: parseFloat(amount),
+            amountPerInstallment: amountValue,
             firstDueDate: dueDate,
             type,
             category: category || undefined,
@@ -158,7 +160,7 @@ export function useEntryForm(
         const newEntry: Entry = {
           id: randomUUID(),
           name,
-          amount: parseFloat(amount),
+          amount: amountValue,
           dueDate,
           isPaid: false,
           type,

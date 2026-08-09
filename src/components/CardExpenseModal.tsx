@@ -3,6 +3,11 @@ import { X } from 'lucide-react';
 import type { CardExpense, CreditCard } from '../types';
 import { buildInstallmentCardExpenses, getBillingPeriod } from '../lib/cardInvoice';
 import { todayLocalISO } from '../lib/format';
+import {
+  formatCurrencyForInput,
+  maskCurrencyInput,
+  parseCurrencyInput,
+} from '../lib/currencyInput';
 import { randomUUID } from '../lib/uuid';
 import { ModalShell } from './ModalShell';
 
@@ -38,7 +43,7 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
 
   useEffect(() => {
     setName(expense?.name ?? '');
-    setAmount(expense ? expense.amount.toString() : '');
+    setAmount(expense ? formatCurrencyForInput(expense.amount) : '');
     setDate(expense?.date ?? today);
     setCategory(expense?.category ?? '');
     setTag(expense?.tag ?? '');
@@ -58,8 +63,8 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
   function validate() {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Descrição obrigatória';
-    const v = parseFloat(amount);
-    if (!amount || Number.isNaN(v) || v <= 0) errs.amount = 'Informe um valor válido';
+    const v = parseCurrencyInput(amount);
+    if (v === null || v <= 0) errs.amount = 'Informe um valor válido';
     if (!date) errs.date = 'Data obrigatória';
     const inst = parseInt(installments, 10);
     if (Number.isNaN(inst) || inst < 1) errs.installments = 'Mínimo 1 parcela';
@@ -76,7 +81,7 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
     if (!billing) return;
 
     const inst = parseInt(installments, 10);
-    const totalAmount = parseFloat(amount);
+    const totalAmount = parseCurrencyInput(amount) ?? 0;
 
     if (expense) {
       // Edição: emite apenas a parcela editada (com parentId estável). O pai
@@ -162,13 +167,11 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
           </label>
           <input
             id="ce-amount"
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0,00"
+            type="text"
             inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(maskCurrencyInput(e.target.value))}
+            placeholder="0,00"
             className={inputClass + (errors.amount ? ' border-red-400' : '')}
           />
           {errors.amount && <p className={errorClass}>{errors.amount}</p>}
@@ -217,12 +220,13 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
             className={inputClass + (errors.installments ? ' border-red-400' : '')}
           />
           {errors.installments && <p className={errorClass}>{errors.installments}</p>}
-          {parseInt(installments, 10) > 1 && parseFloat(amount) > 0 && (
+          {parseInt(installments, 10) > 1 && (parseCurrencyInput(amount) ?? 0) > 0 && (
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {parseInt(installments, 10)}x de R${' '}
-              {(parseFloat(amount) / parseInt(installments, 10)).toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-              })}
+              {((parseCurrencyInput(amount) ?? 0) / parseInt(installments, 10)).toLocaleString(
+                'pt-BR',
+                { minimumFractionDigits: 2 }
+              )}
             </p>
           )}
         </div>

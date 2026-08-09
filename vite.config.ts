@@ -16,7 +16,7 @@ export default defineConfig(() => {
           short_name: 'Gestão Financeira',
           description: 'Controle de dívidas e caixa',
           theme_color: '#0f172a',
-          background_color: '#f5f5f5',
+          background_color: '#0f172a',
           display: 'standalone',
           start_url: '/',
           orientation: 'portrait',

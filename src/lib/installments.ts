@@ -1,4 +1,4 @@
-import type { Entry, EntryType } from '../types';
+import type { CardExpense, Entry, EntryType } from '../types';
 import { parseDateLocal } from './format';
 import { copyDueDateForMonth } from './recurringEntries';
 import { randomUUID } from './uuid';
@@ -48,4 +48,32 @@ export function generateInstallmentEntries(input: BaseInstallmentInput): Entry[]
   }
 
   return entries;
+}
+
+/**
+ * Aplica a edição de uma parcela de cartão à lista inteira: a parcela editada é
+ * substituída como veio e, se pertencer a um grupo parcelado, os campos
+ * compartilhados (nome, valor, cartão, nº de parcelas, categoria e tag) são
+ * propagados para as parcelas irmãs — preservando data/fatura/nº de cada uma.
+ */
+export function propagateInstallmentUpdate(
+  list: CardExpense[],
+  updated: CardExpense
+): CardExpense[] {
+  const groupId = updated.parentInstallmentId;
+  return list.map((e) => {
+    if (e.id === updated.id) return updated;
+    if (groupId && e.parentInstallmentId === groupId) {
+      return {
+        ...e,
+        name: updated.name,
+        amount: updated.amount,
+        cardId: updated.cardId,
+        installmentsCount: updated.installmentsCount,
+        category: updated.category,
+        tag: updated.tag,
+      };
+    }
+    return e;
+  });
 }

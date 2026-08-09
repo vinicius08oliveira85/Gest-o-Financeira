@@ -59,7 +59,7 @@ export function GoalsCard({
             {goal ? goal.name : 'Nenhuma meta definida'}
           </h2>
           {goal?.targetDate && (
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-3xs text-slate-500 dark:text-slate-400 mt-0.5">
               Até {formatDate(goal.targetDate)}
             </p>
           )}
@@ -80,12 +80,13 @@ export function GoalsCard({
             <span
               className={`font-semibold ${isComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-slate-100'}`}
             >
+              {isComplete ? '✓ ' : ''}
               {progress.toFixed(0)}%
             </span>
           </div>
           <div className="h-2 neu-progress-track">
             <div
-              className={`h-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-emerald-500'}`}
+              className={`h-full transition-all ${isComplete ? 'goal-progress-complete' : 'bg-emerald-500'}`}
               style={{ width: `${progress}%` }}
             />
           </div>

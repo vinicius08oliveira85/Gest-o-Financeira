@@ -3,6 +3,7 @@ import { X, Loader2 } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { DateInput } from './DateInput';
 import { todayLocalISO } from '../lib/format';
+import { maskCurrencyInput, parseCurrencyInput } from '../lib/currencyInput';
 import { ModalShell } from './ModalShell';
 
 const TITLE_ID = 'meta-movement-modal-title';
@@ -52,8 +53,8 @@ export function MetaMovementModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAmountError(null);
-    const value = parseFloat(amount.replace(',', '.'));
-    if (Number.isNaN(value) || value <= 0) {
+    const value = parseCurrencyInput(amount);
+    if (value === null || value <= 0) {
       setAmountError('Informe um valor maior que zero.');
       return;
     }
@@ -96,13 +97,11 @@ export function MetaMovementModal({
           </label>
           <input
             id="meta-movement-amount"
-            type="number"
-            step="0.01"
-            min="0.01"
+            type="text"
             required
             value={amount}
             onChange={(e) => {
-              setAmount(e.target.value);
+              setAmount(maskCurrencyInput(e.target.value));
               if (amountError) setAmountError(null);
             }}
             placeholder="0,00"

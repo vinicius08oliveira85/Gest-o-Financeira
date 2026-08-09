@@ -23,7 +23,7 @@ describe('useEntryForm', () => {
     });
 
     expect(result.current.name).toBe('Test');
-    expect(result.current.amount).toBe('100');
+    expect(result.current.amount).toBe('100,00');
 
     await act(async () => {
       result.current.openForm(undefined);
@@ -55,7 +55,7 @@ describe('useEntryForm', () => {
     });
 
     expect(result.current.name).toBe('Aluguel');
-    expect(result.current.amount).toBe('1500');
+    expect(result.current.amount).toBe('1.500,00');
     expect(result.current.dueDate).toBe('2025-04-01');
     expect(result.current.type).toBe('debt');
     expect(result.current.category).toBe('Moradia');

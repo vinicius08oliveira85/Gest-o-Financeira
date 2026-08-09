@@ -1,4 +1,5 @@
-﻿import type { CardExpense, CreditCard, Entry } from '../types';
+﻿import { TrendingDown, TrendingUp } from 'lucide-react';
+import type { CardExpense, CreditCard, Entry } from '../types';
 import { formatCurrency, parseDateLocal } from '../lib/format';
 
 type ReportsPanelProps = {
@@ -11,6 +12,31 @@ type ReportsPanelProps = {
 
 function formatCycleDate(d: Date): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function DeltaBadge({
+  current,
+  previous,
+  invert = false,
+}: {
+  current: number;
+  previous: number;
+  invert?: boolean;
+}) {
+  if (previous === 0) return null;
+  const pct = ((current - previous) / previous) * 100;
+  const isUp = pct >= 0;
+  const isGood = invert ? !isUp : isUp;
+  const cls = isGood ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-2xs font-semibold ${cls}`}
+      title="Comparado ao mês anterior"
+    >
+      {isUp ? <TrendingUp size={11} aria-hidden /> : <TrendingDown size={11} aria-hidden />}
+      {Math.abs(pct).toFixed(1)}%
+    </span>
+  );
 }
 
 export function ReportsPanel({
@@ -45,6 +71,25 @@ export function ReportsPanel({
     .filter((d) => d.isPaid && isSaida(d))
     .reduce((acc, d) => acc + d.amount, 0);
   const saldoDoMes = totalEntradasFinalizadas - totalSaidasFinalizadas;
+
+  const prevDate = new Date(year, month - 1, 1);
+  const prevByPeriod = entries.filter((d) => {
+    const date = parseDateLocal(d.dueDate);
+    return date.getMonth() === prevDate.getMonth() && date.getFullYear() === prevDate.getFullYear();
+  });
+  const prevTotalEntradas = prevByPeriod
+    .filter((d) => isEntrada(d))
+    .reduce((acc, d) => acc + d.amount, 0);
+  const prevTotalSaidas = prevByPeriod
+    .filter((d) => isSaida(d))
+    .reduce((acc, d) => acc + d.amount, 0);
+  const prevEntradasFinalizadas = prevByPeriod
+    .filter((d) => d.isPaid && isEntrada(d))
+    .reduce((acc, d) => acc + d.amount, 0);
+  const prevSaidasFinalizadas = prevByPeriod
+    .filter((d) => d.isPaid && isSaida(d))
+    .reduce((acc, d) => acc + d.amount, 0);
+  const prevSaldo = prevEntradasFinalizadas - prevSaidasFinalizadas;
 
   const totalByCategorySaidas = byPeriod.reduce<Record<string, number>>((acc, d) => {
     if (!d.category || !isSaida(d)) return acc;
@@ -93,28 +138,31 @@ export function ReportsPanel({
 
       <div className="reports-kpi-grid">
         <div className="neu-surface rounded-xl card-pad">
-          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <p className="text-3xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Total entradas
           </p>
           <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
             {formatCurrency(totalByType.entradas)}
           </p>
+          <DeltaBadge current={totalByType.entradas} previous={prevTotalEntradas} />
         </div>
         <div className="neu-surface rounded-xl card-pad">
-          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <p className="text-3xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Total saídas
           </p>
           <p className="text-lg font-semibold text-red-600 dark:text-red-400 mt-0.5">
             {formatCurrency(totalByType.saidas)}
           </p>
+          <DeltaBadge current={totalByType.saidas} previous={prevTotalSaidas} invert />
         </div>
         <div className="neu-surface rounded-xl card-pad">
-          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <p className="text-3xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Saldo do mês
           </p>
           <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
             {formatCurrency(saldoDoMes)}
           </p>
+          <DeltaBadge current={saldoDoMes} previous={prevSaldo} />
         </div>
       </div>
 
@@ -268,7 +316,7 @@ export function ReportsPanel({
                       style={{ width: `${Math.min(usageRatio * 100, 100)}%` }}
                     />
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-3xs text-slate-400 mt-0.5">
                     {(usageRatio * 100).toFixed(0)}% do limite utilizado
                   </p>
                 </div>

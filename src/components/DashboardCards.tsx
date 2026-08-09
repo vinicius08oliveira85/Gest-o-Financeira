@@ -59,7 +59,7 @@ export function DashboardCards({
         {(totalEntradasFinalizadas !== undefined || totalEntradasPendentes !== undefined) && (
           <div className="mt-1.5 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1.5">
             {totalEntradasFinalizadas !== undefined && (
-              <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center justify-between text-3xs">
                 <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   Finalizadas
@@ -70,7 +70,7 @@ export function DashboardCards({
               </div>
             )}
             {totalEntradasPendentes !== undefined && (
-              <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center justify-between text-3xs">
                 <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-500" />
                   Pendentes
@@ -107,7 +107,7 @@ export function DashboardCards({
         {(totalSaidasFinalizadas !== undefined || totalSaidasPendentes !== undefined) && (
           <div className="mt-1.5 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1.5">
             {totalSaidasFinalizadas !== undefined && (
-              <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center justify-between text-3xs">
                 <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
                   Finalizadas
@@ -118,7 +118,7 @@ export function DashboardCards({
               </div>
             )}
             {totalSaidasPendentes !== undefined && (
-              <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center justify-between text-3xs">
                 <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-500" />
                   Pendentes
@@ -154,7 +154,7 @@ export function DashboardCards({
         <div className="mt-1 text-xs text-slate-400">Só entradas e saídas finalizadas</div>
         {saldoProjetado !== undefined && (
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between text-3xs">
               <span className="text-slate-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400" />
                 Projetado
@@ -171,7 +171,7 @@ export function DashboardCards({
         )}
         {totalLimiteDisponivel !== undefined && (
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between text-3xs">
               <span className="text-slate-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />
                 Limite cartões
@@ -180,7 +180,7 @@ export function DashboardCards({
                 {formatCurrency(totalLimiteDisponivel)}
               </span>
             </div>
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between text-3xs">
               <span className="text-slate-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" />
                 Total disponível

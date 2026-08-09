@@ -9,6 +9,7 @@ import {
   FileDown,
   Save,
   CloudDownload,
+  CloudOff,
   Loader2,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -61,9 +62,20 @@ export function Header({
         <div className="neu-icon-badge-emerald p-2 rounded-lg shrink-0">
           <Wallet className="text-emerald-500 dark:text-emerald-400 w-5 h-5" />
         </div>
-        <h1 className="font-semibold text-base sm:text-lg tracking-tight text-slate-900 dark:text-slate-100 truncate">
-          Gestão Financeira
-        </h1>
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="font-semibold text-base sm:text-lg tracking-tight text-slate-900 dark:text-slate-100 truncate">
+            Gestão Financeira
+          </h1>
+          {!showEntriesCloudSync && (
+            <span
+              className="neu-inset inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap shrink-0"
+              title="Sem nuvem — os dados são salvos apenas neste dispositivo"
+            >
+              <CloudOff size={11} aria-hidden />
+              Local
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="toolbar-row justify-end flex-1 min-w-0">

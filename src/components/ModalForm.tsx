@@ -5,6 +5,7 @@ import type { EntryType } from '../types';
 import type { FormErrors } from '../hooks/useEntryForm';
 import { DateInput } from './DateInput';
 import { ModalShell } from './ModalShell';
+import { maskCurrencyInput } from '../lib/currencyInput';
 
 const MODAL_FORM_TITLE_ID = 'modal-form-title';
 
@@ -172,12 +173,11 @@ export function ModalForm({
             </label>
             <input
               id="modal-form-amount"
-              type="number"
-              step="0.01"
+              type="text"
               inputMode="decimal"
               value={amount}
               onChange={(e) => {
-                setAmount(e.target.value);
+                setAmount(maskCurrencyInput(e.target.value));
                 onClearError?.('amount');
               }}
               placeholder="0,00"

@@ -58,7 +58,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
 
   return (
     <div className="neu-surface rounded-2xl card-pad">
-      <div className="grid grid-cols-7 gap-[var(--inline-gap)] mb-[var(--inline-gap)] text-[11px] font-medium text-slate-500 dark:text-slate-400 text-center">
+      <div className="grid grid-cols-7 gap-[var(--inline-gap)] mb-[var(--inline-gap)] text-3xs font-medium text-slate-500 dark:text-slate-400 text-center">
         {WEEK_DAYS.map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -112,7 +112,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
               {/* Número do dia — sempre visível */}
               <div className="flex items-start justify-between">
                 <span
-                  className={`text-[11px] font-semibold leading-none ${
+                  className={`text-3xs font-semibold leading-none ${
                     isToday
                       ? 'text-emerald-700 dark:text-emerald-300'
                       : 'text-slate-800 dark:text-slate-200'
@@ -124,12 +124,12 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                 {/* Valores: visíveis apenas a partir de sm */}
                 <div className="hidden sm:flex flex-col items-end gap-0.5">
                   {totalEntradas > 0 && (
-                    <span className="text-[10px] text-emerald-600 font-semibold">
+                    <span className="text-2xs text-emerald-600 font-semibold">
                       +{formatCurrency(totalEntradas)}
                     </span>
                   )}
                   {totalSaidas > 0 && (
-                    <span className="text-[10px] text-red-600 font-semibold">
+                    <span className="text-2xs text-red-600 font-semibold">
                       -{formatCurrency(totalSaidas)}
                     </span>
                   )}
@@ -155,7 +155,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                 {visible.map((e) => (
                   <div
                     key={e.id}
-                    className="truncate text-[10px] text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                    className="truncate text-2xs text-slate-700 dark:text-slate-300 flex items-center gap-1"
                   >
                     <span
                       className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${

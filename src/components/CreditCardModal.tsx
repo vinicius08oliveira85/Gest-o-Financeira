@@ -2,6 +2,11 @@
 import { X } from 'lucide-react';
 import type { CreditCard } from '../types';
 import { ModalShell } from './ModalShell';
+import {
+  formatCurrencyForInput,
+  maskCurrencyInput,
+  parseCurrencyInput,
+} from '../lib/currencyInput';
 
 const MODAL_TITLE_ID = 'credit-card-modal-title';
 
@@ -34,7 +39,7 @@ export function CreditCardModal({ open, card, onSave, onRequestDelete, onClose }
 
   useEffect(() => {
     setName(card?.name ?? '');
-    setLimitAmount(card ? card.limitAmount.toString() : '');
+    setLimitAmount(card ? formatCurrencyForInput(card.limitAmount) : '');
     setClosingDay(card ? card.closingDay.toString() : '25');
     setDueDay(card ? card.dueDay.toString() : '5');
     setColor(card?.color ?? PRESET_COLORS[0]);
@@ -53,9 +58,8 @@ export function CreditCardModal({ open, card, onSave, onRequestDelete, onClose }
   function validate() {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Nome obrigatório';
-    const limit = parseFloat(limitAmount);
-    if (!limitAmount || Number.isNaN(limit) || limit <= 0)
-      errs.limitAmount = 'Informe um limite válido';
+    const limit = parseCurrencyInput(limitAmount);
+    if (limit === null || limit <= 0) errs.limitAmount = 'Informe um limite válido';
     const cd = parseInt(closingDay, 10);
     if (!closingDay || Number.isNaN(cd) || cd < 1 || cd > 31) errs.closingDay = 'Dia de 1 a 31';
     const dd = parseInt(dueDay, 10);
@@ -73,7 +77,7 @@ export function CreditCardModal({ open, card, onSave, onRequestDelete, onClose }
     onSave({
       id: card?.id,
       name: name.trim(),
-      limitAmount: parseFloat(limitAmount),
+      limitAmount: parseCurrencyInput(limitAmount) ?? 0,
       closingDay: parseInt(closingDay, 10),
       dueDay: parseInt(dueDay, 10),
       color,
@@ -124,13 +128,11 @@ export function CreditCardModal({ open, card, onSave, onRequestDelete, onClose }
           </label>
           <input
             id="cc-limit"
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={limitAmount}
-            onChange={(e) => setLimitAmount(e.target.value)}
-            placeholder="5000,00"
+            type="text"
             inputMode="decimal"
+            value={limitAmount}
+            onChange={(e) => setLimitAmount(maskCurrencyInput(e.target.value))}
+            placeholder="5.000,00"
             className={inputClass + (errors.limitAmount ? ' border-red-400' : '')}
           />
           {errors.limitAmount && <p className={errorClass}>{errors.limitAmount}</p>}

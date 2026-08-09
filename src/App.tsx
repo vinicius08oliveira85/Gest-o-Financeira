@@ -4,7 +4,7 @@ import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
 import { useCreditCards } from './hooks/useCreditCards';
 import { useCardExpenses } from './hooks/useCardExpenses';
-import { useAlerts } from './hooks/useAlerts';
+import { useAlerts, type Alert } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { exportEntriesToCSV } from './lib/format';
@@ -12,6 +12,7 @@ import { buildInvoiceEntry, getInvoiceClosingDate, getInvoiceDueDate } from './l
 import { randomUUID } from './lib/uuid';
 import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal } from './types';
+import type { TabId } from './components/TabNav';
 import { PeriodProvider } from './contexts/PeriodContext';
 import {
   MainLayout,
@@ -58,6 +59,7 @@ export default function App() {
   const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(UNLOCK_KEY) === '1');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('resumo');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   const [pendingRecurringUpdate, setPendingRecurringUpdate] = useState<Entry | null>(null);
@@ -152,6 +154,20 @@ export default function App() {
     () => alerts.filter((a) => !dismissedAlertIds.has(a.id)),
     [alerts, dismissedAlertIds]
   );
+
+  const handleAlertAction = useCallback((alert: Alert) => {
+    switch (alert.type) {
+      case 'goal-deadline':
+        setActiveTab('metas');
+        break;
+      case 'card-invoice-due':
+      case 'card-limit':
+        setActiveTab('cartoes');
+        break;
+      default:
+        setActiveTab('lancamentos');
+    }
+  }, []);
 
   const handleDismissAlert = useCallback((id: string) => {
     setDismissedAlertIds((prev) => {
@@ -330,8 +346,11 @@ export default function App() {
             viewMode={viewMode}
             setViewMode={setViewMode}
             entries={entries}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
             alerts={visibleAlerts}
             onDismissAlert={handleDismissAlert}
+            onAlertAction={handleAlertAction}
             showNewEntryHint={showNewEntryHint}
             showReportsHint={showReportsHint}
             skip={skip}

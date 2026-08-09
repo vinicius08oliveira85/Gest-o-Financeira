@@ -2,11 +2,12 @@
 import { CheckCircle2, Circle, Calendar, Pencil, Trash2, Tag } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Entry } from '../types';
-import { formatCurrency, formatDate } from '../lib/format';
+import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
 
 function isOverdueByDate(dueDateStr: string): boolean {
-  const today = new Date().toISOString().slice(0, 10);
-  return dueDateStr < today;
+  // Data local do dispositivo (não UTC): com toISOString, entre 00h e 03h no
+  // Brasil o "hoje" virava ontem e lançamentos do dia apareciam como Atrasado.
+  return dueDateStr < todayLocalISO();
 }
 
 /** Para fatura de cartão, atraso considera o vencimento do pagamento, não o fechamento. */
