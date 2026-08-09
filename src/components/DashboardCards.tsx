@@ -1,6 +1,7 @@
 ﻿import { motion } from 'motion/react';
 import { TrendingDown, DollarSign, ArrowUpRight } from 'lucide-react';
 import { formatCurrency } from '../lib/format';
+import { DeltaBadge } from './DeltaBadge';
 
 type DashboardCardsProps = {
   totalEntradasLancadas: number;
@@ -18,6 +19,10 @@ type DashboardCardsProps = {
   periodLabel?: string;
   /** Soma do limite disponível em todos os cartões de crédito no período */
   totalLimiteDisponivel?: number;
+  /** Totais do mês anterior (para o comparativo ▲/▼) */
+  prevEntradasLancadas?: number;
+  prevSaidasLancadas?: number;
+  prevSaldo?: number;
 };
 
 export function DashboardCards({
@@ -33,6 +38,9 @@ export function DashboardCards({
   saldoProjetado,
   periodLabel,
   totalLimiteDisponivel,
+  prevEntradasLancadas,
+  prevSaidasLancadas,
+  prevSaldo,
 }: DashboardCardsProps) {
   const suffix = periodLabel ? ` ${periodLabel}` : '';
   return (
@@ -53,8 +61,11 @@ export function DashboardCards({
         <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-emerald-600 dark:text-emerald-400">
           {formatCurrency(totalEntradasLancadas)}
         </div>
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {entradasCount} entradas lançadas
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span>{entradasCount} entradas lançadas</span>
+          {prevEntradasLancadas !== undefined && (
+            <DeltaBadge current={totalEntradasLancadas} previous={prevEntradasLancadas} />
+          )}
         </div>
         {(totalEntradasFinalizadas !== undefined || totalEntradasPendentes !== undefined) && (
           <div className="mt-1.5 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1.5">
@@ -101,8 +112,11 @@ export function DashboardCards({
         <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-red-600 dark:text-red-400">
           {formatCurrency(totalSaidasLancadas)}
         </div>
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {saidasCount} saídas lançadas
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span>{saidasCount} saídas lançadas</span>
+          {prevSaidasLancadas !== undefined && (
+            <DeltaBadge current={totalSaidasLancadas} previous={prevSaidasLancadas} invert />
+          )}
         </div>
         {(totalSaidasFinalizadas !== undefined || totalSaidasPendentes !== undefined) && (
           <div className="mt-1.5 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1.5">
@@ -151,7 +165,10 @@ export function DashboardCards({
         <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-white">
           {formatCurrency(saldo)}
         </div>
-        <div className="mt-1 text-xs text-slate-400">Só entradas e saídas finalizadas</div>
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-400">
+          <span>Só entradas e saídas finalizadas</span>
+          {prevSaldo !== undefined && <DeltaBadge current={saldo} previous={prevSaldo} light />}
+        </div>
         {saldoProjetado !== undefined && (
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-3xs">

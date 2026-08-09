@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry, FilterType, Goal } from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
+import { parseDateLocal } from '../lib/format';
 import { DashboardCards } from './DashboardCards';
 import { GoalsCard } from './GoalsCard';
 import { FilterBar } from './FilterBar';
@@ -148,6 +149,31 @@ export function CashFlowSection({
     [cards, cardExpenses, entries]
   );
 
+  // Totais do mês anterior (mesma lógica de metas do mês atual) para o comparativo
+  const prevMonthTotals = useMemo(() => {
+    const prevDate = new Date(currentYear, currentMonth - 1, 1);
+    const prevEntries = entries.filter((d) => {
+      const date = parseDateLocal(d.dueDate);
+      return (
+        date.getMonth() === prevDate.getMonth() && date.getFullYear() === prevDate.getFullYear()
+      );
+    });
+    const entradas = prevEntries
+      .filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash'))
+      .reduce((acc, d) => acc + d.amount, 0);
+    const saidas = prevEntries
+      .filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt'))
+      .reduce((acc, d) => acc + d.amount, 0);
+    const saldo =
+      prevEntries
+        .filter((d) => d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
+        .reduce((acc, d) => acc + d.amount, 0) -
+      prevEntries
+        .filter((d) => d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
+        .reduce((acc, d) => acc + d.amount, 0);
+    return { entradas, saidas, saldo };
+  }, [entries, currentMonth, currentYear]);
+
   return (
     <div className="app-container page-stack">
       <section className="section-stack">
@@ -215,6 +241,9 @@ export function CashFlowSection({
               totalLimiteDisponivel={cards.length > 0 ? totalLimiteDisponivel : undefined}
               saldoProjetado={saldoProjetadoMes}
               periodLabel="do mês"
+              prevEntradasLancadas={prevMonthTotals.entradas}
+              prevSaidasLancadas={prevMonthTotals.saidas}
+              prevSaldo={prevMonthTotals.saldo}
             />
             <p className="info-bar">
               O saldo considera apenas lançamentos{' '}

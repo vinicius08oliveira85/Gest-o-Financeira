@@ -1,6 +1,6 @@
-﻿import { TrendingDown, TrendingUp } from 'lucide-react';
-import type { CardExpense, CreditCard, Entry } from '../types';
+﻿import type { CardExpense, CreditCard, Entry } from '../types';
 import { formatCurrency, parseDateLocal } from '../lib/format';
+import { DeltaBadge } from './DeltaBadge';
 
 type ReportsPanelProps = {
   entries: Entry[];
@@ -12,31 +12,6 @@ type ReportsPanelProps = {
 
 function formatCycleDate(d: Date): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function DeltaBadge({
-  current,
-  previous,
-  invert = false,
-}: {
-  current: number;
-  previous: number;
-  invert?: boolean;
-}) {
-  if (previous === 0) return null;
-  const pct = ((current - previous) / previous) * 100;
-  const isUp = pct >= 0;
-  const isGood = invert ? !isUp : isUp;
-  const cls = isGood ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
-  return (
-    <span
-      className={`inline-flex items-center gap-0.5 text-2xs font-semibold ${cls}`}
-      title="Comparado ao mês anterior"
-    >
-      {isUp ? <TrendingUp size={11} aria-hidden /> : <TrendingDown size={11} aria-hidden />}
-      {Math.abs(pct).toFixed(1)}%
-    </span>
-  );
 }
 
 export function ReportsPanel({
