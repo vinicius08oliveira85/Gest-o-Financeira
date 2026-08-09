@@ -158,6 +158,7 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
           <input
             id="ce-name"
             type="text"
+            autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ex: Mercado, Gasolina"

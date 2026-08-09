@@ -49,6 +49,7 @@ function EntryItemInner({
         type="button"
         onClick={() => onTogglePaid(entry.id)}
         title={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (abate no saldo)'}
+        aria-label={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (marcar como pago)'}
         className={`mr-3 transition-colors self-start mt-1 sm:self-center sm:mt-0 ${
           entry.isPaid
             ? 'text-emerald-500'

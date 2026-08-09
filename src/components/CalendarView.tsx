@@ -1,5 +1,6 @@
-﻿import type { Entry } from '../types';
-import { formatCurrency, parseDateLocal } from '../lib/format';
+import { useMemo, useState } from 'react';
+import type { Entry } from '../types';
+import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
 
 type CalendarViewProps = {
   entries: Entry[];
@@ -12,9 +13,65 @@ type DayBucket = {
   entries: Entry[];
 };
 
+type TypeFilter = 'all' | 'entradas' | 'saidas';
+type StatusFilter = 'all' | 'pending' | 'paid';
+
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'entradas', label: 'Entradas' },
+  { value: 'saidas', label: 'Saídas' },
+];
+
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'pending', label: 'Pendentes' },
+  { value: 'paid', label: 'Finalizados' },
+];
+
+/** Depósito na meta (cash+goalId) conta como saída; saque (debt+goalId) como entrada. */
+function isEntrada(e: Entry): boolean {
+  return e.goalId ? e.type === 'debt' : e.type === 'cash';
+}
+function isSaida(e: Entry): boolean {
+  return e.goalId ? e.type === 'cash' : e.type === 'debt';
+}
+
+/** Atraso considera o vencimento do pagamento em faturas de cartão (não o fechamento). */
+function isOverdue(e: Entry): boolean {
+  if (e.type !== 'debt' || e.isPaid) return false;
+  const due = e.isCardInvoice ? (e.invoicePaymentDueDate ?? e.dueDate) : e.dueDate;
+  return due < todayLocalISO();
+}
+
+function chipClass(active: boolean): string {
+  return `whitespace-nowrap px-2.5 py-1 rounded-full text-2xs font-medium transition-all ${
+    active
+      ? 'neu-filter-active'
+      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+  }`;
+}
+
 export function CalendarView({ entries, month, year }: CalendarViewProps) {
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  // Filtros locais do calendário (compõem com o FilterBar global da aba).
+  const visibleEntries = useMemo(
+    () =>
+      entries.filter((e) => {
+        if (typeFilter === 'entradas' && !isEntrada(e)) return false;
+        if (typeFilter === 'saidas' && !isSaida(e)) return false;
+        if (statusFilter === 'pending' && e.isPaid) return false;
+        if (statusFilter === 'paid' && !e.isPaid) return false;
+        return true;
+      }),
+    [entries, typeFilter, statusFilter]
+  );
+
+  const overdueCount = useMemo(() => visibleEntries.filter(isOverdue).length, [visibleEntries]);
+
   const firstDay = new Date(year, month, 1);
   const startWeekday = firstDay.getDay(); // 0-6
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -29,7 +86,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
     };
   }
 
-  for (const entry of entries) {
+  for (const entry of visibleEntries) {
     const d = parseDateLocal(entry.dueDate);
     if (d.getMonth() === month && d.getFullYear() === year) {
       const day = d.getDate();
@@ -58,6 +115,58 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
 
   return (
     <div className="neu-surface rounded-2xl card-pad">
+      {/* Filtros locais + resumo */}
+      <div className="flex flex-wrap items-center justify-between gap-[var(--inline-gap)] mb-[var(--inline-gap)]">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div
+            className="neu-inset flex p-1 rounded-full"
+            role="group"
+            aria-label="Filtrar por tipo"
+          >
+            {TYPE_FILTERS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTypeFilter(value)}
+                aria-pressed={typeFilter === value}
+                className={chipClass(typeFilter === value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div
+            className="neu-inset flex p-1 rounded-full"
+            role="group"
+            aria-label="Filtrar por status"
+          >
+            {STATUS_FILTERS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setStatusFilter(value)}
+                aria-pressed={statusFilter === value}
+                className={chipClass(statusFilter === value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="text-2xs text-slate-400 dark:text-slate-500 font-medium">
+          {visibleEntries.length} lançamento{visibleEntries.length === 1 ? '' : 's'}
+          {overdueCount > 0 && (
+            <span className="text-red-500 dark:text-red-400"> · {overdueCount} atrasado(s)</span>
+          )}
+        </p>
+      </div>
+
+      {visibleEntries.length === 0 && entries.length > 0 && (
+        <p className="text-2xs text-slate-400 dark:text-slate-500 mb-[var(--inline-gap)]">
+          Nenhum lançamento corresponde aos filtros.
+        </p>
+      )}
+
       <div className="grid grid-cols-7 gap-[var(--inline-gap)] mb-[var(--inline-gap)] text-3xs font-medium text-slate-500 dark:text-slate-400 text-center">
         {WEEK_DAYS.map((d) => (
           <div key={d}>{d}</div>
@@ -76,13 +185,9 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
 
           const day = bucket.date.getDate();
           const isToday = isCurrentMonth && day === todayDay;
-          // Depósito meta (cash+goalId) → saída; Saque meta (debt+goalId) → entrada
-          const entradas = bucket.entries.filter((e) =>
-            e.goalId ? e.type === 'debt' : e.type === 'cash'
-          );
-          const saidas = bucket.entries.filter((e) =>
-            e.goalId ? e.type === 'cash' : e.type === 'debt'
-          );
+          const dayHasOverdue = bucket.entries.some(isOverdue);
+          const entradas = bucket.entries.filter(isEntrada);
+          const saidas = bucket.entries.filter(isSaida);
           const totalEntradas = entradas.reduce((acc, e) => acc + e.amount, 0);
           const totalSaidas = saidas.reduce((acc, e) => acc + e.amount, 0);
           const hasInstallments = bucket.entries.some(
@@ -112,13 +217,20 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
               {/* Número do dia — sempre visível */}
               <div className="flex items-start justify-between">
                 <span
-                  className={`text-3xs font-semibold leading-none ${
+                  className={`flex items-center gap-1 text-3xs font-semibold leading-none ${
                     isToday
                       ? 'text-emerald-700 dark:text-emerald-300'
                       : 'text-slate-800 dark:text-slate-200'
                   }`}
                 >
                   {day}
+                  {dayHasOverdue && (
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full bg-red-500"
+                      title="Há lançamentos atrasados"
+                      aria-label="Há lançamentos atrasados"
+                    />
+                  )}
                 </span>
 
                 {/* Valores: visíveis apenas a partir de sm */}

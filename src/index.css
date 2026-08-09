@@ -739,6 +739,12 @@
     @apply text-emerald-700 dark:text-emerald-400 font-semibold;
   }
 
+  /* Destaque de item sob navegação por teclado (setas) no NeuSelect */
+  .neu-list-item-hover {
+    box-shadow: var(--neu-inset-sm);
+    background-color: color-mix(in srgb, var(--neu-surface) 85%, var(--neu-light));
+  }
+
   .neu-list-menu-item {
     @apply flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg transition-all duration-200;
   }

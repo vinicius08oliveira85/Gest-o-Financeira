@@ -114,6 +114,7 @@ export function CreditCardModal({ open, card, onSave, onRequestDelete, onClose }
           <input
             id="cc-name"
             type="text"
+            autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ex: Nubank, Inter, C6"

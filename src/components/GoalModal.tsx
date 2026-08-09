@@ -83,6 +83,7 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
             id="goal-modal-name"
             type="text"
             required
+            autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ex: Guardar para reserva de emergência"

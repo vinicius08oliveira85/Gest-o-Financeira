@@ -101,6 +101,7 @@ export function MetaMovementModal({
             id="meta-movement-amount"
             type="text"
             required
+            autoFocus
             value={amount}
             onChange={(e) => {
               setAmount(maskCurrencyInput(e.target.value));

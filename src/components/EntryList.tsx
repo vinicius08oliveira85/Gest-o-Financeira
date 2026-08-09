@@ -33,6 +33,14 @@ function groupEntriesByDate(entries: Entry[]): Map<string, Entry[]> {
 
 function formatDateGroupLabel(isoDate: string): string {
   const d = new Date(isoDate + 'T12:00:00');
+  const now = new Date();
+  const iso = (dt: Date) =>
+    `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  if (isoDate === iso(now)) return 'Hoje';
+  if (isoDate === iso(yesterday)) return 'Ontem';
+  if (isoDate === iso(tomorrow)) return 'Amanhã';
   return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
 }
 

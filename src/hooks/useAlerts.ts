@@ -46,14 +46,16 @@ export function useAlerts({
 
     const result: Alert[] = [];
 
-    // Concentração de gastos por categoria (somente saídas)
-    const totalSaidas = byPeriod
-      .filter((d) => d.type === 'debt')
-      .reduce((acc, d) => acc + d.amount, 0);
+    // Mesma inversão de metas do resto do app: depósito na meta (cash+goalId)
+    // abate do caixa → conta como saída; saque da meta (debt+goalId) → entrada.
+    const isSaida = (d: Entry) => (d.goalId ? d.type === 'cash' : d.type === 'debt');
+
+    // Concentração de gastos por categoria (somente saídas, com inversão de metas)
+    const totalSaidas = byPeriod.filter((d) => isSaida(d)).reduce((acc, d) => acc + d.amount, 0);
 
     if (totalSaidas > 0) {
       const byCategory = byPeriod.reduce<Record<string, number>>((acc, d) => {
-        if (d.type !== 'debt' || !d.category) return acc;
+        if (!isSaida(d) || !d.category) return acc;
         acc[d.category] = (acc[d.category] ?? 0) + d.amount;
         return acc;
       }, {});
@@ -72,14 +74,15 @@ export function useAlerts({
       });
     }
 
-    // Vencimentos próximos (próximos 5 dias, não pagos)
+    // Vencimentos próximos (próximos 5 dias, não pagos) — varre todos os
+    // lançamentos, não só o mês visível (consistente com o alerta de fatura).
     const todayISO = todayLocalISO();
     const n = new Date();
     n.setDate(n.getDate() + 5);
     const fiveDaysISO = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
 
-    const dueSoon = byPeriod.filter((d) => {
-      if (d.type !== 'debt' || d.isPaid) return false;
+    const dueSoon = entries.filter((d) => {
+      if (!isSaida(d) || d.isPaid) return false;
       return d.dueDate >= todayISO && d.dueDate <= fiveDaysISO;
     });
 
@@ -107,6 +110,13 @@ export function useAlerts({
           type: 'goal-deadline',
           title: `Meta "${goal.name}": data alvo passou`,
           description: `A data para atingir esta meta já passou. Ajuste a meta ou a data se necessário.`,
+        });
+      } else if (diffDays === 0) {
+        result.push({
+          id: `goal-deadline-${goal.id}`,
+          type: 'goal-deadline',
+          title: `Meta "${goal.name}": vence hoje`,
+          description: `A data alvo desta meta é hoje. Confira seu progresso.`,
         });
       } else if (diffDays <= GOAL_DEADLINE_ALERT_DAYS) {
         result.push({

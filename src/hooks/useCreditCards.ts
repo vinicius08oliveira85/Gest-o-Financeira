@@ -27,16 +27,20 @@ export function useCreditCards() {
               try {
                 const parsed = JSON.parse(saved) as CreditCard[];
                 if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) {
+                  // Só remove o backup local se TODOS os upserts derem certo —
+                  // falha parcial não pode apagar cartões que ficaram só no dispositivo.
+                  let migrationFailed = false;
                   for (const c of parsed) {
                     try {
                       await upsertCardDb(c);
                     } catch (e) {
+                      migrationFailed = true;
                       logError('Migration card failed', e);
                     }
                   }
                   const refetched = await fetchCards();
                   if (!cancelled) setCards(refetched);
-                  localStorage.removeItem(CARDS_STORAGE_KEY);
+                  if (!migrationFailed) localStorage.removeItem(CARDS_STORAGE_KEY);
                 }
               } catch {
                 // ignore parse errors

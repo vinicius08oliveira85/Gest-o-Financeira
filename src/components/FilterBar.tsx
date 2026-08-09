@@ -1,4 +1,4 @@
-﻿import { Search, ChevronDown, SlidersHorizontal } from 'lucide-react';
+﻿import { Search, ChevronDown, SlidersHorizontal, X } from 'lucide-react';
 import type { FilterType } from '../types';
 import { NeuSelect } from './NeuSelect';
 
@@ -54,9 +54,21 @@ export function FilterBar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Buscar..."
-            className="w-full neu-input rounded-full pl-9 pr-3 py-1.5 sm:py-2 text-sm sm:text-base"
+            className={`w-full neu-input rounded-full pl-9 py-1.5 sm:py-2 text-sm sm:text-base transition-all ${
+              searchQuery ? 'pr-8' : 'pr-3'
+            }`}
             aria-label="Buscar por nome ou valor"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              aria-label="Limpar busca"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
         <div className="neu-inset flex p-1 sm:p-1.5 rounded-full w-full sm:w-auto overflow-x-auto">
           {FILTER_OPTIONS.map(({ value, label }) => (

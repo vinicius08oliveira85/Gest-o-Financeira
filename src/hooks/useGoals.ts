@@ -27,16 +27,20 @@ export function useGoals() {
               try {
                 const parsed = JSON.parse(saved) as Goal[];
                 if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) {
+                  // Só remove o backup local se TODOS os upserts derem certo —
+                  // falha parcial não pode apagar metas que ficaram só no dispositivo.
+                  let migrationFailed = false;
                   for (const g of parsed) {
                     try {
                       await upsertGoalDb(g);
                     } catch (e) {
+                      migrationFailed = true;
                       logError('Migration goal failed', e);
                     }
                   }
                   const refetched = await fetchGoals();
                   if (!cancelled) setGoals(refetched);
-                  localStorage.removeItem(GOALS_STORAGE_KEY);
+                  if (!migrationFailed) localStorage.removeItem(GOALS_STORAGE_KEY);
                 }
               } catch {
                 // ignore parse errors
