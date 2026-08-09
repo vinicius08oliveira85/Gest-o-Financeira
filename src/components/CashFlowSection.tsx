@@ -58,7 +58,9 @@ type CashFlowSectionProps = {
   alerts: Alert[];
   onAlertAction?: (alert: Alert) => void;
   showNewEntryHint: boolean;
+  showMonthNavHint: boolean;
   showReportsHint: boolean;
+  onMonthNav: () => void;
   skip: () => void;
   onTogglePaid: (id: string) => void;
   onEdit: (entry?: Entry) => void;
@@ -111,7 +113,9 @@ export function CashFlowSection({
   alerts,
   onAlertAction,
   showNewEntryHint,
+  showMonthNavHint,
   showReportsHint,
+  onMonthNav,
   skip,
   onTogglePaid,
   onEdit,
@@ -201,7 +205,10 @@ export function CashFlowSection({
           <div className="toolbar-row">
             <button
               type="button"
-              onClick={goToPreviousMonth}
+              onClick={() => {
+                onMonthNav();
+                goToPreviousMonth();
+              }}
               aria-label="Mês anterior"
               className="neu-btn shrink-0 p-1.5 rounded-full text-slate-700 dark:text-slate-200"
             >
@@ -210,7 +217,10 @@ export function CashFlowSection({
             {!isCurrentMonth && (
               <button
                 type="button"
-                onClick={goToCurrentMonth}
+                onClick={() => {
+                  onMonthNav();
+                  goToCurrentMonth();
+                }}
                 className="neu-btn-emerald rounded-full px-2.5 py-1 text-xs font-medium"
               >
                 Hoje
@@ -224,7 +234,10 @@ export function CashFlowSection({
             </span>
             <button
               type="button"
-              onClick={goToNextMonth}
+              onClick={() => {
+                onMonthNav();
+                goToNextMonth();
+              }}
               aria-label="Próximo mês"
               className="neu-btn shrink-0 p-1.5 rounded-full text-slate-700 dark:text-slate-200"
             >
@@ -241,6 +254,10 @@ export function CashFlowSection({
             )}
           </div>
         </div>
+
+        {showMonthNavHint && (
+          <GuidedTooltip text="Use as setas para navegar entre os meses e o botão Hoje para voltar." />
+        )}
 
         <TabNav activeTab={activeTab} onTabChange={onTabChange} />
 

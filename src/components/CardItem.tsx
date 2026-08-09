@@ -1,13 +1,23 @@
 ﻿import React, { useState } from 'react';
-import { Plus, CreditCard as CreditCardIcon, ListChecks, Send, Pencil } from 'lucide-react';
+import {
+  Plus,
+  CreditCard as CreditCardIcon,
+  ListChecks,
+  Send,
+  Pencil,
+  CheckCircle2,
+  Circle,
+} from 'lucide-react';
 import type { CardExpense, CreditCard, Entry } from '../types';
-import { getInvoiceClosingDate, getInvoiceDueDate } from '../lib/cardInvoice';
+import { findInvoiceEntryForCycle, getInvoiceDueDate } from '../lib/cardInvoice';
+import { formatCurrency } from '../lib/format';
 
 type InvoiceSummary = {
   month: number;
   year: number;
   total: number;
   hasEntry: boolean;
+  isPaid: boolean;
 };
 
 type Props = {
@@ -21,10 +31,6 @@ type Props = {
   onEditExpense: (expense: CardExpense) => void;
   onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
 };
-
-function formatCurrency(value: number) {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
 
 export function CardItem({
   card,
@@ -49,17 +55,21 @@ export function CardItem({
       const total = expenses
         .filter((e) => e.billingMonth === month && e.billingYear === year)
         .reduce((sum, e) => sum + e.amount, 0);
-      const closingIso = getInvoiceClosingDate(month, year, card.closingDay);
-      const paymentIso = getInvoiceDueDate(month, year, card.dueDay);
-      const hasEntry = invoiceEntries.some(
-        (e) =>
-          e.cardId === card.id &&
-          e.isCardInvoice &&
-          (e.dueDate === closingIso ||
-            e.invoicePaymentDueDate === paymentIso ||
-            (!e.invoicePaymentDueDate && e.dueDate === paymentIso))
+      const invoiceEntry = findInvoiceEntryForCycle(
+        invoiceEntries,
+        card.id,
+        month,
+        year,
+        card.closingDay,
+        card.dueDay
       );
-      result.push({ month, year, total, hasEntry });
+      result.push({
+        month,
+        year,
+        total,
+        hasEntry: invoiceEntry != null,
+        isPaid: invoiceEntry?.isPaid ?? false,
+      });
     }
     return result;
   }, [expenses, invoiceEntries, currentMonth, currentYear, card.id]);
@@ -209,15 +219,37 @@ export function CardItem({
             {invoices.slice(1).map((inv) => (
               <div
                 key={`${inv.year}-${inv.month}`}
-                className="neu-list-item flex justify-between text-xs text-slate-500 dark:text-slate-400 px-3 py-2"
+                className="neu-list-item flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 px-3 py-2"
               >
-                <span>
-                  {new Date(inv.year, inv.month).toLocaleDateString('pt-BR', {
-                    month: 'long',
-                    year: 'numeric',
-                  })}
+                <span className="flex items-center gap-1.5 min-w-0">
+                  {inv.hasEntry &&
+                    (inv.isPaid ? (
+                      <CheckCircle2
+                        size={13}
+                        className="text-emerald-500 shrink-0"
+                        aria-label="Fatura paga"
+                      />
+                    ) : (
+                      <Circle
+                        size={13}
+                        className="text-slate-300 dark:text-slate-600 shrink-0"
+                        aria-label="Fatura pendente"
+                      />
+                    ))}
+                  <span className="truncate">
+                    {new Date(inv.year, inv.month).toLocaleDateString('pt-BR', {
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
                 </span>
-                <span className="font-medium">{formatCurrency(inv.total)}</span>
+                <span
+                  className={`font-medium shrink-0 ${
+                    inv.hasEntry && inv.isPaid ? 'text-emerald-600 dark:text-emerald-400' : ''
+                  }`}
+                >
+                  {formatCurrency(inv.total)}
+                </span>
               </div>
             ))}
           </div>

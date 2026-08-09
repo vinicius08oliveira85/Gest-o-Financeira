@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { changePassword, MIN_PASSWORD_LENGTH_EXPORT } from '../lib/password';
 import { ModalShell } from './ModalShell';
@@ -14,6 +14,7 @@ type ChangePasswordModalProps = {
 export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePasswordModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const successTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -23,6 +24,24 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
+
+  // Ao fechar/reabrir, zera estados e cancela o timeout pendente de sucesso
+  // (senão o onSuccess disparava com o modal já fechado).
+  useEffect(() => {
+    if (successTimeoutRef.current) {
+      window.clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
+    }
+    setError(null);
+    setSuccess(false);
+  }, [open]);
+
+  useEffect(
+    () => () => {
+      if (successTimeoutRef.current) window.clearTimeout(successTimeoutRef.current);
+    },
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,10 +67,12 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
     if (ok) {
       setSuccess(true);
       setError(null);
-      setTimeout(() => {
+      if (successTimeoutRef.current) window.clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = window.setTimeout(() => {
         onSuccess();
         onClose();
         setSuccess(false);
+        successTimeoutRef.current = null;
       }, 800);
     } else {
       setError('Senha atual incorreta');

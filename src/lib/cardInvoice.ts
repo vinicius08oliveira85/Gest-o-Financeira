@@ -63,6 +63,31 @@ export function getInvoiceDueDate(
 }
 
 /**
+ * Encontra o lançamento de fatura (isCardInvoice) já registrado no fluxo para o
+ * ciclo billingMonth/billingYear do cartão, usando o fechamento ou o vencimento
+ * como chave (faturas antigas sem invoicePaymentDueDate usam o vencimento no dueDate).
+ */
+export function findInvoiceEntryForCycle(
+  entries: Entry[],
+  cardId: string,
+  billingMonth: number,
+  billingYear: number,
+  closingDay: number,
+  dueDay: number
+): Entry | undefined {
+  const closingIso = getInvoiceClosingDate(billingMonth, billingYear, closingDay);
+  const paymentIso = getInvoiceDueDate(billingMonth, billingYear, dueDay);
+  return entries.find(
+    (e) =>
+      e.isCardInvoice &&
+      e.cardId === cardId &&
+      (e.dueDate === closingIso ||
+        e.invoicePaymentDueDate === paymentIso ||
+        (!e.invoicePaymentDueDate && e.dueDate === paymentIso))
+  );
+}
+
+/**
  * Constrói um lançamento do tipo debt representando uma fatura de cartão.
  * Se existingId for fornecido, reutiliza o mesmo id (para atualização).
  */

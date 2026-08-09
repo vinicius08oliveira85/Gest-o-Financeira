@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useEntries } from './hooks/useEntries';
 import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
@@ -8,7 +8,7 @@ import { useAlerts, type Alert } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { exportEntriesToCSV } from './lib/format';
-import { buildInvoiceEntry, getInvoiceClosingDate, getInvoiceDueDate } from './lib/cardInvoice';
+import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
 import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal } from './types';
@@ -186,7 +186,8 @@ export default function App() {
       return next;
     });
   }, []);
-  const { showNewEntryHint, showReportsHint, completeStep, skip } = useOnboarding();
+  const { showNewEntryHint, showMonthNavHint, showReportsHint, completeStep, skip } =
+    useOnboarding();
 
   const form = useEntryForm(
     (entry, isEdit) => {
@@ -238,7 +239,11 @@ export default function App() {
     showToast('Dados salvos localmente');
   }, [saveEntriesLocal, showToast]);
 
+  // Última ação de sync que falhou, para o "Tentar novamente" do banner refazê-la.
+  const lastSyncAttemptRef = useRef<'push' | 'pull' | null>(null);
+
   const handleSaveEntriesToSupabase = useCallback(async () => {
+    lastSyncAttemptRef.current = 'push';
     try {
       await pushEntriesToSupabase();
       showToast('Dados gravados no Supabase');
@@ -248,6 +253,7 @@ export default function App() {
   }, [pushEntriesToSupabase, showToast]);
 
   const handlePullEntriesFromSupabase = useCallback(async () => {
+    lastSyncAttemptRef.current = 'pull';
     try {
       await pullEntriesFromSupabase();
       showToast('Dados atualizados do Supabase');
@@ -258,15 +264,13 @@ export default function App() {
 
   const handleRegisterInvoice = useCallback(
     (card: CreditCard, month: number, year: number, total: number) => {
-      const closingDate = getInvoiceClosingDate(month, year, card.closingDay);
-      const paymentDue = getInvoiceDueDate(month, year, card.dueDay);
-      const existing = entries.find(
-        (e) =>
-          e.isCardInvoice &&
-          e.cardId === card.id &&
-          (e.dueDate === closingDate ||
-            e.invoicePaymentDueDate === paymentDue ||
-            (!e.invoicePaymentDueDate && e.dueDate === paymentDue))
+      const existing = findInvoiceEntryForCycle(
+        entries,
+        card.id,
+        month,
+        year,
+        card.closingDay,
+        card.dueDay
       );
       const entry = buildInvoiceEntry(card, month, year, total, existing?.id);
       // Re-registrar a fatura não pode zerar o status de pagamento já registrado.
@@ -300,7 +304,15 @@ export default function App() {
           saveError={saveError}
           onDismissSaveError={() => setSaveError(null)}
           onRetryOffline={refetchEntries}
-          onRetrySaveError={() => setSaveError(null)}
+          onRetrySaveError={() => {
+            if (lastSyncAttemptRef.current === 'push') {
+              void handleSaveEntriesToSupabase();
+            } else if (lastSyncAttemptRef.current === 'pull') {
+              void handlePullEntriesFromSupabase();
+            } else {
+              setSaveError(null);
+            }
+          }}
           onExportCSV={() => exportEntriesToCSV(entries)}
           onExportCSVCurrentMonth={() =>
             exportEntriesToCSV(entriesDoMes, { filenameSuffix: '_mes_atual' })
@@ -359,7 +371,9 @@ export default function App() {
             onDismissAlert={handleDismissAlert}
             onAlertAction={handleAlertAction}
             showNewEntryHint={showNewEntryHint}
+            showMonthNavHint={showMonthNavHint}
             showReportsHint={showReportsHint}
+            onMonthNav={() => completeStep('stepMonthNav')}
             skip={skip}
             onTogglePaid={togglePaid}
             onEdit={handleOpenForm}
