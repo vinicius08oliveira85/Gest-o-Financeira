@@ -222,9 +222,19 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
             max="48"
             value={installments}
             onChange={(e) => setInstallments(e.target.value)}
-            className={inputClass + (errors.installments ? ' border-red-400' : '')}
+            disabled={expense != null}
+            className={
+              inputClass +
+              (errors.installments ? ' border-red-400' : '') +
+              ' disabled:opacity-60 disabled:cursor-not-allowed'
+            }
           />
           {errors.installments && <p className={errorClass}>{errors.installments}</p>}
+          {expense && (
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              O número de parcelas é fixo ao editar (evita corromper as irmãs do grupo).
+            </p>
+          )}
           {parseInt(installments, 10) > 1 && (parseCurrencyInput(amount) ?? 0) > 0 && (
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {parseInt(installments, 10)}x de R${' '}

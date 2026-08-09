@@ -68,6 +68,9 @@ export function useEntries() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMigrating, setIsMigrating] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+  /** Nuvem configurada mas fora do ar (falha real de fetch/push/pull). Só volta a
+   * false após uma operação bem-sucedida — dispensar o banner não "religa" a nuvem. */
+  const [isCloudUnavailable, setIsCloudUnavailable] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const entriesRef = useRef<Entry[]>([]);
@@ -93,6 +96,7 @@ export function useEntries() {
           if (!cancelled) {
             setEntries(data);
             dirtyEntryIdsRef.current.clear();
+            setIsCloudUnavailable(false);
           }
           const copies = generateMissingRecurringCopies(data, suppressedRecurringSlotsRef.current);
           if (copies.length > 0 && !cancelled) {
@@ -116,6 +120,7 @@ export function useEntries() {
                     if (!cancelled) {
                       setEntries(refetched);
                       dirtyEntryIdsRef.current.clear();
+                      setIsCloudUnavailable(false);
                     }
                     localStorage.removeItem(ENTRIES_STORAGE_KEY);
                   } finally {
@@ -132,6 +137,7 @@ export function useEntries() {
           logError('Failed to load entries from Supabase', e);
           if (!cancelled) {
             setShowOfflineBanner(true);
+            setIsCloudUnavailable(true);
           }
           const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
           if (saved) {
@@ -179,9 +185,11 @@ export function useEntries() {
       setEntries(data);
       dirtyEntryIdsRef.current.clear();
       setShowOfflineBanner(false);
+      setIsCloudUnavailable(false);
     } catch (e) {
       logError('Failed to refetch entries', e);
       setShowOfflineBanner(true);
+      setIsCloudUnavailable(true);
     }
   }, []);
 
@@ -213,10 +221,12 @@ export function useEntries() {
       dirtyEntryIdsRef.current.clear();
       deletedEntryIdsRef.current.clear();
       setShowOfflineBanner(false);
+      setIsCloudUnavailable(false);
     } catch (e) {
       logError('Falha ao gravar no Supabase', e);
       setSaveError('Falha ao salvar no Supabase. Tente de novo.');
       setShowOfflineBanner(true);
+      setIsCloudUnavailable(true);
       throw e;
     } finally {
       setIsSyncing(false);
@@ -235,10 +245,12 @@ export function useEntries() {
       setEntries(merged);
       dirtyEntryIdsRef.current.clear();
       setShowOfflineBanner(false);
+      setIsCloudUnavailable(false);
     } catch (e) {
       logError('Falha ao buscar lançamentos do Supabase', e);
       setSaveError('Falha ao atualizar do servidor. Tente de novo.');
       setShowOfflineBanner(true);
+      setIsCloudUnavailable(true);
       throw e;
     } finally {
       setIsSyncing(false);
@@ -655,6 +667,7 @@ export function useEntries() {
     isMigrating,
     showOfflineBanner,
     setShowOfflineBanner,
+    isCloudUnavailable,
     saveError,
     setSaveError,
     addOrUpdateEntry,

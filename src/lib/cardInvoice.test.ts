@@ -4,8 +4,9 @@ import {
   getInvoiceDueDate,
   buildInvoiceEntry,
   buildInstallmentCardExpenses,
+  findInvoiceEntryForCycle,
 } from './cardInvoice';
-import type { CreditCard } from '../types';
+import type { CreditCard, Entry } from '../types';
 
 const card: CreditCard = {
   id: 'c1',
@@ -28,6 +29,51 @@ describe('getInvoiceClosingDate', () => {
 describe('getInvoiceDueDate', () => {
   it('vence no mês seguinte ao ciclo', () => {
     expect(getInvoiceDueDate(2, 2025, 5)).toBe('2025-04-05');
+  });
+});
+
+describe('findInvoiceEntryForCycle', () => {
+  const invoiceEntry = (overrides: Partial<Entry> = {}): Entry => ({
+    id: 'inv-1',
+    name: 'Fatura Visa',
+    amount: 100,
+    dueDate: '2025-03-25',
+    isPaid: false,
+    type: 'debt',
+    createdAt: 1,
+    cardId: 'c1',
+    isCardInvoice: true,
+    ...overrides,
+  });
+
+  // Ciclo março/2025 (billingMonth 2): fecha 25/03, vence 05/04.
+  it('encontra pela data de fechamento (dueDate = closing)', () => {
+    const e = invoiceEntry({ invoicePaymentDueDate: '2025-04-05' });
+    expect(findInvoiceEntryForCycle([e], 'c1', 2, 2025, 25, 5)?.id).toBe('inv-1');
+  });
+
+  it('encontra pela data de vencimento (invoicePaymentDueDate = due)', () => {
+    const e = invoiceEntry({ dueDate: '2025-03-20', invoicePaymentDueDate: '2025-04-05' });
+    expect(findInvoiceEntryForCycle([e], 'c1', 2, 2025, 25, 5)?.id).toBe('inv-1');
+  });
+
+  it('encontra faturas legadas (sem invoicePaymentDueDate, dueDate = vencimento)', () => {
+    const e = invoiceEntry({ dueDate: '2025-04-05', invoicePaymentDueDate: undefined });
+    expect(findInvoiceEntryForCycle([e], 'c1', 2, 2025, 25, 5)?.id).toBe('inv-1');
+  });
+
+  it('não encontra quando não há fatura do ciclo', () => {
+    expect(findInvoiceEntryForCycle([], 'c1', 2, 2025, 25, 5)).toBeUndefined();
+  });
+
+  it('ignora faturas de outro cartão', () => {
+    const e = invoiceEntry({ cardId: 'c2' });
+    expect(findInvoiceEntryForCycle([e], 'c1', 2, 2025, 25, 5)).toBeUndefined();
+  });
+
+  it('não casa com fatura de outro ciclo (meses diferentes)', () => {
+    const e = invoiceEntry({ dueDate: '2025-04-25', invoicePaymentDueDate: '2025-05-05' });
+    expect(findInvoiceEntryForCycle([e], 'c1', 2, 2025, 25, 5)).toBeUndefined();
   });
 });
 

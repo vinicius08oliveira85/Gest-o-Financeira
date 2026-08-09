@@ -116,6 +116,7 @@ export default function App() {
     isMigrating,
     showOfflineBanner,
     setShowOfflineBanner,
+    isCloudUnavailable,
     saveError,
     setSaveError,
     addOrUpdateEntry,
@@ -325,9 +326,10 @@ export default function App() {
             entriesSyncAvailable ? handlePullEntriesFromSupabase : undefined
           }
           isSyncingEntries={isSyncing}
-          // Com nuvem configurada mas fora do ar (banner offline ativo), o app
-          // volta ao modo local: badge "Local" + botão "Salvar" no dispositivo.
-          showEntriesCloudSync={entriesSyncAvailable && !showOfflineBanner}
+          // Com nuvem configurada mas fora do ar (falha real), o app fica no modo
+          // local: badge "Local" + botão "Salvar" no dispositivo. Dispensar o banner
+          // NÃO religa a nuvem — só um retry bem-sucedido (isCloudUnavailable=false).
+          showEntriesCloudSync={entriesSyncAvailable && !isCloudUnavailable}
         >
           <CashFlowSection
             totalEntradasLancadasMes={totalEntradasLancadasMes}
