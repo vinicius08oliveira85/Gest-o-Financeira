@@ -143,7 +143,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                     <span key={i} className={`inline-block h-1.5 w-1.5 rounded-full ${color}`} />
                   ))}
                   {bucket.entries.length > 3 && (
-                    <span className="text-[8px] text-slate-400 leading-none">
+                    <span className="text-4xs text-slate-400 leading-none">
                       +{bucket.entries.length - 3}
                     </span>
                   )}
@@ -169,7 +169,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                     <span className="truncate">
                       {e.name}
                       {e.installmentsCount && e.installmentNumber && (
-                        <span className="ml-1 text-[9px] text-slate-500 dark:text-slate-400">
+                        <span className="ml-1 text-5xs text-slate-500 dark:text-slate-400">
                           {e.installmentNumber}/{e.installmentsCount}
                         </span>
                       )}
@@ -177,7 +177,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                   </div>
                 ))}
                 {remaining > 0 && (
-                  <div className="text-[9px] text-slate-500 dark:text-slate-400">
+                  <div className="text-5xs text-slate-500 dark:text-slate-400">
                     +{remaining} lançamentos
                   </div>
                 )}

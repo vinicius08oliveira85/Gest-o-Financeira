@@ -15,6 +15,7 @@ import {
   copyDueDateForMonth,
   recurringSlotKey,
 } from '../lib/recurringEntries';
+import { propagateEntryInstallmentUpdate } from '../lib/installments';
 
 function readSuppressedRecurringSlots(): Set<string> {
   try {
@@ -266,8 +267,14 @@ export function useEntries() {
 
     const q = searchQuery.trim().toLowerCase();
     if (q) {
+      // Compara também no formato pt-BR: digitar "1.234,56" (ou "123456")
+      // encontra o lançamento de 1234.56. Normaliza ambos para dígitos puros.
+      const qDigits = q.replace(/\D/g, '');
       result = result.filter(
-        (d) => d.name.toLowerCase().includes(q) || String(d.amount).includes(q)
+        (d) =>
+          d.name.toLowerCase().includes(q) ||
+          String(d.amount).includes(q) ||
+          (qDigits.length > 0 && d.amount.toFixed(2).replace(/\D/g, '').includes(qDigits))
       );
     }
 
@@ -303,22 +310,30 @@ export function useEntries() {
     [entries, currentMonth, currentYear]
   );
 
+  // Mesma inversão de metas da visão mensal: depósito na meta (cash+goalId) abate
+  // do caixa → conta como saída; saque da meta (debt+goalId) volta → conta como entrada.
   const totalEntradasLancadas = useMemo(
-    () => entries.filter((d) => d.type === 'cash').reduce((acc, d) => acc + d.amount, 0),
+    () =>
+      entries
+        .filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash'))
+        .reduce((acc, d) => acc + d.amount, 0),
     [entries]
   );
 
   const totalSaidasLancadas = useMemo(
-    () => entries.filter((d) => d.type === 'debt').reduce((acc, d) => acc + d.amount, 0),
+    () =>
+      entries
+        .filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt'))
+        .reduce((acc, d) => acc + d.amount, 0),
     [entries]
   );
 
   const saldo = useMemo(() => {
     const entradasFinalizadas = entries
-      .filter((d) => d.type === 'cash' && d.isPaid)
+      .filter((d) => d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
       .reduce((acc, d) => acc + d.amount, 0);
     const saidasFinalizadas = entries
-      .filter((d) => d.type === 'debt' && d.isPaid)
+      .filter((d) => d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
       .reduce((acc, d) => acc + d.amount, 0);
     return entradasFinalizadas - saidasFinalizadas;
   }, [entries]);
@@ -422,8 +437,14 @@ export function useEntries() {
     [entries]
   );
 
-  const entradasCount = useMemo(() => entries.filter((d) => d.type === 'cash').length, [entries]);
-  const saidasCount = useMemo(() => entries.filter((d) => d.type === 'debt').length, [entries]);
+  const entradasCount = useMemo(
+    () => entries.filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash')).length,
+    [entries]
+  );
+  const saidasCount = useMemo(
+    () => entries.filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt')).length,
+    [entries]
+  );
 
   const availableCategories = useMemo(() => {
     const set = new Set<string>();
@@ -465,7 +486,24 @@ export function useEntries() {
       deletedEntryIdsRef.current.delete(entry.id);
       dirtyEntryIdsRef.current.add(entry.id);
       const updated = bumpEntryUpdatedAt(entry);
-      commitEntries(entriesRef.current.map((e) => (e.id === entry.id ? updated : e)));
+      let next = entriesRef.current.map((e) => (e.id === entry.id ? updated : e));
+      if (updated.parentInstallmentId) {
+        // Editar uma parcela propaga nome/valor/tipo/categoria/tag para as irmãs,
+        // preservando data/status/nº de cada uma (consistente com o fluxo de cartão).
+        next = propagateEntryInstallmentUpdate(next, updated);
+        const siblingIds = next
+          .filter(
+            (e) => e.parentInstallmentId === updated.parentInstallmentId && e.id !== updated.id
+          )
+          .map((e) => e.id);
+        for (const sid of siblingIds) {
+          dirtyEntryIdsRef.current.add(sid);
+        }
+        if (siblingIds.length > 0) {
+          next = next.map((e) => (siblingIds.includes(e.id) ? bumpEntryUpdatedAt(e) : e));
+        }
+      }
+      commitEntries(next);
       return Promise.resolve();
     }
     const stamped = bumpEntryUpdatedAt(entry);

@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { generateInstallmentEntries, propagateInstallmentUpdate } from './installments';
-import type { CardExpense } from '../types';
+import {
+  generateInstallmentEntries,
+  propagateInstallmentUpdate,
+  propagateEntryInstallmentUpdate,
+} from './installments';
+import type { CardExpense, Entry } from '../types';
 
 describe('generateInstallmentEntries', () => {
   it('gera N parcelas com datas mensais, grupo compartilhado e numeração', () => {
@@ -106,6 +110,95 @@ describe('propagateInstallmentUpdate', () => {
     const single = expense('x', undefined, 10);
     const other = expense('y', undefined, 20);
     const result = propagateInstallmentUpdate([single, other], { ...single, amount: 11 });
+
+    expect(result).toHaveLength(2);
+    expect(result.find((e) => e.id === 'x')?.amount).toBe(11);
+    expect(result.find((e) => e.id === 'y')?.amount).toBe(20);
+  });
+});
+
+function entry(
+  id: string,
+  group: string | undefined,
+  amount: number,
+  installmentNumber?: number,
+  dueDate = '2026-01-10'
+): Entry {
+  return {
+    id,
+    name: 'Item',
+    amount,
+    dueDate,
+    isPaid: false,
+    type: 'debt',
+    createdAt: 1,
+    category: 'Alimentação',
+    tag: 'tag-orig',
+    installmentsCount: group ? 3 : undefined,
+    installmentNumber,
+    parentInstallmentId: group,
+  };
+}
+
+describe('propagateEntryInstallmentUpdate', () => {
+  it('propaga campos compartilhados às irmãs preservando vencimento/status/nº', () => {
+    const g = 'group-1';
+    const list = [
+      entry('a', g, 100, 1, '2026-01-10'),
+      entry('b', g, 100, 2, '2026-02-10'),
+      entry('c', g, 100, 3, '2026-03-10'),
+    ];
+
+    const updated: Entry = {
+      ...entry('b', g, 100, 2, '2026-02-10'),
+      name: 'Nova descrição',
+      amount: 150,
+      type: 'cash',
+      tag: 'tag-novo',
+      isPaid: true,
+    };
+    const result = propagateEntryInstallmentUpdate(list, updated);
+
+    expect(result.find((e) => e.id === 'a')).toMatchObject({
+      name: 'Nova descrição',
+      amount: 150,
+      type: 'cash',
+      tag: 'tag-novo',
+      dueDate: '2026-01-10',
+      isPaid: false,
+      installmentNumber: 1,
+    });
+    expect(result.find((e) => e.id === 'b')).toMatchObject({
+      name: 'Nova descrição',
+      amount: 150,
+      type: 'cash',
+      isPaid: true,
+    });
+    expect(result.find((e) => e.id === 'c')).toMatchObject({
+      name: 'Nova descrição',
+      amount: 150,
+      type: 'cash',
+      dueDate: '2026-03-10',
+    });
+  });
+
+  it('não altera lançamentos fora do grupo', () => {
+    const g = 'group-1';
+    const outside = entry('d', undefined, 999);
+    const result = propagateEntryInstallmentUpdate([entry('a', g, 100, 1), outside], {
+      ...entry('a', g, 100, 1),
+      name: 'Novo',
+      amount: 111,
+    });
+
+    expect(result.find((e) => e.id === 'd')?.amount).toBe(999);
+    expect(result.find((e) => e.id === 'd')?.name).toBe('Item');
+  });
+
+  it('sem parentInstallmentId, atualiza apenas o próprio registro', () => {
+    const single = entry('x', undefined, 10);
+    const other = entry('y', undefined, 20);
+    const result = propagateEntryInstallmentUpdate([single, other], { ...single, amount: 11 });
 
     expect(result).toHaveLength(2);
     expect(result.find((e) => e.id === 'x')?.amount).toBe(11);

@@ -56,6 +56,32 @@ export function generateInstallmentEntries(input: BaseInstallmentInput): Entry[]
  * compartilhados (nome, valor, cartão, nº de parcelas, categoria e tag) são
  * propagados para as parcelas irmãs — preservando data/fatura/nº de cada uma.
  */
+/**
+ * Aplica a edição de uma parcela de lançamento (dívida/entrada) à lista inteira:
+ * a parcela editada é substituída como veio e, se pertencer a um grupo parcelado
+ * (parentInstallmentId), os campos compartilhados (nome, valor, tipo, nº de
+ * parcelas, categoria e tag) são propagados para as parcelas irmãs — preservando
+ * data/vencimento/status de pagamento/nº da parcela de cada uma.
+ */
+export function propagateEntryInstallmentUpdate(list: Entry[], updated: Entry): Entry[] {
+  const groupId = updated.parentInstallmentId;
+  return list.map((e) => {
+    if (e.id === updated.id) return updated;
+    if (groupId && e.parentInstallmentId === groupId) {
+      return {
+        ...e,
+        name: updated.name,
+        amount: updated.amount,
+        type: updated.type,
+        installmentsCount: updated.installmentsCount,
+        category: updated.category,
+        tag: updated.tag,
+      };
+    }
+    return e;
+  });
+}
+
 export function propagateInstallmentUpdate(
   list: CardExpense[],
   updated: CardExpense

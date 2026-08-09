@@ -77,7 +77,12 @@ export default function App() {
   const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
 
   const { cards, upsertCard, deleteCard } = useCreditCards();
-  const { expenses: cardExpenses, addExpense, updateExpense } = useCardExpenses();
+  const {
+    expenses: cardExpenses,
+    addExpense,
+    updateExpense,
+    deleteExpensesByCard,
+  } = useCardExpenses();
 
   const {
     entries,
@@ -302,13 +307,15 @@ export default function App() {
           }
           onNewEntry={handleNewEntryWithStep}
           onOpenChangePassword={() => setShowChangePasswordModal(true)}
-          onSaveEntriesLocal={entriesSyncAvailable ? undefined : handleSaveEntriesLocal}
+          onSaveEntriesLocal={handleSaveEntriesLocal}
           onSaveEntriesToSupabase={entriesSyncAvailable ? handleSaveEntriesToSupabase : undefined}
           onPullEntriesFromSupabase={
             entriesSyncAvailable ? handlePullEntriesFromSupabase : undefined
           }
           isSyncingEntries={isSyncing}
-          showEntriesCloudSync={entriesSyncAvailable}
+          // Com nuvem configurada mas fora do ar (banner offline ativo), o app
+          // volta ao modo local: badge "Local" + botão "Salvar" no dispositivo.
+          showEntriesCloudSync={entriesSyncAvailable && !showOfflineBanner}
         >
           <CashFlowSection
             totalEntradasLancadasMes={totalEntradasLancadasMes}
@@ -341,7 +348,7 @@ export default function App() {
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             filteredEntries={filteredEntries}
-            entriesCount={entries.length}
+            entriesCount={entriesDoMes.length}
             availableCategories={availableCategories}
             viewMode={viewMode}
             setViewMode={setViewMode}
@@ -579,6 +586,9 @@ export default function App() {
           onConfirm={() => {
             if (cardToDelete) {
               deleteCard(cardToDelete.id);
+              // O modal avisa "excluir cartão e todos os seus gastos" — remove
+              // os gastos também (local e servidor), evitando órfãos.
+              deleteExpensesByCard(cardToDelete.id);
               setCardToDelete(null);
               showToast('Cartão excluído');
             }

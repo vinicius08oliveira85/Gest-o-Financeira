@@ -58,10 +58,12 @@ export function MetaMovementModal({
       setAmountError('Informe um valor maior que zero.');
       return;
     }
+    // Não fecha aqui: o pai (App) controla o fechamento após o onConfirm terminar,
+    // então o estado isLoading fica visível (botão com spinner) durante a gravação.
+    // Em erro, o modal permanece aberto para o usuário tentar de novo.
     await Promise.resolve(
       onConfirm(value, date || todayLocalISO(), isPaid, note.trim() || undefined)
     );
-    onClose();
   };
 
   const label = type === 'deposit' ? 'Depositar na meta' : 'Sacar da meta';

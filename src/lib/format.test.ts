@@ -79,6 +79,31 @@ describe('exportEntriesToCSV', () => {
     vi.restoreAllMocks();
   });
 
+  it('prefixa BOM UTF-8 para o Excel ler acentos', () => {
+    let capturedParts: BlobPart[] = [];
+    const RealBlob = global.Blob;
+    vi.spyOn(global, 'Blob').mockImplementation((parts?: BlobPart[], opts?: BlobPropertyBag) => {
+      capturedParts = parts ? [...parts] : [];
+      return new RealBlob(parts ?? [], opts);
+    });
+    const entry: Entry = {
+      id: '1',
+      name: 'Saída',
+      amount: 10,
+      dueDate: '2025-03-10',
+      isPaid: false,
+      type: 'debt',
+      createdAt: Date.now(),
+    };
+
+    exportEntriesToCSV([entry]);
+
+    const csvContent = String(capturedParts[0]);
+    expect(csvContent.startsWith('\uFEFF')).toBe(true);
+
+    vi.restoreAllMocks();
+  });
+
   it('sanitiza células que começam com caracteres de fórmula', () => {
     let capturedParts: BlobPart[] = [];
     const RealBlob = global.Blob;

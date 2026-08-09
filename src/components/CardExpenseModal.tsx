@@ -43,7 +43,12 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
 
   useEffect(() => {
     setName(expense?.name ?? '');
-    setAmount(expense ? formatCurrencyForInput(expense.amount) : '');
+    // Na edição o campo mostra o VALOR TOTAL da compra (o salvar divide pela
+    // quantidade de parcelas). Pré-preencher com o valor da parcela faria um
+    // parcelado de 3x R$100 virar R$33,33 ao salvar sem mexer no campo.
+    setAmount(
+      expense ? formatCurrencyForInput(expense.amount * (expense.installmentsCount ?? 1)) : ''
+    );
     setDate(expense?.date ?? today);
     setCategory(expense?.category ?? '');
     setTag(expense?.tag ?? '');

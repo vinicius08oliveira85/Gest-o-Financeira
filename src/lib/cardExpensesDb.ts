@@ -104,3 +104,10 @@ export async function deleteExpense(id: string): Promise<void> {
   const { error } = await supabase.from('card_expenses').delete().eq('id', id);
   if (error) throw error;
 }
+
+/** Remove todos os gastos de um cartão (usado ao excluir o cartão). */
+export async function deleteExpensesByCard(cardId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('card_expenses').delete().eq('card_id', cardId);
+  if (error) throw error;
+}

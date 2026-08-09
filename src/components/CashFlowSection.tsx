@@ -174,6 +174,24 @@ export function CashFlowSection({
     return { entradas, saidas, saldo };
   }, [entries, currentMonth, currentYear]);
 
+  // Gasto no cartão do mês (fatura) e do mês anterior, para o comparativo do Resumo
+  const cardSpendingMes = useMemo(
+    () =>
+      cardExpenses
+        .filter((e) => e.billingMonth === currentMonth && e.billingYear === currentYear)
+        .reduce((sum, e) => sum + e.amount, 0),
+    [cardExpenses, currentMonth, currentYear]
+  );
+
+  const prevCardSpending = useMemo(() => {
+    const prevDate = new Date(currentYear, currentMonth - 1, 1);
+    return cardExpenses
+      .filter(
+        (e) => e.billingMonth === prevDate.getMonth() && e.billingYear === prevDate.getFullYear()
+      )
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [cardExpenses, currentMonth, currentYear]);
+
   return (
     <div className="app-container page-stack">
       <section className="section-stack">
@@ -244,6 +262,8 @@ export function CashFlowSection({
               prevEntradasLancadas={prevMonthTotals.entradas}
               prevSaidasLancadas={prevMonthTotals.saidas}
               prevSaldo={prevMonthTotals.saldo}
+              cardSpending={cardSpendingMes}
+              prevCardSpending={prevCardSpending}
             />
             <p className="info-bar">
               O saldo considera apenas lançamentos{' '}

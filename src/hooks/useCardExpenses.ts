@@ -8,6 +8,7 @@ import {
   insertExpense as insertExpenseDb,
   updateExpense as updateExpenseDb,
   deleteExpense as deleteExpenseDb,
+  deleteExpensesByCard as deleteExpensesByCardDb,
 } from '../lib/cardExpensesDb';
 import { randomUUID } from '../lib/uuid';
 import { propagateInstallmentUpdate } from '../lib/installments';
@@ -140,6 +141,21 @@ export function useCardExpenses() {
     [expenses, useSupabaseSync]
   );
 
+  /** Remove todos os gastos de um cartão (ao excluir o cartão), local e servidor. */
+  const deleteExpensesByCard = useCallback(
+    (cardId: string) => {
+      const previous = expenses;
+      setExpenses((e) => e.filter((x) => x.cardId !== cardId));
+      if (useSupabaseSync) {
+        deleteExpensesByCardDb(cardId).catch((err) => {
+          logError('Failed to delete card expenses', err);
+          setExpenses(previous);
+        });
+      }
+    },
+    [expenses, useSupabaseSync]
+  );
+
   const getExpensesByCard = useCallback(
     (cardId: string, month: number, year: number): CardExpense[] => {
       return expenses.filter(
@@ -177,6 +193,7 @@ export function useCardExpenses() {
     addExpense,
     updateExpense,
     deleteExpense,
+    deleteExpensesByCard,
     getExpensesByCard,
     getInvoiceTotal,
     getAllExpensesForCard,

@@ -23,6 +23,9 @@ type DashboardCardsProps = {
   prevEntradasLancadas?: number;
   prevSaidasLancadas?: number;
   prevSaldo?: number;
+  /** Gasto no cartão do mês (fatura) e do mês anterior */
+  cardSpending?: number;
+  prevCardSpending?: number;
 };
 
 export function DashboardCards({
@@ -41,6 +44,8 @@ export function DashboardCards({
   prevEntradasLancadas,
   prevSaidasLancadas,
   prevSaldo,
+  cardSpending,
+  prevCardSpending,
 }: DashboardCardsProps) {
   const suffix = periodLabel ? ` ${periodLabel}` : '';
   return (
@@ -206,6 +211,18 @@ export function DashboardCards({
                 {formatCurrency(saldo + totalLimiteDisponivel)}
               </span>
             </div>
+            {cardSpending !== undefined && prevCardSpending !== undefined && (
+              <div className="flex items-center justify-between text-3xs">
+                <span className="text-slate-400 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
+                  Gastos no cartão (mês)
+                </span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-white">
+                  {formatCurrency(cardSpending)}
+                  <DeltaBadge current={cardSpending} previous={prevCardSpending} invert light />
+                </span>
+              </div>
+            )}
           </div>
         )}
       </motion.div>

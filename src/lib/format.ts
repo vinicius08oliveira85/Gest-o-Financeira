@@ -85,7 +85,8 @@ export function exportEntriesToCSV(entries: Entry[], options?: ExportCSVOptions)
     headers.map(escapeCsvCell).join(','),
     ...rows.map((r) => r.map(escapeCsvCell).join(',')),
   ];
-  const csvContent = csvLines.join('\n');
+  // BOM UTF-8 (\uFEFF) para o Excel abrir os acentos ("Saída"/"Fatura") corretamente.
+  const csvContent = '\uFEFF' + csvLines.join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
