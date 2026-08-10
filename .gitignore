@@ -26,3 +26,6 @@ ntuser.*
 # Playwright E2E
 playwright-report/
 test-results/
+
+# Projeto Android gerado pelo Capacitor (a CI regenera com `cap add android`)
+/android/
