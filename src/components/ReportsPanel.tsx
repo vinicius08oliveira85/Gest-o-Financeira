@@ -1,6 +1,8 @@
 ﻿import type { CardExpense, CreditCard, Entry } from '../types';
 import { formatCurrency, parseDateLocal } from '../lib/format';
+import { buildMonthlyTrend } from '../lib/monthlyTrend';
 import { DeltaBadge } from './DeltaBadge';
+import { MonthlyTrendChart } from './MonthlyTrendChart';
 
 type ReportsPanelProps = {
   entries: Entry[];
@@ -94,6 +96,8 @@ export function ReportsPanel({
   const cycleStart = new Date(year, month, 1);
   const cycleEnd = new Date(year, month + 1, 0);
   const cycleLabel = `Ciclo: ${formatCycleDate(cycleStart)} a ${formatCycleDate(cycleEnd)}`;
+
+  const trend = buildMonthlyTrend(entries, month, year, 6, cardExpenses, cards);
 
   return (
     <section className="section-stack">
@@ -255,6 +259,18 @@ export function ReportsPanel({
             </div>
           )}
         </div>
+      </div>
+
+      <div className="neu-surface rounded-2xl card-pad section-stack">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Evolução mensal
+          </h3>
+          <p className="text-3xs text-slate-400 dark:text-slate-500">
+            Últimos {trend.length} meses (entradas e saídas lançadas)
+          </p>
+        </div>
+        <MonthlyTrendChart data={trend} />
       </div>
 
       {cards.length > 0 && (
