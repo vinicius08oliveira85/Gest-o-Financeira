@@ -37,7 +37,11 @@ export function todayLocalISO(): string {
  */
 export function escapeCsvCell(value: string | number): string {
   const str = String(value);
-  const sanitized = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  const startsWithFormulaChar = /^[=+@\t\r]/.test(str);
+  // Sinal de menos só vira fórmula quando não é um número negativo legítimo
+  // (ex.: '-123.45' fica como número no Excel; '-2+3' é sanitizado).
+  const startsWithDashNotNumber = /^-/.test(str) && !/^-?\d+(\.\d+)?$/.test(str);
+  const sanitized = startsWithFormulaChar || startsWithDashNotNumber ? `'${str}` : str;
   if (sanitized.includes('"') || sanitized.includes(',') || sanitized.includes('\n')) {
     return `"${sanitized.replace(/"/g, '""')}"`;
   }
@@ -48,6 +52,23 @@ export type ExportCSVOptions = {
   /** Sufixo do nome do arquivo (ex: '_mes_atual') */
   filenameSuffix?: string;
 };
+
+/**
+ * Dispara o download de um conteúdo CSV (espera BOM UTF-8 já incluído).
+ * Helper compartilhado entre a exportação de lançamentos, evolução e relatórios.
+ */
+export function downloadCsv(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 export function exportEntriesToCSV(entries: Entry[], options?: ExportCSVOptions): void {
   if (entries.length === 0) return;
@@ -87,18 +108,6 @@ export function exportEntriesToCSV(entries: Entry[], options?: ExportCSVOptions)
   ];
   // BOM UTF-8 (\uFEFF) para o Excel abrir os acentos ("Saída"/"Fatura") corretamente.
   const csvContent = '\uFEFF' + csvLines.join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
   const suffix = options?.filenameSuffix ?? '';
-  link.setAttribute(
-    'download',
-    `lancamentos_${new Date().toISOString().split('T')[0]}${suffix}.csv`
-  );
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadCsv(csvContent, `lancamentos_${new Date().toISOString().split('T')[0]}${suffix}.csv`);
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { formatCurrency, formatDate, exportEntriesToCSV } from './format';
+import { formatCurrency, formatDate, escapeCsvCell, exportEntriesToCSV } from './format';
 import type { Entry } from '../types';
 
 describe('formatCurrency', () => {
@@ -29,6 +29,26 @@ describe('formatDate', () => {
 
   it('formata data com um dígito no mês/dia quando aplicável', () => {
     expect(formatDate('2025-01-05')).toBe('05/01/2025');
+  });
+});
+
+describe('escapeCsvCell', () => {
+  it('mantém números negativos como números (não prefixa aspas)', () => {
+    expect(escapeCsvCell(-500)).toBe('-500');
+    expect(escapeCsvCell('-123.45')).toBe('-123.45');
+  });
+
+  it('sanitiza valores que iniciam com - mas não são números (possível fórmula)', () => {
+    expect(escapeCsvCell('-2+3')).toBe("'-2+3");
+    expect(escapeCsvCell('-SOMA(A1)')).toBe("'-SOMA(A1)");
+  });
+
+  it('sanitiza =, +, @, tab e CR no início', () => {
+    expect(escapeCsvCell('=SUM(A1:A2)')).toBe("'=SUM(A1:A2)");
+    expect(escapeCsvCell('+CAT')).toBe("'+CAT");
+    expect(escapeCsvCell('@user')).toBe("'@user");
+    expect(escapeCsvCell('\tTAB')).toBe("'\tTAB");
+    expect(escapeCsvCell('\rCR')).toBe("'\rCR");
   });
 });
 

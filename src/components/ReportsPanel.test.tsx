@@ -47,10 +47,33 @@ describe('ReportsPanel', () => {
 
     render(<ReportsPanel entries={[]} month={2} year={2025} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /exportar/i }));
+    // Nome exato: o cabeçalho ganhou um segundo botão "Exportar" (relatórios completos)
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }));
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     const blob = createObjectURL.mock.calls[0][0] as Blob;
     expect(blob.type).toBe('text/csv;charset=utf-8;');
+  });
+
+  it('exporta o relatório completo (KPIs + categorias) em CSV', () => {
+    let capturedParts: BlobPart[] = [];
+    const RealBlob = global.Blob;
+    vi.spyOn(global, 'Blob').mockImplementation((parts?: BlobPart[], opts?: BlobPropertyBag) => {
+      capturedParts = parts ? [...parts] : [];
+      return new RealBlob(parts ?? [], opts);
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    render(<ReportsPanel entries={[]} month={2} year={2025} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /relatórios completos/i }));
+
+    expect(capturedParts.length).toBeGreaterThan(0);
+    const content = String(capturedParts[0]);
+    expect(content.startsWith('\uFEFF')).toBe(true);
+    expect(content).toContain('Relatório de março de 2025');
+    expect(content).toContain('Métrica,Valor,Mês anterior,Variação %');
+    expect(content).toContain('Categorias (saídas)');
+    expect(content).toContain('Categorias (entradas)');
   });
 });

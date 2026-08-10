@@ -1,8 +1,9 @@
 ﻿import { useState } from 'react';
 import { Download } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry } from '../types';
-import { formatCurrency, parseDateLocal } from '../lib/format';
+import { downloadCsv, formatCurrency, parseDateLocal } from '../lib/format';
 import { buildMonthlyTrend, buildTrendCsv } from '../lib/monthlyTrend';
+import { buildReportsCsv } from '../lib/reports';
 import { chipClass } from '../lib/neu';
 import { DeltaBadge } from './DeltaBadge';
 import { MonthlyTrendChart } from './MonthlyTrendChart';
@@ -118,29 +119,64 @@ export function ReportsPanel({
 
   const trend = buildMonthlyTrend(entries, month, year, trendMonths, cardExpenses, cards);
 
+  // Faturas do mês por cartão (reutilizada na seção visual e no CSV do relatório)
+  const cardTotals = cards.map((card) => ({
+    id: card.id,
+    name: card.name,
+    total: cardExpenses
+      .filter((e) => e.cardId === card.id && e.billingMonth === month && e.billingYear === year)
+      .reduce((sum, e) => sum + e.amount, 0),
+    limit: card.limitAmount,
+  }));
+
   const handleExportTrend = () => {
-    const blob = new Blob([buildTrendCsv(trend)], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `evolucao-mensal_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadCsv(
+      buildTrendCsv(trend),
+      `evolucao-mensal_${new Date().toISOString().split('T')[0]}.csv`
+    );
+  };
+
+  const handleExportReports = () => {
+    downloadCsv(
+      buildReportsCsv({
+        monthLabel,
+        totals: {
+          entradas: totalByType.entradas,
+          saidas: totalByType.saidas,
+          saldo: saldoDoMes,
+          prevEntradas: prevTotalEntradas,
+          prevSaidas: prevTotalSaidas,
+          prevSaldo,
+        },
+        categories: { saidas: totalByCategorySaidas, entradas: totalByCategoryEntradas },
+        cards: cardTotals,
+      }),
+      `relatorios_${new Date().toISOString().split('T')[0]}.csv`
+    );
   };
 
   return (
     <section className="section-stack">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
             Relatórios de {monthLabel}
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Visão rápida de entradas, saídas e categorias.
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportReports}
+              aria-label="Exportar relatórios completos em CSV"
+              className="neu-btn flex items-center gap-1 px-2.5 py-1 rounded-lg text-2xs font-medium text-slate-600 dark:text-slate-300 hover:opacity-75 active:scale-[0.98] transition-all"
+              title="Exportar relatórios completos (KPIs, categorias e faturas) em CSV"
+            >
+              <Download size={14} />
+              Exportar
+            </button>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Visão rápida de entradas, saídas e categorias.
+            </p>
+          </div>
         </div>
         <p className="neu-inset-sm text-xs font-medium text-slate-600 dark:text-slate-300 rounded-lg px-3 py-2 w-fit">
           {cycleLabel}
@@ -339,13 +375,8 @@ export function ReportsPanel({
             Faturas do mês
           </h3>
           <div className="space-y-3">
-            {cards.map((card) => {
-              const total = cardExpenses
-                .filter(
-                  (e) => e.cardId === card.id && e.billingMonth === month && e.billingYear === year
-                )
-                .reduce((sum, e) => sum + e.amount, 0);
-              const usageRatio = card.limitAmount > 0 ? total / card.limitAmount : 0;
+            {cardTotals.map((card) => {
+              const usageRatio = card.limit > 0 ? card.total / card.limit : 0;
               const progressColor =
                 usageRatio >= 0.9
                   ? 'bg-red-500'
@@ -357,8 +388,8 @@ export function ReportsPanel({
                   <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
                     <span className="font-medium">{card.name}</span>
                     <span>
-                      {formatCurrency(total)}{' '}
-                      <span className="text-slate-400">/ {formatCurrency(card.limitAmount)}</span>
+                      {formatCurrency(card.total)}{' '}
+                      <span className="text-slate-400">/ {formatCurrency(card.limit)}</span>
                     </span>
                   </div>
                   <div className="h-1.5 neu-progress-track">
