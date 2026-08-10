@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen neu-bg flex items-center justify-center p-[var(--page-px)]">
+        <div className="min-h-dvh neu-bg flex items-center justify-center p-[var(--page-px)]">
           <div className="w-full max-w-[min(100%,28rem)] neu-surface-lg rounded-2xl card-pad text-center">
             <h1 className="text-xl font-semibold text-slate-900 mb-2">Algo deu errado</h1>
             <p className="text-slate-600 text-sm mb-6">

@@ -6,7 +6,7 @@ type FloatingActionButtonProps = {
 
 export function FloatingActionButton({ onClick }: FloatingActionButtonProps) {
   return (
-    <div className="fixed bottom-[var(--fab-offset)] right-[var(--fab-offset)] md:hidden">
+    <div className="fixed bottom-[calc(var(--fab-offset)+env(safe-area-inset-bottom))] right-[var(--fab-offset)] md:hidden">
       <button
         type="button"
         onClick={onClick}

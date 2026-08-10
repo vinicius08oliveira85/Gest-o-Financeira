@@ -63,14 +63,14 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
 
   if (checking) {
     return (
-      <div className="min-h-screen neu-bg flex items-center justify-center p-4">
+      <div className="min-h-dvh neu-bg flex items-center justify-center p-4">
         <div className="text-slate-500 dark:text-slate-400">Carregando...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen neu-bg flex items-center justify-center p-[var(--page-px)]">
+    <div className="min-h-dvh neu-bg flex items-center justify-center p-[var(--page-px)]">
       <div className="w-full max-w-[min(100%,28rem)]">
         <div className="neu-surface-lg rounded-2xl card-pad">
           <div className="flex justify-center mb-6">

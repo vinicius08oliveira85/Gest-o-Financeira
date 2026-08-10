@@ -48,8 +48,8 @@ export function MainLayout({
   children,
 }: MainLayoutProps) {
   return (
-    <div className="min-h-screen neu-bg text-slate-800 dark:text-slate-100 font-sans selection:bg-emerald-100 dark:selection:bg-emerald-900/40 flex flex-col">
-      <header className="sticky top-0 z-40 neu-header">
+    <div className="min-h-dvh neu-bg text-slate-800 dark:text-slate-100 font-sans selection:bg-emerald-100 dark:selection:bg-emerald-900/40 flex flex-col">
+      <header className="sticky top-[env(safe-area-inset-top)] z-40 neu-header">
         <div className="app-container header-shell">
           <Header
             onExportCSV={onExportCSV}

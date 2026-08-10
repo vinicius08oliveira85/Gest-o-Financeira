@@ -32,7 +32,7 @@ export function Toast({ message, action, onDismiss, durationMs = 5000 }: ToastPr
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8, scale: 0.97 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="neu-toast fixed bottom-[var(--fab-offset)] left-0 right-0 mx-auto w-fit max-w-[min(100%,24rem)] z-[100] flex items-center gap-[var(--inline-gap)] px-[var(--card-p)] py-[var(--inline-gap)] rounded-xl text-slate-800 dark:text-slate-100 text-sm font-medium"
+          className="neu-toast fixed bottom-[calc(var(--fab-offset)+env(safe-area-inset-bottom))] left-0 right-0 mx-auto w-fit max-w-[min(100%,24rem)] z-[100] flex items-center gap-[var(--inline-gap)] px-[var(--card-p)] py-[var(--inline-gap)] rounded-xl text-slate-800 dark:text-slate-100 text-sm font-medium"
         >
           <span>{message}</span>
           {action && (

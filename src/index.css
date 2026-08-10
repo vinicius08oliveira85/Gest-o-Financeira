@@ -110,6 +110,11 @@
   body {
     background-color: var(--neu-bg);
     color: #1e293b;
+    /* Android 15+ (edge-to-edge do Capacitor) e iPhone com notch: mantém o
+       conteúdo fora da barra de status e da barra de navegação. No desktop e
+       no navegador essas variáveis valem 0, então nada muda visualmente. */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .dark body {
