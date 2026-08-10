@@ -1,8 +1,12 @@
-﻿import type { CardExpense, CreditCard, Entry } from '../types';
+﻿import { useState } from 'react';
+import { Download } from 'lucide-react';
+import type { CardExpense, CreditCard, Entry } from '../types';
 import { formatCurrency, parseDateLocal } from '../lib/format';
-import { buildMonthlyTrend } from '../lib/monthlyTrend';
+import { buildMonthlyTrend, buildTrendCsv } from '../lib/monthlyTrend';
+import { chipClass } from '../lib/neu';
 import { DeltaBadge } from './DeltaBadge';
 import { MonthlyTrendChart } from './MonthlyTrendChart';
+import { TREND_MONTHS_KEY } from '../constants';
 
 type ReportsPanelProps = {
   entries: Entry[];
@@ -14,6 +18,14 @@ type ReportsPanelProps = {
 
 function formatCycleDate(d: Date): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+const TREND_MONTHS_OPTIONS = [3, 6, 12] as const;
+type TrendMonths = (typeof TREND_MONTHS_OPTIONS)[number];
+
+function readTrendMonths(): TrendMonths {
+  const value = Number(localStorage.getItem(TREND_MONTHS_KEY));
+  return (TREND_MONTHS_OPTIONS as readonly number[]).includes(value) ? (value as TrendMonths) : 6;
 }
 
 export function ReportsPanel({
@@ -97,7 +109,27 @@ export function ReportsPanel({
   const cycleEnd = new Date(year, month + 1, 0);
   const cycleLabel = `Ciclo: ${formatCycleDate(cycleStart)} a ${formatCycleDate(cycleEnd)}`;
 
-  const trend = buildMonthlyTrend(entries, month, year, 6, cardExpenses, cards);
+  const [trendMonths, setTrendMonths] = useState<TrendMonths>(readTrendMonths);
+
+  const handleTrendMonths = (m: TrendMonths) => {
+    setTrendMonths(m);
+    localStorage.setItem(TREND_MONTHS_KEY, String(m));
+  };
+
+  const trend = buildMonthlyTrend(entries, month, year, trendMonths, cardExpenses, cards);
+
+  const handleExportTrend = () => {
+    const blob = new Blob([buildTrendCsv(trend)], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `evolucao-mensal_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <section className="section-stack">
@@ -262,13 +294,41 @@ export function ReportsPanel({
       </div>
 
       <div className="neu-surface rounded-2xl card-pad section-stack">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Evolução mensal
           </h3>
-          <p className="text-3xs text-slate-400 dark:text-slate-500">
-            Últimos {trend.length} meses (entradas e saídas lançadas)
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="neu-inset flex p-1 rounded-full"
+              role="group"
+              aria-label="Período da evolução"
+            >
+              {TREND_MONTHS_OPTIONS.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => handleTrendMonths(m)}
+                  aria-pressed={trendMonths === m}
+                  className={chipClass(trendMonths === m)}
+                >
+                  {m}m
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={handleExportTrend}
+              className="neu-btn flex items-center gap-1 px-2.5 py-1 rounded-lg text-2xs font-medium text-slate-600 dark:text-slate-300 hover:opacity-75 active:scale-[0.98] transition-all"
+              title="Exportar evolução em CSV"
+            >
+              <Download size={14} />
+              Exportar
+            </button>
+            <p className="text-3xs text-slate-400 dark:text-slate-500">
+              Últimos {trend.length} meses (entradas e saídas lançadas)
+            </p>
+          </div>
         </div>
         <MonthlyTrendChart data={trend} />
       </div>

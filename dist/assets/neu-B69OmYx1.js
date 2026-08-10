@@ -1,0 +1,1 @@
+function e(t){return`whitespace-nowrap px-2.5 py-1 rounded-full text-2xs font-medium transition-all ${t?"neu-filter-active":"text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"}`}export{e as c};

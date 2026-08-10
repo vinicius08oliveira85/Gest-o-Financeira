@@ -35,7 +35,7 @@ export function todayLocalISO(): string {
  * (Excel/LibreOffice). Células que começam com =, +, -, @, tab ou CR recebem
  * um apóstrofo na frente para não serem interpretadas como fórmula.
  */
-function escapeCsvCell(value: string | number): string {
+export function escapeCsvCell(value: string | number): string {
   const str = String(value);
   const sanitized = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
   if (sanitized.includes('"') || sanitized.includes(',') || sanitized.includes('\n')) {

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
+import { MotionConfig } from 'motion/react';
 import { useEntries } from './hooks/useEntries';
 import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
@@ -290,121 +291,123 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <PeriodProvider
-        currentMonth={currentMonth}
-        currentYear={currentYear}
-        goToPreviousMonth={goToPreviousMonth}
-        goToNextMonth={goToNextMonth}
-        goToCurrentMonth={goToCurrentMonth}
-      >
-        <MainLayout
-          isLoading={isLoading}
-          isMigrating={isMigrating}
-          showOfflineBanner={showOfflineBanner}
-          onDismissOffline={() => setShowOfflineBanner(false)}
-          saveError={saveError}
-          onDismissSaveError={() => setSaveError(null)}
-          onRetryOffline={refetchEntries}
-          onRetrySaveError={() => {
-            if (lastSyncAttemptRef.current === 'push') {
-              void handleSaveEntriesToSupabase();
-            } else if (lastSyncAttemptRef.current === 'pull') {
-              void handlePullEntriesFromSupabase();
-            } else {
-              setSaveError(null);
-            }
-          }}
-          onExportCSV={() => exportEntriesToCSV(entries)}
-          onExportCSVCurrentMonth={() =>
-            exportEntriesToCSV(entriesDoMes, { filenameSuffix: '_mes_atual' })
-          }
-          onNewEntry={handleNewEntryWithStep}
-          onOpenChangePassword={() => setShowChangePasswordModal(true)}
-          onSaveEntriesLocal={handleSaveEntriesLocal}
-          onSaveEntriesToSupabase={entriesSyncAvailable ? handleSaveEntriesToSupabase : undefined}
-          onPullEntriesFromSupabase={
-            entriesSyncAvailable ? handlePullEntriesFromSupabase : undefined
-          }
-          isSyncingEntries={isSyncing}
-          // Com nuvem configurada mas fora do ar (falha real), o app fica no modo
-          // local: badge "Local" + botão "Salvar" no dispositivo. Dispensar o banner
-          // NÃO religa a nuvem — só um retry bem-sucedido (isCloudUnavailable=false).
-          showEntriesCloudSync={entriesSyncAvailable && !isCloudUnavailable}
+      <MotionConfig reducedMotion="user">
+        <PeriodProvider
+          currentMonth={currentMonth}
+          currentYear={currentYear}
+          goToPreviousMonth={goToPreviousMonth}
+          goToNextMonth={goToNextMonth}
+          goToCurrentMonth={goToCurrentMonth}
         >
-          <CashFlowSection
-            totalEntradasLancadasMes={totalEntradasLancadasMes}
-            totalSaidasLancadasMes={totalSaidasLancadasMes}
-            saldoMes={saldoMes}
-            saldoProjetadoMes={totalEntradasLancadasMes - totalSaidasLancadasMes}
-            entradasCountMes={entradasCountMes}
-            saidasCountMes={saidasCountMes}
-            totalEntradasFinalizadasMes={totalEntradasFinalizadasMes}
-            totalEntradasPendentesMes={totalEntradasPendentesMes}
-            totalSaidasFinalizadasMes={totalSaidasFinalizadasMes}
-            totalSaidasPendentesMes={totalSaidasPendentesMes}
-            goals={goals}
-            getMetaBalanceForGoal={getMetaBalanceForGoal}
-            isLoadingGoals={isLoadingGoals}
-            onOpenGoalModal={(goal) => {
-              setGoalToEdit(goal ?? null);
-              setIsGoalModalOpen(true);
-            }}
-            onDepositToGoal={(goal) => setMetaMovement({ goal, type: 'deposit' })}
-            onWithdrawFromGoal={(goal) => setMetaMovement({ goal, type: 'withdraw' })}
-            filter={filter}
-            setFilter={setFilter}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            sortOrder={sortOrder}
-            setSortOrder={setSortOrder}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            filteredEntries={filteredEntries}
-            entriesCount={entriesDoMes.length}
-            availableCategories={availableCategories}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            entries={entries}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            alerts={visibleAlerts}
-            onDismissAlert={handleDismissAlert}
-            onAlertAction={handleAlertAction}
-            showNewEntryHint={showNewEntryHint}
-            showMonthNavHint={showMonthNavHint}
-            showReportsHint={showReportsHint}
-            onMonthNav={() => completeStep('stepMonthNav')}
-            skip={skip}
-            onTogglePaid={togglePaid}
-            onEdit={handleOpenForm}
-            onDeleteRequest={handleDeleteRequest}
-            cards={cards}
-            cardExpenses={cardExpenses}
-            onNewCard={() => {
-              setCardToEdit(null);
-              setCardModalOpen(true);
-            }}
-            onEditCard={(card) => {
-              setCardToEdit(card);
-              setCardModalOpen(true);
-            }}
-            onAddExpense={(card) => {
-              setExpenseToEdit(null);
-              setExpenseModalCard(card);
-            }}
-            onEditExpense={(expense) => {
-              const card = cards.find((c) => c.id === expense.cardId);
-              if (card) {
-                setExpenseToEdit(expense);
-                setExpenseModalCard(card);
+          <MainLayout
+            isLoading={isLoading}
+            isMigrating={isMigrating}
+            showOfflineBanner={showOfflineBanner}
+            onDismissOffline={() => setShowOfflineBanner(false)}
+            saveError={saveError}
+            onDismissSaveError={() => setSaveError(null)}
+            onRetryOffline={refetchEntries}
+            onRetrySaveError={() => {
+              if (lastSyncAttemptRef.current === 'push') {
+                void handleSaveEntriesToSupabase();
+              } else if (lastSyncAttemptRef.current === 'pull') {
+                void handlePullEntriesFromSupabase();
+              } else {
+                setSaveError(null);
               }
             }}
-            onRegisterInvoice={handleRegisterInvoice}
-          />
-        </MainLayout>
-      </PeriodProvider>
+            onExportCSV={() => exportEntriesToCSV(entries)}
+            onExportCSVCurrentMonth={() =>
+              exportEntriesToCSV(entriesDoMes, { filenameSuffix: '_mes_atual' })
+            }
+            onNewEntry={handleNewEntryWithStep}
+            onOpenChangePassword={() => setShowChangePasswordModal(true)}
+            onSaveEntriesLocal={handleSaveEntriesLocal}
+            onSaveEntriesToSupabase={entriesSyncAvailable ? handleSaveEntriesToSupabase : undefined}
+            onPullEntriesFromSupabase={
+              entriesSyncAvailable ? handlePullEntriesFromSupabase : undefined
+            }
+            isSyncingEntries={isSyncing}
+            // Com nuvem configurada mas fora do ar (falha real), o app fica no modo
+            // local: badge "Local" + botão "Salvar" no dispositivo. Dispensar o banner
+            // NÃO religa a nuvem — só um retry bem-sucedido (isCloudUnavailable=false).
+            showEntriesCloudSync={entriesSyncAvailable && !isCloudUnavailable}
+          >
+            <CashFlowSection
+              totalEntradasLancadasMes={totalEntradasLancadasMes}
+              totalSaidasLancadasMes={totalSaidasLancadasMes}
+              saldoMes={saldoMes}
+              saldoProjetadoMes={totalEntradasLancadasMes - totalSaidasLancadasMes}
+              entradasCountMes={entradasCountMes}
+              saidasCountMes={saidasCountMes}
+              totalEntradasFinalizadasMes={totalEntradasFinalizadasMes}
+              totalEntradasPendentesMes={totalEntradasPendentesMes}
+              totalSaidasFinalizadasMes={totalSaidasFinalizadasMes}
+              totalSaidasPendentesMes={totalSaidasPendentesMes}
+              goals={goals}
+              getMetaBalanceForGoal={getMetaBalanceForGoal}
+              isLoadingGoals={isLoadingGoals}
+              onOpenGoalModal={(goal) => {
+                setGoalToEdit(goal ?? null);
+                setIsGoalModalOpen(true);
+              }}
+              onDepositToGoal={(goal) => setMetaMovement({ goal, type: 'deposit' })}
+              onWithdrawFromGoal={(goal) => setMetaMovement({ goal, type: 'withdraw' })}
+              filter={filter}
+              setFilter={setFilter}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              sortOrder={sortOrder}
+              setSortOrder={setSortOrder}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              filteredEntries={filteredEntries}
+              entriesCount={entriesDoMes.length}
+              availableCategories={availableCategories}
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              entries={entries}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              alerts={visibleAlerts}
+              onDismissAlert={handleDismissAlert}
+              onAlertAction={handleAlertAction}
+              showNewEntryHint={showNewEntryHint}
+              showMonthNavHint={showMonthNavHint}
+              showReportsHint={showReportsHint}
+              onMonthNav={() => completeStep('stepMonthNav')}
+              skip={skip}
+              onTogglePaid={togglePaid}
+              onEdit={handleOpenForm}
+              onDeleteRequest={handleDeleteRequest}
+              cards={cards}
+              cardExpenses={cardExpenses}
+              onNewCard={() => {
+                setCardToEdit(null);
+                setCardModalOpen(true);
+              }}
+              onEditCard={(card) => {
+                setCardToEdit(card);
+                setCardModalOpen(true);
+              }}
+              onAddExpense={(card) => {
+                setExpenseToEdit(null);
+                setExpenseModalCard(card);
+              }}
+              onEditExpense={(expense) => {
+                const card = cards.find((c) => c.id === expense.cardId);
+                if (card) {
+                  setExpenseToEdit(expense);
+                  setExpenseModalCard(card);
+                }
+              }}
+              onRegisterInvoice={handleRegisterInvoice}
+            />
+          </MainLayout>
+        </PeriodProvider>
+      </MotionConfig>
 
       <Suspense fallback={null}>
         <ModalForm

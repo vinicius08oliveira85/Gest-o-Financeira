@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { formatCurrency } from '../lib/format';
 import { averageCardUsage, type CardLimitPoint, type MonthTrendPoint } from '../lib/monthlyTrend';
 
@@ -37,23 +37,61 @@ function usageStyle(usage: number): { bar: string; text: string } {
   return { bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' };
 }
 
-/** Célula de percentual de uso: barra mini + valor colorido (ou '—' sem limite) */
-function UsageCell({ usage }: { usage: number | null }) {
-  if (usage === null) {
-    return <span className="text-slate-300 dark:text-slate-600">—</span>;
-  }
+/**
+ * Célula de percentual de uso: barra mini + valor colorido (ou '—' sem limite),
+ * com o detalhamento por cartão abaixo (quando o mês tem cartões com limite).
+ * Uso ≥ 90% ganha um ponto vermelho de alerta.
+ */
+function UsageCell({ usage, cards = [] }: { usage: number | null; cards?: CardLimitPoint[] }) {
+  const perCard = cards.filter((c) => c.limit > 0);
+  const risky = usage !== null && usage >= 90;
   return (
-    <span
-      className="inline-flex items-center justify-end gap-1.5"
-      title={`${usage.toFixed(1).replace('.', ',')}% do limite usado`}
-    >
-      <span className="inline-block w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
+    <span className="inline-flex flex-col items-end gap-0.5">
+      {usage === null ? (
+        <span className="text-slate-300 dark:text-slate-600">—</span>
+      ) : (
         <span
-          className={`block h-full rounded-full ${usageStyle(usage).bar}`}
-          style={{ width: `${Math.min(usage, 100)}%` }}
-        />
-      </span>
-      <span className={`font-semibold ${usageStyle(usage).text}`}>{Math.round(usage)}%</span>
+          className="inline-flex items-center justify-end gap-1.5"
+          title={`${usage.toFixed(1).replace('.', ',')}% do limite usado`}
+        >
+          {risky && (
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"
+              title="Uso acima de 90% do limite"
+              aria-hidden
+            />
+          )}
+          <span className="inline-block w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
+            <span
+              className={`block h-full rounded-full ${usageStyle(usage).bar}`}
+              style={{ width: `${Math.min(usage, 100)}%` }}
+            />
+          </span>
+          <span className={`font-semibold ${usageStyle(usage).text}`}>{Math.round(usage)}%</span>
+        </span>
+      )}
+      {perCard.map((c) => {
+        const u = (c.spending / c.limit) * 100;
+        const style = usageStyle(u);
+        return (
+          <span
+            key={c.cardId}
+            className="inline-flex items-center justify-end gap-1.5 max-w-full"
+            title={`${c.name}: ${u.toFixed(1).replace('.', ',')}% do limite`}
+          >
+            <span className="truncate max-w-[72px] text-slate-400 dark:text-slate-500">
+              {c.name}
+            </span>
+            <span className="inline-block w-8 h-1 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
+              <span
+                className={`block h-full rounded-full ${style.bar}`}
+                style={{ width: `${Math.min(u, 100)}%` }}
+              />
+            </span>
+            <span className={`font-medium ${style.text}`}>{Math.round(u)}%</span>
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -80,6 +118,7 @@ type HoverState = { index: number; x: number; y: number; flip: boolean } | null;
 
 export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   const [hover, setHover] = useState<HoverState>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const n = data.length;
   const hasData = data.some(
@@ -89,7 +128,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   if (n === 0 || !hasData) {
     return (
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        Sem lançamentos nos últimos {Math.max(n, 6)} meses para exibir a evolução.
+        Sem lançamentos nos últimos {n} meses para exibir a evolução.
       </p>
     );
   }
@@ -111,6 +150,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   const currentIndex = n - 1;
   const avgUsage = averageCardUsage(data);
   const monthsWithUsage = data.filter((p) => p.cardUsage !== null).length;
+  const overLimitCount = data.filter((p) => (p.cardUsage ?? 0) >= 90).length;
 
   // Cartões únicos na janela (cada um vira uma linha tracejada de limite)
   const cardsInWindow: CardLimitPoint[] = [];
@@ -146,6 +186,43 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
     setHover({ index, x, y: yPx, flip: x > rect.width - 232 });
   };
 
+  /** Move o destaque de mês (teclado) e reposiciona o balão no centro do mês. */
+  const moveHover = (index: number) => {
+    const i = Math.min(n - 1, Math.max(0, index));
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) {
+      setHover({ index: i, x: 0, y: 0, flip: false });
+      return;
+    }
+    const scaleX = rect.width / W;
+    const x = (PAD_L + slotW * i + slotW / 2) * scaleX;
+    setHover({ index: i, x, y: 120, flip: x > rect.width - 232 });
+  };
+
+  const handleKeyDown = (e: ReactKeyboardEvent<SVGSVGElement>) => {
+    const current = hover?.index ?? n - 1;
+    switch (e.key) {
+      case 'ArrowRight':
+        e.preventDefault();
+        moveHover(current + 1);
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        moveHover(current - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        moveHover(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        moveHover(n - 1);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-slate-500 dark:text-slate-400">
@@ -179,12 +256,16 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
 
       <div className="relative">
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
-          className="w-full h-auto select-none"
+          className="w-full h-auto select-none rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500"
           role="img"
-          aria-label="Gráfico de evolução mensal de entradas, saídas, gastos no cartão e limite por cartão"
+          aria-label="Gráfico de evolução mensal de entradas, saídas, gastos no cartão e limite por cartão. Use as setas do teclado para navegar entre os meses."
+          tabIndex={0}
+          aria-keyshortcuts="ArrowLeft ArrowRight Home End"
           onPointerMove={handlePointerMove}
           onPointerLeave={() => setHover(null)}
+          onKeyDown={handleKeyDown}
         >
           {/* Linhas de grade + valores compactos */}
           {gridlines.map((g) => (
@@ -560,7 +641,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
                   {formatCurrency(p.cardLimit)}
                 </td>
                 <td className="py-1 px-2 text-right">
-                  <UsageCell usage={p.cardUsage} />
+                  <UsageCell usage={p.cardUsage} cards={p.cardLimits} />
                 </td>
                 <td
                   className={`py-1 pl-2 text-right ${
@@ -584,6 +665,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
                 >
                   Média de uso
                   {monthsWithUsage !== data.length && ` (${monthsWithUsage} meses com limite)`}
+                  {overLimitCount > 0 && ` · ${overLimitCount} acima de 90%`}
                 </td>
                 <td className="py-1.5 px-2 text-right">
                   <UsageCell usage={avgUsage} />

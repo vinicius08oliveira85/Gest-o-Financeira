@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { averageCardUsage, buildMonthlyTrend } from './monthlyTrend';
+import { averageCardUsage, buildMonthlyTrend, buildTrendCsv } from './monthlyTrend';
 import type { CardExpense, CreditCard, Entry } from '../types';
 
 function entry(
@@ -140,7 +140,7 @@ describe('buildMonthlyTrend', () => {
     expect(trend.every((p) => p.cardLimit === 3500.5)).toBe(true);
   });
 
-  it('cardLimits lista cada cartão vigente com id, nome, cor e limite', () => {
+  it('cardLimits lista cada cartão vigente com id, nome, cor, limite e gasto', () => {
     const cards = [
       { ...card('c1', 1000), name: 'Nubank', color: '#7c3aed' },
       { ...card('c2', 2500.5), name: 'Inter' },
@@ -149,9 +149,42 @@ describe('buildMonthlyTrend', () => {
     const trend = buildMonthlyTrend([], 2, 2025, 1, [], cards);
 
     expect(trend[0].cardLimits).toEqual([
-      { cardId: 'c1', name: 'Nubank', color: '#7c3aed', limit: 1000 },
-      { cardId: 'c2', name: 'Inter', color: undefined, limit: 2500.5 },
+      { cardId: 'c1', name: 'Nubank', color: '#7c3aed', limit: 1000, spending: 0 },
+      { cardId: 'c2', name: 'Inter', color: undefined, limit: 2500.5, spending: 0 },
     ]);
+  });
+
+  it('cardLimits traz o gasto de cada cartão no mês da fatura', () => {
+    const expenses = [
+      { ...cardExpense('c1', 300, 2, 2025), cardId: 'c1' },
+      { ...cardExpense('c2', 120, 2, 2025), cardId: 'c2' },
+      { ...cardExpense('c3', 999, 1, 2025), cardId: 'c1' }, // mês anterior da fatura
+    ];
+    const cards = [
+      { ...card('c1', 1000), name: 'Nubank' },
+      { ...card('c2', 500), name: 'Inter' },
+    ];
+
+    const trend = buildMonthlyTrend([], 2, 2025, 1, expenses, cards);
+
+    expect(trend[0].cardLimits).toEqual([
+      { cardId: 'c1', name: 'Nubank', color: undefined, limit: 1000, spending: 300 },
+      { cardId: 'c2', name: 'Inter', color: undefined, limit: 500, spending: 120 },
+    ]);
+  });
+
+  it('buildTrendCsv gera o CSV com BOM, cabeçalho e valores por mês', () => {
+    const entries = [entry('1', 'cash', 100, '2025-03-10', true)];
+    const expenses = [{ ...cardExpense('c1', 75, 2, 2025), cardId: 'c1' }];
+    const cards = [{ ...card('c1', 1500), name: 'Nubank' }];
+
+    const trend = buildMonthlyTrend(entries, 2, 2025, 1, expenses, cards);
+    const csv = buildTrendCsv(trend);
+
+    expect(csv.startsWith('\uFEFF')).toBe(true);
+    const lines = csv.replace('\uFEFF', '').split('\n');
+    expect(lines[0]).toBe('Mês,Entradas,Saídas,Cartão,Limite,Uso %,Saldo');
+    expect(lines[1]).toBe('mar/25,100,0,75,1500,5.0,100');
   });
 
   it('cardLimit e cardLimits respeitam a data de criação do cartão', () => {

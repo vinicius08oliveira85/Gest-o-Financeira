@@ -1,5 +1,5 @@
 import type { CardExpense, CreditCard, Entry } from '../types';
-import { parseDateLocal } from './format';
+import { escapeCsvCell, parseDateLocal } from './format';
 
 export type CardLimitPoint = {
   cardId: string;
@@ -7,6 +7,8 @@ export type CardLimitPoint = {
   color?: string;
   /** Limite do cartão no mês */
   limit: number;
+  /** Gasto do cartão no mês da fatura (para o uso individual por cartão) */
+  spending: number;
 };
 
 export type MonthTrendPoint = {
@@ -64,6 +66,9 @@ export function buildMonthlyTrend(
         name: card.name,
         color: card.color,
         limit: card.limitAmount,
+        spending: cardExpenses
+          .filter((c) => c.cardId === card.id && c.billingMonth === m && c.billingYear === y)
+          .reduce((sum, c) => sum + c.amount, 0),
       }));
 
   const points: MonthTrendPoint[] = [];
@@ -119,4 +124,26 @@ export function averageCardUsage(points: MonthTrendPoint[]): number | null {
   const withLimit = points.filter((p) => p.cardUsage !== null);
   if (withLimit.length === 0) return null;
   return withLimit.reduce((sum, p) => sum + (p.cardUsage ?? 0), 0) / withLimit.length;
+}
+
+/**
+ * Gera o CSV da evolução mensal (mesmo formato da exportação de lançamentos:
+ * separador vírgula, BOM UTF-8, células escapadas contra injeção de fórmula).
+ */
+export function buildTrendCsv(points: MonthTrendPoint[]): string {
+  const headers = ['Mês', 'Entradas', 'Saídas', 'Cartão', 'Limite', 'Uso %', 'Saldo'];
+  const rows = points.map((p) => [
+    `${p.label}/${String(p.year).slice(2)}`,
+    p.entradas.toString(),
+    p.saidas.toString(),
+    p.cardSpending.toString(),
+    p.cardLimit.toString(),
+    p.cardUsage === null ? '' : p.cardUsage.toFixed(1),
+    p.saldo.toString(),
+  ]);
+  const csvLines = [
+    headers.map(escapeCsvCell).join(','),
+    ...rows.map((r) => r.map(escapeCsvCell).join(',')),
+  ];
+  return '\uFEFF' + csvLines.join('\n');
 }

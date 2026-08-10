@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Entry } from '../types';
 import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
+import { chipClass } from '../lib/neu';
 
 type CalendarViewProps = {
   entries: Entry[];
@@ -43,14 +44,6 @@ function isOverdue(e: Entry): boolean {
   if (e.type !== 'debt' || e.isPaid) return false;
   const due = e.isCardInvoice ? (e.invoicePaymentDueDate ?? e.dueDate) : e.dueDate;
   return due < todayLocalISO();
-}
-
-function chipClass(active: boolean): string {
-  return `whitespace-nowrap px-2.5 py-1 rounded-full text-2xs font-medium transition-all ${
-    active
-      ? 'neu-filter-active'
-      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-  }`;
 }
 
 export function CalendarView({ entries, month, year }: CalendarViewProps) {
