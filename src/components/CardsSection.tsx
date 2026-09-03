@@ -1,6 +1,7 @@
-﻿import { Plus, CreditCard as CreditCardIcon } from 'lucide-react';
+﻿import { Plus } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry } from '../types';
 import { CardItem } from './CardItem';
+import { EmptyState } from './EmptyState';
 
 type Props = {
   cards: CreditCard[];
@@ -40,20 +41,7 @@ export function CardsSection({
       </div>
 
       {cards.length === 0 ? (
-        <div className="empty-state">
-          <div className="w-10 h-10 rounded-xl neu-inset flex items-center justify-center">
-            <CreditCardIcon size={20} className="text-slate-400 dark:text-slate-500" />
-          </div>
-          <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-            Nenhum cartão cadastrado
-          </p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs">
-            Adicione seus cartões de crédito para acompanhar faturas e gastos.
-          </p>
-          <button type="button" onClick={onNewCard} className="neu-btn-primary btn-action">
-            Adicionar cartão
-          </button>
-        </div>
+        <EmptyState variant="cards" onAction={onNewCard} />
       ) : (
         <div className="cards-grid">
           {cards.map((card) => {

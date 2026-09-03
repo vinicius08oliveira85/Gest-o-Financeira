@@ -23,6 +23,7 @@ type EntryItemProps = {
   onEdit: (entry: Entry) => void;
   onDeleteRequest: (id: string) => void;
   compact?: boolean;
+  staggerDelay?: number;
 };
 
 function EntryItemInner({
@@ -31,6 +32,7 @@ function EntryItemInner({
   onEdit,
   onDeleteRequest,
   compact = false,
+  staggerDelay = 0,
 }: EntryItemProps) {
   const paymentDue = debtPaymentDueDate(entry);
   const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(paymentDue);
@@ -41,6 +43,7 @@ function EntryItemInner({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
+      transition={{ delay: staggerDelay }}
       className={`group neu-list-item flex flex-wrap sm:flex-nowrap items-center ${
         compact ? 'px-3 py-2 sm:px-4 sm:py-2.5 text-sm' : 'p-3 sm:p-4'
       }`}
@@ -50,7 +53,7 @@ function EntryItemInner({
         onClick={() => onTogglePaid(entry.id)}
         title={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (abate no saldo)'}
         aria-label={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (marcar como pago)'}
-        className={`mr-3 transition-colors self-start mt-1 sm:self-center sm:mt-0 ${
+        className={`mr-3 transition-all duration-150 self-start mt-1 sm:self-center sm:mt-0 tap-scale ${
           entry.isPaid
             ? 'text-emerald-500'
             : 'text-slate-300 dark:text-slate-500 hover:text-slate-400 dark:hover:text-slate-400'
@@ -149,7 +152,7 @@ function EntryItemInner({
           <button
             type="button"
             onClick={() => onEdit(entry)}
-            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400"
+            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400"
             aria-label="Editar"
           >
             <Pencil size={18} className="sm:w-4 sm:h-4" />
@@ -157,7 +160,7 @@ function EntryItemInner({
           <button
             type="button"
             onClick={() => onDeleteRequest(entry.id)}
-            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400"
+            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400"
             aria-label="Excluir"
           >
             <Trash2 size={18} className="sm:w-4 sm:h-4" />

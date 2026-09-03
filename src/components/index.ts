@@ -13,6 +13,7 @@ export { FilterBar } from './FilterBar';
 export { FloatingActionButton } from './FloatingActionButton';
 export { Header } from './Header';
 export { LoadingSkeleton } from './LoadingSkeleton';
+export { EmptyState } from './EmptyState';
 export { ModalForm } from './ModalForm';
 export { PasswordGate } from './PasswordGate';
 export { CalendarView } from './CalendarView';

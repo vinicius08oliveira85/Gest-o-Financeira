@@ -1,8 +1,8 @@
 ﻿import React, { useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { Filter } from 'lucide-react';
 import type { Entry } from '../types';
 import { EntryItem } from './EntryItem';
+import { EmptyState } from './EmptyState';
 
 type EntryListProps = {
   entries: Entry[];
@@ -69,7 +69,7 @@ export function EntryList({
                     {formatDateGroupLabel(dateKey)}
                   </div>
                   <div className="space-y-1">
-                    {dayEntries.map((entry) => (
+                    {dayEntries.map((entry, index) => (
                       <React.Fragment key={entry.id}>
                         <EntryItem
                           entry={entry}
@@ -77,6 +77,7 @@ export function EntryList({
                           onEdit={onEdit}
                           onDeleteRequest={onDeleteRequest}
                           compact={compact}
+                          staggerDelay={index * 50}
                         />
                       </React.Fragment>
                     ))}
@@ -86,7 +87,7 @@ export function EntryList({
             </div>
           ) : (
             <div className="neu-list">
-              {entries.map((entry) => (
+              {entries.map((entry, index) => (
                 <React.Fragment key={entry.id}>
                   <EntryItem
                     entry={entry}
@@ -94,30 +95,17 @@ export function EntryList({
                     onEdit={onEdit}
                     onDeleteRequest={onDeleteRequest}
                     compact={compact}
+                    staggerDelay={index * 50}
                   />
                 </React.Fragment>
               ))}
             </div>
           )
         ) : (
-          <div className="empty-state card-pad">
-            <div className="neu-inset w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Filter className="text-slate-300 dark:text-slate-500 w-8 h-8" />
-            </div>
-            <h3 className="text-slate-900 dark:text-slate-100 font-medium">
-              Nenhum registro encontrado
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-              Tente mudar o filtro ou adicione um novo registro.
-            </p>
-            <button
-              type="button"
-              onClick={() => onEdit()}
-              className="mt-4 neu-btn-primary px-4 py-2.5 rounded-xl font-medium text-sm"
-            >
-              Adicionar primeiro lançamento
-            </button>
-          </div>
+          <EmptyState
+            variant={entries.length === 0 ? 'entries' : 'entries-filtered'}
+            onAction={onEdit}
+          />
         )}
       </AnimatePresence>
     </div>
