@@ -16,6 +16,7 @@ import {
   recurringSlotKey,
 } from '../lib/recurringEntries';
 import { propagateEntryInstallmentUpdate } from '../lib/installments';
+import { readStored, writeStored } from '../lib/storage';
 
 function readSuppressedRecurringSlots(): Set<string> {
   try {
@@ -108,28 +109,19 @@ export function useEntries() {
             }
           }
           if (data.length === 0) {
-            const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
-            if (saved) {
+            const saved = readStored<Entry>(ENTRIES_STORAGE_KEY);
+            if (saved.length > 0 && !cancelled) {
+              if (!cancelled) setIsMigrating(true);
               try {
-                const parsed = JSON.parse(saved) as Entry[];
-                if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) {
-                  if (!cancelled) setIsMigrating(true);
-                  try {
-                    await insertEntriesBatch(parsed);
-                    const refetched = await fetchEntries();
-                    if (!cancelled) {
-                      setEntries(refetched);
-                      dirtyEntryIdsRef.current.clear();
-                      setIsCloudUnavailable(false);
-                    }
-                    localStorage.removeItem(ENTRIES_STORAGE_KEY);
-                  } finally {
-                    if (!cancelled) setIsMigrating(false);
-                  }
+                await insertEntriesBatch(saved);
+                const refetched = await fetchEntries();
+                if (!cancelled) {
+                  setEntries(refetched);
+                  dirtyEntryIdsRef.current.clear();
+                  setIsCloudUnavailable(false);
                 }
-              } catch {
+              } finally {
                 if (!cancelled) setIsMigrating(false);
-                // ignore migration parse errors
               }
             }
           }
@@ -139,17 +131,10 @@ export function useEntries() {
             setShowOfflineBanner(true);
             setIsCloudUnavailable(true);
           }
-          const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
-          if (saved) {
-            try {
-              if (!cancelled) {
-                const parsed = JSON.parse(saved) as Entry[];
-                setEntries(parsed);
-                dirtyEntryIdsRef.current = new Set(parsed.map((e) => e.id));
-              }
-            } catch {
-              logError('Failed to parse localStorage entries', e);
-            }
+          const saved = readStored<Entry>(ENTRIES_STORAGE_KEY);
+          if (saved.length > 0 && !cancelled) {
+            setEntries(saved);
+            dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
           } else if (!cancelled) {
             setEntries([]);
           }
@@ -157,15 +142,10 @@ export function useEntries() {
           if (!cancelled) setIsLoading(false);
         }
       } else {
-        const saved = localStorage.getItem(ENTRIES_STORAGE_KEY);
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved) as Entry[];
-            setEntries(parsed);
-            dirtyEntryIdsRef.current = new Set(parsed.map((e) => e.id));
-          } catch (e) {
-            logError('Failed to parse entries', e);
-          }
+        const saved = readStored<Entry>(ENTRIES_STORAGE_KEY);
+        if (saved.length > 0) {
+          setEntries(saved);
+          dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
         }
         setIsLoading(false);
       }
@@ -195,7 +175,7 @@ export function useEntries() {
 
   const saveEntriesLocal = useCallback(() => {
     try {
-      localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(entriesRef.current));
+      writeStored(ENTRIES_STORAGE_KEY, entriesRef.current);
     } catch (e) {
       logError('Failed to save entries to localStorage', e);
       setSaveError('Não foi possível salvar localmente.');

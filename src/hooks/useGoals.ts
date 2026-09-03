@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { logError } from '../lib/logger';
 import { fetchGoals, upsertGoal as upsertGoalDb, deleteGoal as deleteGoalDb } from '../lib/goalsDb';
 import { randomUUID } from '../lib/uuid';
+import { readStored, writeStored } from '../lib/storage';
 
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -22,55 +23,37 @@ export function useGoals() {
             setUseSupabaseSync(true);
           }
           if (data.length === 0) {
-            const saved = localStorage.getItem(GOALS_STORAGE_KEY);
-            if (saved) {
-              try {
-                const parsed = JSON.parse(saved) as Goal[];
-                if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) {
-                  // Só remove o backup local se TODOS os upserts derem certo —
-                  // falha parcial não pode apagar metas que ficaram só no dispositivo.
-                  let migrationFailed = false;
-                  for (const g of parsed) {
-                    try {
-                      await upsertGoalDb(g);
-                    } catch (e) {
-                      migrationFailed = true;
-                      logError('Migration goal failed', e);
-                    }
-                  }
-                  const refetched = await fetchGoals();
-                  if (!cancelled) setGoals(refetched);
-                  if (!migrationFailed) localStorage.removeItem(GOALS_STORAGE_KEY);
+            const saved = readStored<Goal>(GOALS_STORAGE_KEY);
+            if (saved.length > 0 && !cancelled) {
+              // Só remove o backup local se TODOS os upserts derem certo —
+              // falha parcial não pode apagar metas que ficaram só no dispositivo.
+              let migrationFailed = false;
+              for (const g of saved) {
+                try {
+                  await upsertGoalDb(g);
+                } catch (e) {
+                  migrationFailed = true;
+                  logError('Migration goal failed', e);
                 }
-              } catch {
-                // ignore parse errors
+              }
+              const refetched = await fetchGoals();
+              if (!cancelled) setGoals(refetched);
+              if (!migrationFailed) {
+                // Migration successful, data now in Supabase
               }
             }
           }
         } catch (e) {
           logError('Failed to load goals from Supabase', e);
           if (!cancelled) setUseSupabaseSync(false);
-          const saved = localStorage.getItem(GOALS_STORAGE_KEY);
-          if (saved) {
-            try {
-              if (!cancelled) setGoals(JSON.parse(saved));
-            } catch {
-              logError('Failed to parse localStorage goals', e);
-            }
-          }
+          const saved = readStored<Goal>(GOALS_STORAGE_KEY);
+          if (saved.length > 0 && !cancelled) setGoals(saved);
         } finally {
           if (!cancelled) setIsLoading(false);
         }
       } else {
-        try {
-          const raw = localStorage.getItem(GOALS_STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw) as Goal[];
-            if (Array.isArray(parsed)) setGoals(parsed);
-          }
-        } catch {
-          // ignore
-        }
+        const saved = readStored<Goal>(GOALS_STORAGE_KEY);
+        if (saved.length > 0) setGoals(saved);
         setIsLoading(false);
       }
     }
@@ -82,7 +65,7 @@ export function useGoals() {
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !useSupabaseSync) {
-      localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(goals));
+      writeStored(GOALS_STORAGE_KEY, goals);
     }
   }, [goals, useSupabaseSync]);
 

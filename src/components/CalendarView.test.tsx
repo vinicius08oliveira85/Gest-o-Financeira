@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CalendarView } from './CalendarView';
 import type { Entry } from '../types';
@@ -6,6 +6,16 @@ import type { Entry } from '../types';
 // Agosto de 2026 (month 7). Dia 10 tem 2 lançamentos: 1 entrada paga e 1 saída pendente.
 const month = 7;
 const year = 2026;
+
+// Congela o relógio em 08/08/2026: dia 5 atrasa, dia 10 ainda está no futuro.
+// Evita que o teste dependa da data atual do ambiente (que faria "atrasar" o dia 10).
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(2026, 7, 8));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function entry(overrides: Partial<Entry> & { id: string; name: string; amount: number }): Entry {
   return {

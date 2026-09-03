@@ -12,6 +12,7 @@ import {
 } from '../lib/cardExpensesDb';
 import { randomUUID } from '../lib/uuid';
 import { propagateInstallmentUpdate } from '../lib/installments';
+import { readStored, writeStored } from '../lib/storage';
 
 export function useCardExpenses() {
   const [expenses, setExpenses] = useState<CardExpense[]>([]);
@@ -31,27 +32,14 @@ export function useCardExpenses() {
         } catch (e) {
           logError('Failed to load card expenses from Supabase', e);
           if (!cancelled) setUseSupabaseSync(false);
-          const saved = localStorage.getItem(CARD_EXPENSES_STORAGE_KEY);
-          if (saved) {
-            try {
-              if (!cancelled) setExpenses(JSON.parse(saved));
-            } catch {
-              logError('Failed to parse localStorage card expenses', e);
-            }
-          }
+          const saved = readStored<CardExpense>(CARD_EXPENSES_STORAGE_KEY);
+          if (saved.length > 0 && !cancelled) setExpenses(saved);
         } finally {
           if (!cancelled) setIsLoadingExpenses(false);
         }
       } else {
-        try {
-          const raw = localStorage.getItem(CARD_EXPENSES_STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw) as CardExpense[];
-            if (Array.isArray(parsed)) setExpenses(parsed);
-          }
-        } catch {
-          // ignore
-        }
+        const saved = readStored<CardExpense>(CARD_EXPENSES_STORAGE_KEY);
+        if (saved.length > 0) setExpenses(saved);
         setIsLoadingExpenses(false);
       }
     }
@@ -63,7 +51,7 @@ export function useCardExpenses() {
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !useSupabaseSync) {
-      localStorage.setItem(CARD_EXPENSES_STORAGE_KEY, JSON.stringify(expenses));
+      writeStored(CARD_EXPENSES_STORAGE_KEY, expenses);
     }
   }, [expenses, useSupabaseSync]);
 

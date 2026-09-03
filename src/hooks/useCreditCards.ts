@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { logError } from '../lib/logger';
 import { fetchCards, upsertCard as upsertCardDb, deleteCard as deleteCardDb } from '../lib/cardsDb';
 import { randomUUID } from '../lib/uuid';
+import { readStored, writeStored } from '../lib/storage';
 
 export function useCreditCards() {
   const [cards, setCards] = useState<CreditCard[]>([]);
@@ -22,55 +23,37 @@ export function useCreditCards() {
             setUseSupabaseSync(true);
           }
           if (data.length === 0) {
-            const saved = localStorage.getItem(CARDS_STORAGE_KEY);
-            if (saved) {
-              try {
-                const parsed = JSON.parse(saved) as CreditCard[];
-                if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) {
-                  // Só remove o backup local se TODOS os upserts derem certo —
-                  // falha parcial não pode apagar cartões que ficaram só no dispositivo.
-                  let migrationFailed = false;
-                  for (const c of parsed) {
-                    try {
-                      await upsertCardDb(c);
-                    } catch (e) {
-                      migrationFailed = true;
-                      logError('Migration card failed', e);
-                    }
-                  }
-                  const refetched = await fetchCards();
-                  if (!cancelled) setCards(refetched);
-                  if (!migrationFailed) localStorage.removeItem(CARDS_STORAGE_KEY);
+            const saved = readStored<CreditCard>(CARDS_STORAGE_KEY);
+            if (saved.length > 0 && !cancelled) {
+              // Só remove o backup local se TODOS os upserts derem certo —
+              // falha parcial não pode apagar cartões que ficaram só no dispositivo.
+              let migrationFailed = false;
+              for (const c of saved) {
+                try {
+                  await upsertCardDb(c);
+                } catch (e) {
+                  migrationFailed = true;
+                  logError('Migration card failed', e);
                 }
-              } catch {
-                // ignore parse errors
+              }
+              const refetched = await fetchCards();
+              if (!cancelled) setCards(refetched);
+              if (!migrationFailed) {
+                // Migration successful, data now in Supabase
               }
             }
           }
         } catch (e) {
           logError('Failed to load cards from Supabase', e);
           if (!cancelled) setUseSupabaseSync(false);
-          const saved = localStorage.getItem(CARDS_STORAGE_KEY);
-          if (saved) {
-            try {
-              if (!cancelled) setCards(JSON.parse(saved));
-            } catch {
-              logError('Failed to parse localStorage cards', e);
-            }
-          }
+          const saved = readStored<CreditCard>(CARDS_STORAGE_KEY);
+          if (saved.length > 0 && !cancelled) setCards(saved);
         } finally {
           if (!cancelled) setIsLoadingCards(false);
         }
       } else {
-        try {
-          const raw = localStorage.getItem(CARDS_STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw) as CreditCard[];
-            if (Array.isArray(parsed)) setCards(parsed);
-          }
-        } catch {
-          // ignore
-        }
+        const saved = readStored<CreditCard>(CARDS_STORAGE_KEY);
+        if (saved.length > 0) setCards(saved);
         setIsLoadingCards(false);
       }
     }
@@ -82,7 +65,7 @@ export function useCreditCards() {
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !useSupabaseSync) {
-      localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(cards));
+      writeStored(CARDS_STORAGE_KEY, cards);
     }
   }, [cards, useSupabaseSync]);
 
