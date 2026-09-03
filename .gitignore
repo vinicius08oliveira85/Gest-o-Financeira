@@ -29,3 +29,9 @@ test-results/
 
 # Projeto Android gerado pelo Capacitor (a CI regenera com `cap add android`)
 /android/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
