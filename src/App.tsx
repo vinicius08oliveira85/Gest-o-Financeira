@@ -8,6 +8,7 @@ import { useCardExpenses } from './hooks/useCardExpenses';
 import { useAlerts, type Alert } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { exportEntriesToCSV } from './lib/format';
 import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
@@ -214,6 +215,33 @@ export default function App() {
     handleOpenForm();
     completeStep('stepNewEntry');
   }, [handleOpenForm, completeStep]);
+
+  // Keyboard shortcuts (only when unlocked and not in a modal)
+  useKeyboardShortcuts([
+    {
+      key: 'n',
+      meta: true,
+      handler: handleNewEntryWithStep,
+      description: 'Novo lançamento',
+    },
+    {
+      key: 'n',
+      ctrl: true,
+      handler: handleNewEntryWithStep,
+      description: 'Novo lançamento',
+    },
+    {
+      key: '/',
+      handler: () => {
+        const searchInput = document.querySelector(
+          'input[aria-label="Buscar por nome ou valor"]'
+        ) as HTMLInputElement | null;
+        searchInput?.focus();
+      },
+      description: 'Focar busca',
+      preventDefault: true,
+    },
+  ]);
 
   const handleDeleteRequest = useCallback((entry: Entry) => {
     setEntryToDelete(entry);

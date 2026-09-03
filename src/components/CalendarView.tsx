@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Entry } from '../types';
 import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
 import { chipClass } from '../lib/neu';
+import { EmptyState } from './EmptyState';
 
 type CalendarViewProps = {
   entries: Entry[];
@@ -155,9 +156,12 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
       </div>
 
       {visibleEntries.length === 0 && entries.length > 0 && (
-        <p className="text-2xs text-slate-400 dark:text-slate-500 mb-[var(--inline-gap)]">
-          Nenhum lançamento corresponde aos filtros.
-        </p>
+        <EmptyState
+          variant="entries-filtered"
+          title="Nenhum lançamento corresponde aos filtros."
+          description="Tente mudar o filtro de tipo ou status."
+          className="mb-[var(--inline-gap)]"
+        />
       )}
 
       <div className="grid grid-cols-7 gap-[var(--inline-gap)] mb-[var(--inline-gap)] text-3xs font-medium text-slate-500 dark:text-slate-400 text-center">

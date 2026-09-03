@@ -1,5 +1,6 @@
 ﻿import { formatCurrency, formatDate } from '../lib/format';
 import type { Goal } from '../types';
+import { EmptyState } from './EmptyState';
 
 type GoalsCardProps = {
   goal: Goal | null;
@@ -128,9 +129,7 @@ export function GoalsCard({
           </div>
         </div>
       ) : (
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Defina uma meta financeira e acompanhe seu progresso ao longo dos meses.
-        </p>
+        <EmptyState variant="goals" onAction={onOpenModal} />
       )}
     </div>
   );

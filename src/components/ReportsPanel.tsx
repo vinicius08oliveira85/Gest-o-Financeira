@@ -7,6 +7,7 @@ import { buildReportsCsv } from '../lib/reports';
 import { chipClass } from '../lib/neu';
 import { DeltaBadge } from './DeltaBadge';
 import { MonthlyTrendChart } from './MonthlyTrendChart';
+import { EmptyState } from './EmptyState';
 import { TREND_MONTHS_KEY } from '../constants';
 
 type ReportsPanelProps = {
@@ -265,9 +266,7 @@ export function ReportsPanel({
             Categorias (saídas)
           </h3>
           {categorySaidasEntries.length === 0 ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Adicione categorias às saídas para ver a distribuição.
-            </p>
+            <EmptyState variant="expenses" className="mb-2" />
           ) : (
             <div className="space-y-2">
               {categorySaidasEntries.map(([cat, value]) => (
@@ -298,9 +297,7 @@ export function ReportsPanel({
             Categorias (entradas)
           </h3>
           {categoryEntradasEntries.length === 0 ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Adicione categorias às entradas para ver a distribuição.
-            </p>
+            <EmptyState variant="reports" className="mb-2" />
           ) : (
             <div className="space-y-2">
               {categoryEntradasEntries.map(([cat, value]) => (
