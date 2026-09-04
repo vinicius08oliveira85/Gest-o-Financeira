@@ -12,8 +12,14 @@ export function logError(message?: string, error?: unknown): void {
   }
 }
 
-export function logWarn(message?: string): void {
-  if (isDev && message !== undefined) {
-    console.warn(message);
+export function logWarn(message?: string, error?: unknown): void {
+  if (isDev) {
+    if (message !== undefined && error !== undefined) {
+      console.warn(message, error);
+    } else if (message !== undefined) {
+      console.warn(message);
+    } else if (error !== undefined) {
+      console.warn(error);
+    }
   }
 }

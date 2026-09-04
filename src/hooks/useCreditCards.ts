@@ -23,7 +23,7 @@ export function useCreditCards() {
             setUseSupabaseSync(true);
           }
           if (data.length === 0) {
-            const saved = readStored<CreditCard>(CARDS_STORAGE_KEY);
+            const saved = await readStored<CreditCard>(CARDS_STORAGE_KEY);
             if (saved.length > 0 && !cancelled) {
               // Só remove o backup local se TODOS os upserts derem certo —
               // falha parcial não pode apagar cartões que ficaram só no dispositivo.
@@ -46,13 +46,13 @@ export function useCreditCards() {
         } catch (e) {
           logError('Failed to load cards from Supabase', e);
           if (!cancelled) setUseSupabaseSync(false);
-          const saved = readStored<CreditCard>(CARDS_STORAGE_KEY);
+          const saved = await readStored<CreditCard>(CARDS_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) setCards(saved);
         } finally {
           if (!cancelled) setIsLoadingCards(false);
         }
       } else {
-        const saved = readStored<CreditCard>(CARDS_STORAGE_KEY);
+        const saved = await readStored<CreditCard>(CARDS_STORAGE_KEY);
         if (saved.length > 0) setCards(saved);
         setIsLoadingCards(false);
       }

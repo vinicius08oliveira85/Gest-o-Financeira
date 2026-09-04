@@ -32,13 +32,13 @@ export function useCardExpenses() {
         } catch (e) {
           logError('Failed to load card expenses from Supabase', e);
           if (!cancelled) setUseSupabaseSync(false);
-          const saved = readStored<CardExpense>(CARD_EXPENSES_STORAGE_KEY);
+          const saved = await readStored<CardExpense>(CARD_EXPENSES_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) setExpenses(saved);
         } finally {
           if (!cancelled) setIsLoadingExpenses(false);
         }
       } else {
-        const saved = readStored<CardExpense>(CARD_EXPENSES_STORAGE_KEY);
+        const saved = await readStored<CardExpense>(CARD_EXPENSES_STORAGE_KEY);
         if (saved.length > 0) setExpenses(saved);
         setIsLoadingExpenses(false);
       }

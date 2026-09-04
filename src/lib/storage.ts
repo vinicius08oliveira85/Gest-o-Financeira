@@ -1,7 +1,27 @@
 import { logError, logWarn } from './logger';
+import {
+  idbGetAll,
+  idbPut,
+  idbClear,
+  idbGetVersion,
+  idbSetVersion,
+  migrateFromLocalStorage,
+  type StoreName,
+} from './idb';
 
 export const STORAGE_SCHEMA_VERSION = 1;
-const SCHEMA_KEY = 'gestao-financeira-schema-version';
+
+const STORE_MAP: Record<string, StoreName> = {
+  'personal-debts': 'entries',
+  'gestao-financeira-goals': 'goals',
+  'gestao-financeira-cards': 'cards',
+  'gestao-financeira-card-expenses': 'cardExpenses',
+  'gestao-financeira-suppressed-recurring-slots': 'suppressedRecurring',
+  'gestao-financeira-onboarding': 'onboarding',
+  'gestao-financeira-dismissed-alerts': 'dismissedAlerts',
+  'gestao-financeira-pw': 'password',
+  'gestao-financeira-trend-months': 'trendMonths',
+};
 
 export type StoredData<T> = {
   version: number;
@@ -11,7 +31,51 @@ export type StoredData<T> = {
 
 export type Migration<T> = (data: T[]) => T[];
 
-export function readStored<T>(key: string, migrations: Migration<T>[] = []): T[] {
+let idbAvailable: boolean | null = null;
+
+async function checkIDBAvailable(): Promise<boolean> {
+  if (idbAvailable !== null) return idbAvailable;
+  try {
+    const db = await indexedDB.open('gestao-financeira-db-test', 1);
+    db.onerror = () => {
+      idbAvailable = false;
+    };
+    db.onsuccess = () => {
+      idbAvailable = true;
+      db.result.close();
+      indexedDB.deleteDatabase('gestao-financeira-db-test');
+    };
+    await new Promise<void>((resolve, reject) => {
+      db.onerror = () => reject(db.error);
+      db.onsuccess = () => resolve();
+    });
+  } catch {
+    idbAvailable = false;
+  }
+  return idbAvailable ?? false;
+}
+
+function getStoreName(key: string): StoreName {
+  return STORE_MAP[key] ?? (key as StoreName);
+}
+
+export async function readStored<T>(key: string, migrations: Migration<T>[] = []): Promise<T[]> {
+  const useIDB = await checkIDBAvailable();
+  const store = getStoreName(key);
+
+  if (useIDB) {
+    try {
+      const currentVersion = await idbGetVersion(store);
+      const allRecords = await idbGetAll<T>(store);
+      if (allRecords.length > 0) {
+        return runMigrations(allRecords, currentVersion, migrations);
+      }
+    } catch (e) {
+      logWarn(`IDB read failed for ${key}, falling back to localStorage`, e);
+    }
+  }
+
+  // Fallback to localStorage
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return [];
@@ -35,7 +99,25 @@ export function readStored<T>(key: string, migrations: Migration<T>[] = []): T[]
   }
 }
 
-export function writeStored<T>(key: string, data: T[]): void {
+export async function writeStored<T>(key: string, data: T[]): Promise<void> {
+  const useIDB = await checkIDBAvailable();
+  const store = getStoreName(key);
+
+  if (useIDB) {
+    try {
+      await idbClear(store);
+      for (const item of data) {
+        const id = (item as { id?: string }).id ?? crypto.randomUUID();
+        await idbPut(store, id, { ...item, id } as T);
+      }
+      await idbSetVersion(store, STORAGE_SCHEMA_VERSION);
+      return;
+    } catch (e) {
+      logWarn(`IDB write failed for ${key}, falling back to localStorage`, e);
+    }
+  }
+
+  // Fallback to localStorage
   try {
     const payload: StoredData<T> = {
       version: STORAGE_SCHEMA_VERSION,
@@ -60,7 +142,18 @@ function runMigrations<T>(data: T[], fromVersion: number, migrations: Migration<
   return result;
 }
 
-export function clearStorage(key: string): void {
+export async function clearStorage(key: string): Promise<void> {
+  const useIDB = await checkIDBAvailable();
+  const store = getStoreName(key);
+
+  if (useIDB) {
+    try {
+      await idbClear(store);
+      return;
+    } catch (e) {
+      logWarn(`IDB clear failed for ${key}`, e);
+    }
+  }
   try {
     localStorage.removeItem(key);
   } catch {
@@ -68,7 +161,17 @@ export function clearStorage(key: string): void {
   }
 }
 
-export function getStorageVersion(key: string): number {
+export async function getStorageVersion(key: string): Promise<number> {
+  const useIDB = await checkIDBAvailable();
+  const store = getStoreName(key);
+
+  if (useIDB) {
+    try {
+      return await idbGetVersion(store);
+    } catch {
+      // fall through
+    }
+  }
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return 0;
@@ -82,30 +185,57 @@ export function getStorageVersion(key: string): number {
   }
 }
 
-export function setSchemaVersion(version: number): void {
+export async function setSchemaVersion(version: number): Promise<void> {
+  const useIDB = await checkIDBAvailable();
+  if (useIDB) {
+    try {
+      await idbSetVersion('schemaVersion', version);
+      return;
+    } catch {
+      // fall through
+    }
+  }
   try {
-    localStorage.setItem(SCHEMA_KEY, String(version));
+    localStorage.setItem('gestao-financeira-schema-version', String(version));
   } catch {
     // ignore
   }
 }
 
-export function getSchemaVersion(): number {
+export async function getSchemaVersion(): Promise<number> {
+  const useIDB = await checkIDBAvailable();
+  if (useIDB) {
+    try {
+      return await idbGetVersion('schemaVersion');
+    } catch {
+      // fall through
+    }
+  }
   try {
-    const v = localStorage.getItem(SCHEMA_KEY);
+    const v = localStorage.getItem('gestao-financeira-schema-version');
     return v ? Number(v) : 0;
   } catch {
     return 0;
   }
 }
 
-export function migrateAllStores(migrationsMap: Record<string, Migration<unknown>[]>): void {
+export async function migrateAllStores(
+  migrationsMap: Record<string, Migration<unknown>[]>
+): Promise<void> {
+  // First, migrate any existing localStorage data to IndexedDB
+  await migrateFromLocalStorage();
+
   for (const [key, migrations] of Object.entries(migrationsMap)) {
-    const currentVersion = getStorageVersion(key);
+    const currentVersion = await getStorageVersion(key);
     if (currentVersion < STORAGE_SCHEMA_VERSION) {
-      const data = readStored(key, migrations);
-      writeStored(key, data);
-      setSchemaVersion(STORAGE_SCHEMA_VERSION);
+      const data = await readStored(key, migrations);
+      await writeStored(key, data);
+      await setSchemaVersion(STORAGE_SCHEMA_VERSION);
     }
   }
+}
+
+export async function initializeStorage(): Promise<void> {
+  await checkIDBAvailable();
+  await migrateFromLocalStorage();
 }

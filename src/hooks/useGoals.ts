@@ -23,7 +23,7 @@ export function useGoals() {
             setUseSupabaseSync(true);
           }
           if (data.length === 0) {
-            const saved = readStored<Goal>(GOALS_STORAGE_KEY);
+            const saved = await readStored<Goal>(GOALS_STORAGE_KEY);
             if (saved.length > 0 && !cancelled) {
               // Só remove o backup local se TODOS os upserts derem certo —
               // falha parcial não pode apagar metas que ficaram só no dispositivo.
@@ -46,13 +46,13 @@ export function useGoals() {
         } catch (e) {
           logError('Failed to load goals from Supabase', e);
           if (!cancelled) setUseSupabaseSync(false);
-          const saved = readStored<Goal>(GOALS_STORAGE_KEY);
+          const saved = await readStored<Goal>(GOALS_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) setGoals(saved);
         } finally {
           if (!cancelled) setIsLoading(false);
         }
       } else {
-        const saved = readStored<Goal>(GOALS_STORAGE_KEY);
+        const saved = await readStored<Goal>(GOALS_STORAGE_KEY);
         if (saved.length > 0) setGoals(saved);
         setIsLoading(false);
       }

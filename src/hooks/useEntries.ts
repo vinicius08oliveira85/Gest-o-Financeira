@@ -109,7 +109,7 @@ export function useEntries() {
             }
           }
           if (data.length === 0) {
-            const saved = readStored<Entry>(ENTRIES_STORAGE_KEY);
+            const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
             if (saved.length > 0 && !cancelled) {
               if (!cancelled) setIsMigrating(true);
               try {
@@ -131,7 +131,7 @@ export function useEntries() {
             setShowOfflineBanner(true);
             setIsCloudUnavailable(true);
           }
-          const saved = readStored<Entry>(ENTRIES_STORAGE_KEY);
+          const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) {
             setEntries(saved);
             dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
@@ -142,7 +142,7 @@ export function useEntries() {
           if (!cancelled) setIsLoading(false);
         }
       } else {
-        const saved = readStored<Entry>(ENTRIES_STORAGE_KEY);
+        const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
         if (saved.length > 0) {
           setEntries(saved);
           dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
@@ -173,9 +173,9 @@ export function useEntries() {
     }
   }, []);
 
-  const saveEntriesLocal = useCallback(() => {
+  const saveEntriesLocal = useCallback(async () => {
     try {
-      writeStored(ENTRIES_STORAGE_KEY, entriesRef.current);
+      await writeStored(ENTRIES_STORAGE_KEY, entriesRef.current);
     } catch (e) {
       logError('Failed to save entries to localStorage', e);
       setSaveError('Não foi possível salvar localmente.');
