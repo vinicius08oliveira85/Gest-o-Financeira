@@ -182,6 +182,15 @@ export function useEntries() {
     }
   }, []);
 
+  const entriesSyncAvailable = isSupabaseConfigured();
+
+  /** Auto-save entries to local storage when they change (unless syncing with Supabase). */
+  useEffect(() => {
+    if (!entriesSyncAvailable) {
+      writeStored(ENTRIES_STORAGE_KEY, entries);
+    }
+  }, [entries, entriesSyncAvailable]);
+
   /** Envia alterações locais (delta) ao Supabase e atualiza o estado com o retorno do servidor. */
   const pushEntriesToSupabase = useCallback(async () => {
     if (!isSupabaseConfigured()) return;

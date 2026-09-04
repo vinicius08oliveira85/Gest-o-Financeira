@@ -28,7 +28,7 @@ const mockEntries: Entry[] = [
 ];
 
 vi.mock('../lib/supabase', () => ({
-  isSupabaseConfigured: vi.fn(),
+  isSupabaseConfigured: vi.fn(() => false),
   supabase: null,
 }));
 
@@ -42,7 +42,7 @@ vi.mock('../lib/entriesDb', () => ({
 describe('useEntries', () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.clearAllMocks();
+    // Don't clear mocks - supabase mock needs to stay configured
   });
 
   afterEach(() => {
