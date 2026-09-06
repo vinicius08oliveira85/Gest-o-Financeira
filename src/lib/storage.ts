@@ -70,6 +70,7 @@ export async function readStored<T>(key: string, migrations: Migration<T>[] = []
       if (allRecords.length > 0) {
         return runMigrations(allRecords, currentVersion, migrations);
       }
+      // IndexedDB empty - check localStorage as fallback (data might not be migrated yet)
     } catch (e) {
       logWarn(`IDB read failed for ${key}, falling back to localStorage`, e);
     }
