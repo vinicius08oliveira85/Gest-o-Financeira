@@ -63,7 +63,10 @@ describe('exportEntriesToCSV', () => {
   it('gera CSV com headers e uma linha para uma entrada', () => {
     let capturedParts: BlobPart[] = [];
     const RealBlob = global.Blob;
-    vi.spyOn(global, 'Blob').mockImplementation((parts?: BlobPart[], opts?: BlobPropertyBag) => {
+    vi.spyOn(global, 'Blob').mockImplementation(function (
+      parts?: BlobPart[],
+      opts?: BlobPropertyBag
+    ) {
       capturedParts = parts ? [...parts] : [];
       return new RealBlob(parts ?? [], opts);
     });
@@ -102,7 +105,10 @@ describe('exportEntriesToCSV', () => {
   it('prefixa BOM UTF-8 para o Excel ler acentos', () => {
     let capturedParts: BlobPart[] = [];
     const RealBlob = global.Blob;
-    vi.spyOn(global, 'Blob').mockImplementation((parts?: BlobPart[], opts?: BlobPropertyBag) => {
+    vi.spyOn(global, 'Blob').mockImplementation(function (
+      parts?: BlobPart[],
+      opts?: BlobPropertyBag
+    ) {
       capturedParts = parts ? [...parts] : [];
       return new RealBlob(parts ?? [], opts);
     });
@@ -127,7 +133,10 @@ describe('exportEntriesToCSV', () => {
   it('sanitiza células que começam com caracteres de fórmula', () => {
     let capturedParts: BlobPart[] = [];
     const RealBlob = global.Blob;
-    vi.spyOn(global, 'Blob').mockImplementation((parts?: BlobPart[], opts?: BlobPropertyBag) => {
+    vi.spyOn(global, 'Blob').mockImplementation(function (
+      parts?: BlobPart[],
+      opts?: BlobPropertyBag
+    ) {
       capturedParts = parts ? [...parts] : [];
       return new RealBlob(parts ?? [], opts);
     });
