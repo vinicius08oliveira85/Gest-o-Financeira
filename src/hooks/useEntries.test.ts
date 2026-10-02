@@ -86,6 +86,76 @@ describe('useEntries', () => {
     expect(result.current.entries).toHaveLength(2);
   });
 
+  it('com Supabase: reenvia e mantém entries locais exclusivas quando a nuvem vem não vazia', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { fetchEntries, insertEntriesBatch } = await import('../lib/entriesDb');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    const cloudOnly: Entry = { ...mockEntries[0], id: 'cloud', name: 'Somente na nuvem' };
+    const localOnly: Entry = { ...mockEntries[1], id: 'local', name: 'Somente local' };
+    vi.mocked(fetchEntries)
+      .mockResolvedValueOnce([cloudOnly])
+      .mockResolvedValue([cloudOnly, localOnly]);
+    vi.mocked(insertEntriesBatch).mockResolvedValue(undefined as unknown as void);
+    localStorage.setItem(
+      ENTRIES_STORAGE_KEY,
+      JSON.stringify({ version: 1, data: [cloudOnly, localOnly], updatedAt: Date.now() })
+    );
+
+    const { result } = renderHook(() => useEntries());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 2000 });
+
+    expect(insertEntriesBatch).toHaveBeenCalledWith([localOnly]);
+    expect(result.current.entries.map((e) => e.id)).toEqual(
+      expect.arrayContaining(['cloud', 'local'])
+    );
+    const raw = localStorage.getItem(ENTRIES_STORAGE_KEY);
+    expect(JSON.parse(raw as string).data).toHaveLength(2);
+  });
+
+  it('com Supabase: mantém entry local no estado quando o reenvio falha', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { fetchEntries, insertEntriesBatch } = await import('../lib/entriesDb');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    const cloudOnly: Entry = { ...mockEntries[0], id: 'cloud', name: 'Somente na nuvem' };
+    const localOnly: Entry = { ...mockEntries[1], id: 'local', name: 'Somente local' };
+    vi.mocked(fetchEntries).mockResolvedValue([cloudOnly]);
+    vi.mocked(insertEntriesBatch).mockRejectedValue(new Error('offline'));
+    localStorage.setItem(
+      ENTRIES_STORAGE_KEY,
+      JSON.stringify({ version: 1, data: [cloudOnly, localOnly], updatedAt: Date.now() })
+    );
+
+    const { result } = renderHook(() => useEntries());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 2000 });
+
+    expect(result.current.entries.map((e) => e.id)).toEqual(
+      expect.arrayContaining(['cloud', 'local'])
+    );
+    const raw = localStorage.getItem(ENTRIES_STORAGE_KEY);
+    expect(JSON.parse(raw as string).data).toHaveLength(2);
+  });
+
+  it('com Supabase: não sobrescreve o backup local com [] durante o hydrate', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { fetchEntries } = await import('../lib/entriesDb');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(fetchEntries).mockResolvedValue(mockEntries);
+    localStorage.setItem(
+      ENTRIES_STORAGE_KEY,
+      JSON.stringify({ version: 1, data: mockEntries, updatedAt: Date.now() })
+    );
+
+    const { result } = renderHook(() => useEntries());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 2000 });
+
+    const raw = localStorage.getItem(ENTRIES_STORAGE_KEY);
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw as string).data).toHaveLength(2);
+  });
+
   it('filtros (filter, selectedCategory) refletidos em filteredEntries', async () => {
     const { isSupabaseConfigured } = await import('../lib/supabase');
     vi.mocked(isSupabaseConfigured).mockReturnValue(false);

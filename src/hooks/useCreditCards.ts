@@ -6,6 +6,7 @@ import { logError } from '../lib/logger';
 import { fetchCards, upsertCard as upsertCardDb, deleteCard as deleteCardDb } from '../lib/cardsDb';
 import { randomUUID } from '../lib/uuid';
 import { readStored, writeStored } from '../lib/storage';
+import { mergeUnconfirmed } from '../lib/recovery';
 
 export function useCreditCards() {
   const [cards, setCards] = useState<CreditCard[]>([]);
@@ -18,29 +19,27 @@ export function useCreditCards() {
       if (isSupabaseConfigured()) {
         try {
           const data = await fetchCards();
+          // Lê o espelho local ANTES de sobrescrever o estado: quando a nuvem devolveva
+          // ao menos uma linha, os cartões que existiam só neste dispositivo sumiam.
+          const saved = await readStored<CreditCard>(CARDS_STORAGE_KEY);
+          const localOnly = saved.filter((c) => !data.some((d) => d.id === c.id));
+
           if (!cancelled) {
             setCards(data);
             setUseSupabaseSync(true);
           }
-          if (data.length === 0) {
-            const saved = await readStored<CreditCard>(CARDS_STORAGE_KEY);
-            if (saved.length > 0 && !cancelled) {
-              // Só remove o backup local se TODOS os upserts derem certo —
-              // falha parcial não pode apagar cartões que ficaram só no dispositivo.
-              let migrationFailed = false;
-              for (const c of saved) {
-                try {
-                  await upsertCardDb(c);
-                } catch (e) {
-                  migrationFailed = true;
-                  logError('Migration card failed', e);
-                }
+          if (localOnly.length > 0 && !cancelled) {
+            for (const c of localOnly) {
+              try {
+                await upsertCardDb(c);
+              } catch (e) {
+                logError('Migration card failed', e);
               }
-              const refetched = await fetchCards();
-              if (!cancelled) setCards(refetched);
-              if (!migrationFailed) {
-                // Migration successful, data now in Supabase
-              }
+            }
+            const refetched = await fetchCards();
+            if (!cancelled) {
+              // O que o servidor recusou continua visível e no espelho local.
+              setCards(mergeUnconfirmed(refetched, localOnly));
             }
           }
         } catch (e) {
@@ -63,11 +62,15 @@ export function useCreditCards() {
     };
   }, []);
 
+  /**
+   * Espelho local sempre ativo: nada é gravado antes do hydrate (o estado inicial
+   * `[]` apagava o backup) e o espelho acompanha o estado mesmo em modo nuvem,
+   * para que um reload após falha de sync não restaure uma cópia velha.
+   */
   useEffect(() => {
-    if (!isSupabaseConfigured() || !useSupabaseSync) {
-      writeStored(CARDS_STORAGE_KEY, cards);
-    }
-  }, [cards, useSupabaseSync]);
+    if (isLoadingCards) return;
+    writeStored(CARDS_STORAGE_KEY, cards);
+  }, [cards, isLoadingCards]);
 
   const upsertCard = useCallback(
     (card: Omit<CreditCard, 'id'> & { id?: string }) => {

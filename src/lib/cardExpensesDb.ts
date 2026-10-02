@@ -85,6 +85,26 @@ export async function insertExpense(expense: Omit<CardExpense, 'id'>): Promise<C
   return rowToExpense(data as CardExpenseRow);
 }
 
+/**
+ * Inserção/atualização preservando o `id` — usado na migração do backup local.
+ * `insertExpense` gera um id novo, o que criaria duplicatas a cada hydrate.
+ */
+export async function upsertExpense(
+  expense: Omit<CardExpense, 'id'> & { id?: string }
+): Promise<CardExpense> {
+  if (!supabase) throw new Error('Supabase not configured');
+  const id = expense.id ?? randomUUID();
+  const row = expenseToRow({ ...(expense as Omit<CardExpense, 'id'>), id });
+  const payload = { id, ...row };
+  const { data, error } = await supabase
+    .from('card_expenses')
+    .upsert(payload, { onConflict: 'id' })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return rowToExpense(data as CardExpenseRow);
+}
+
 export async function updateExpense(expense: CardExpense): Promise<CardExpense> {
   if (!supabase) throw new Error('Supabase not configured');
   const { id, ...rest } = expense;

@@ -6,6 +6,7 @@ import { logError } from '../lib/logger';
 import {
   fetchAllExpenses,
   insertExpense as insertExpenseDb,
+  upsertExpense as upsertExpenseDb,
   updateExpense as updateExpenseDb,
   deleteExpense as deleteExpenseDb,
   deleteExpensesByCard as deleteExpensesByCardDb,
@@ -13,6 +14,7 @@ import {
 import { randomUUID } from '../lib/uuid';
 import { propagateInstallmentUpdate } from '../lib/installments';
 import { readStored, writeStored } from '../lib/storage';
+import { mergeUnconfirmed } from '../lib/recovery';
 
 export function useCardExpenses() {
   const [expenses, setExpenses] = useState<CardExpense[]>([]);
@@ -25,9 +27,30 @@ export function useCardExpenses() {
       if (isSupabaseConfigured()) {
         try {
           const data = await fetchAllExpenses();
+          // Lê o espelho local ANTES de sobrescrever o estado: quando a nuvem devolveva
+          // ao menos uma linha, os gastos que existiam só neste dispositivo sumiam.
+          const saved = await readStored<CardExpense>(CARD_EXPENSES_STORAGE_KEY);
+          const localOnly = saved.filter((e) => !data.some((d) => d.id === e.id));
+
           if (!cancelled) {
             setExpenses(data);
             setUseSupabaseSync(true);
+          }
+          if (localOnly.length > 0 && !cancelled) {
+            // `upsertExpense` preserva o id; `insertExpense` geraria um id novo e
+            // duplicaria o gasto a cada hydrate.
+            for (const expense of localOnly) {
+              try {
+                await upsertExpenseDb(expense);
+              } catch (e) {
+                logError('Migration card expense failed', e);
+              }
+            }
+            const refetched = await fetchAllExpenses();
+            if (!cancelled) {
+              // O que o servidor recusou continua visível e no espelho local.
+              setExpenses(mergeUnconfirmed(refetched, localOnly));
+            }
           }
         } catch (e) {
           logError('Failed to load card expenses from Supabase', e);
@@ -49,11 +72,15 @@ export function useCardExpenses() {
     };
   }, []);
 
+  /**
+   * Espelho local sempre ativo: nada é gravado antes do hydrate (o estado inicial
+   * `[]` apagava o backup) e o espelho acompanha o estado mesmo em modo nuvem,
+   * para que um reload após falha de sync não restaure uma cópia velha.
+   */
   useEffect(() => {
-    if (!isSupabaseConfigured() || !useSupabaseSync) {
-      writeStored(CARD_EXPENSES_STORAGE_KEY, expenses);
-    }
-  }, [expenses, useSupabaseSync]);
+    if (isLoadingExpenses) return;
+    writeStored(CARD_EXPENSES_STORAGE_KEY, expenses);
+  }, [expenses, isLoadingExpenses]);
 
   const addExpense = useCallback(
     async (expense: Omit<CardExpense, 'id' | 'createdAt'>) => {

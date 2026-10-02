@@ -17,6 +17,7 @@ import {
 } from '../lib/recurringEntries';
 import { propagateEntryInstallmentUpdate } from '../lib/installments';
 import { readStored, writeStored } from '../lib/storage';
+import { mergeUnconfirmed } from '../lib/recovery';
 
 function readSuppressedRecurringSlots(): Set<string> {
   try {
@@ -94,11 +95,20 @@ export function useEntries() {
       if (isSupabaseConfigured()) {
         try {
           const data = await fetchEntries();
+          // Lê o espelho local ANTES de sobrescrever o estado: quando a nuvem devolve
+          // ao menos uma linha, o backup local era ignorado e lançamentos que só
+          // existiam neste dispositivo sumiam do nada.
+          const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
+          const localOnly = saved.filter((e) => !data.some((d) => d.id === e.id));
+
           if (!cancelled) {
             setEntries(data);
-            dirtyEntryIdsRef.current.clear();
             setIsCloudUnavailable(false);
           }
+          // Ids locais ainda não confirmados pela nuvem continuam pendentes para o
+          // próximo save; só os confirmados pela resposta são limpos.
+          dirtyEntryIdsRef.current = new Set(localOnly.map((e) => e.id));
+
           const copies = generateMissingRecurringCopies(data, suppressedRecurringSlotsRef.current);
           if (copies.length > 0 && !cancelled) {
             try {
@@ -108,22 +118,25 @@ export function useEntries() {
               logError('Failed to insert recurring copies', e);
             }
           }
-          if (data.length === 0) {
-            const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
-            if (saved.length > 0 && !cancelled) {
-              if (!cancelled) setIsMigrating(true);
-              try {
-                await insertEntriesBatch(saved);
-                const refetched = await fetchEntries();
-                if (!cancelled) {
-                  setEntries(refetched);
-                  dirtyEntryIdsRef.current.clear();
-                  setIsCloudUnavailable(false);
-                }
-              } finally {
-                if (!cancelled) setIsMigrating(false);
+          if (localOnly.length > 0) {
+            if (!cancelled) setIsMigrating(true);
+            try {
+              await insertEntriesBatch(localOnly);
+              const refetched = await fetchEntries();
+              if (!cancelled) {
+                // O que o servidor recusou continua visível e pendente.
+                const merged = mergeUnconfirmed(refetched, localOnly);
+                setEntries(merged);
+                dirtyEntryIdsRef.current = new Set(
+                  merged.filter((e) => localOnly.some((l) => l.id === e.id)).map((e) => e.id)
+                );
+                setIsCloudUnavailable(false);
               }
+            } finally {
+              if (!cancelled) setIsMigrating(false);
             }
+          } else {
+            dirtyEntryIdsRef.current.clear();
           }
         } catch (e) {
           logError('Failed to load entries from Supabase', e);
@@ -182,14 +195,18 @@ export function useEntries() {
     }
   }, []);
 
-  const entriesSyncAvailable = isSupabaseConfigured();
-
-  /** Auto-save entries to local storage when they change (unless syncing with Supabase). */
+  /**
+   * Espelho local sempre ativo — inclusive em modo nuvem.
+   *
+   * Antes o autosave ficava desativado com Supabase configurado, então alterações
+   * ficam só em memória até clicar em Salvar: um reload (ou queda) antes do push
+   * descartava tudo. O guard de `isLoading` impede a gravação do `[]` inicial, que
+   * zerava o backup antes do hydrate.
+   */
   useEffect(() => {
-    if (!entriesSyncAvailable) {
-      writeStored(ENTRIES_STORAGE_KEY, entries);
-    }
-  }, [entries, entriesSyncAvailable]);
+    if (isLoading) return;
+    writeStored(ENTRIES_STORAGE_KEY, entries);
+  }, [entries, isLoading]);
 
   /** Envia alterações locais (delta) ao Supabase e atualiza o estado com o retorno do servidor. */
   const pushEntriesToSupabase = useCallback(async () => {
