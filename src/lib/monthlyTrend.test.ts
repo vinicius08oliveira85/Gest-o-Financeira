@@ -257,4 +257,26 @@ describe('buildMonthlyTrend', () => {
     expect(trend.every((p) => p.cardUsage === null)).toBe(true);
     expect(averageCardUsage(trend)).toBeNull();
   });
+
+  it('o mês de início do limite é o de criação em UTC, independente do fuso', () => {
+    // Regressão: `createdAt` é ISO em UTC. Comparado com getMonth()/getFullYear(),
+    // em fusos atrás de UTC (BRT = -3) um cartão criado em 01/02T00:00Z voltava
+    // para o mês anterior e inflava a janela com um limite inexistente.
+    const cards = [card('c1', 1000, '2025-02-01T00:00:00Z')];
+
+    // currentMonth é 0-indexado: 1 = fev. Janela de 2 meses = [jan, fev].
+    const trend = buildMonthlyTrend([], 1, 2025, 2, [], cards);
+
+    expect(trend[0].cardUsage).toBeNull();
+    expect(trend[1].cardLimit).toBe(1000);
+  });
+
+  it('createdAt no meio do mês continua valendo no mesmo mês', () => {
+    const cards = [card('c1', 1000, '2025-01-15T12:00:00Z')];
+
+    // currentMonth 0 = jan, janela de 1 mês = [jan].
+    const trend = buildMonthlyTrend([], 0, 2025, 1, [], cards);
+
+    expect(trend[0].cardLimit).toBe(1000);
+  });
 });
