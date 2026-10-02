@@ -58,7 +58,10 @@ describe('ReportsPanel', () => {
   it('exporta o relatório completo (KPIs + categorias) em CSV', () => {
     let capturedParts: BlobPart[] = [];
     const RealBlob = global.Blob;
-    vi.spyOn(global, 'Blob').mockImplementation((parts?: BlobPart[], opts?: BlobPropertyBag) => {
+    vi.spyOn(global, 'Blob').mockImplementation(function (
+      parts?: BlobPart[],
+      opts?: BlobPropertyBag
+    ) {
       capturedParts = parts ? [...parts] : [];
       return new RealBlob(parts ?? [], opts);
     });
