@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { webcrypto } from 'node:crypto';
 
 // jsdom não implementa WebCrypto (crypto.subtle); usa o webcrypto do Node para os testes
