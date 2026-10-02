@@ -1,8 +1,8 @@
 import { logError, logWarn } from './logger';
 import {
   idbGetAll,
-  idbPut,
   idbClear,
+  idbReplaceAll,
   idbGetVersion,
   idbSetVersion,
   migrateFromLocalStorage,
@@ -19,9 +19,15 @@ const STORE_MAP: Record<string, StoreName> = {
   'gestao-financeira-suppressed-recurring-slots': 'suppressedRecurring',
   'gestao-financeira-onboarding': 'onboarding',
   'gestao-financeira-dismissed-alerts': 'dismissedAlerts',
-  'gestao-financeira-pw': 'password',
   'gestao-financeira-trend-months': 'trendMonths',
 };
+
+// `gestao-financeira-pw` fica de fora de propósito. O hash da senha é lido de
+// forma síncrona por `password.ts`, que só conversa com `localStorage`. A
+// migration movia o hash para o IndexedDB e apagava a chave original, deixando o
+// registro órfão num store que ninguém lê: a trava de tela deixava de existir
+// silenciosamente após a migration. Manter a chave no localStorage preserva o
+// comportamento sem custo de sincronização.
 
 export type StoredData<T> = {
   version: number;
@@ -31,28 +37,45 @@ export type StoredData<T> = {
 
 export type Migration<T> = (data: T[]) => T[];
 
+const IDB_PROBE_DB = 'gestao-financeira-db-probe';
+
 let idbAvailable: boolean | null = null;
 
 async function checkIDBAvailable(): Promise<boolean> {
   if (idbAvailable !== null) return idbAvailable;
-  try {
-    const db = await indexedDB.open('gestao-financeira-db-test', 1);
-    db.onerror = () => {
-      idbAvailable = false;
+
+  idbAvailable = await new Promise<boolean>((resolve) => {
+    let request: IDBOpenDBRequest;
+    try {
+      request = indexedDB.open(IDB_PROBE_DB, 1);
+    } catch {
+      resolve(false);
+      return;
+    }
+
+    request.onupgradeneeded = () => {
+      // Só precisamos da conexão; nenhum store é necessário.
     };
-    db.onsuccess = () => {
-      idbAvailable = true;
-      db.result.close();
-      indexedDB.deleteDatabase('gestao-financeira-db-test');
+    request.onsuccess = () => {
+      request.result.close();
+      const cleanup = indexedDB.deleteDatabase(IDB_PROBE_DB);
+      cleanup.onerror = () => {};
+      cleanup.onblocked = () => {};
+      resolve(true);
     };
-    await new Promise<void>((resolve, reject) => {
-      db.onerror = () => reject(db.error);
-      db.onsuccess = () => resolve();
-    });
-  } catch {
-    idbAvailable = false;
-  }
-  return idbAvailable ?? false;
+    request.onerror = () => resolve(false);
+    request.onblocked = () => resolve(false);
+  });
+
+  return idbAvailable;
+}
+
+if (typeof document !== 'undefined') {
+  // Uma falha transitória (aba em background, quotas) deixaria o app preso no
+  // fallback de `localStorage` para sempre. Reavalia ao voltar para foreground.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) idbAvailable = null;
+  });
 }
 
 function getStoreName(key: string): StoreName {
@@ -106,12 +129,14 @@ export async function writeStored<T>(key: string, data: T[]): Promise<void> {
 
   if (useIDB) {
     try {
-      await idbClear(store);
-      for (const item of data) {
+      // Uma única transação: o `clear` e os `put` não podem ser observados
+      // separadamente por uma leitura concorrente nem separados por um
+      // encerramento abrupto no meio da gravação.
+      const records = data.map((item) => {
         const id = (item as { id?: string }).id ?? crypto.randomUUID();
-        await idbPut(store, id, { ...item, id } as T);
-      }
-      await idbSetVersion(store, STORAGE_SCHEMA_VERSION);
+        return { id, data: { ...item, id } as T };
+      });
+      await idbReplaceAll(store, records, STORAGE_SCHEMA_VERSION);
       return;
     } catch (e) {
       logWarn(`IDB write failed for ${key}, falling back to localStorage`, e);
