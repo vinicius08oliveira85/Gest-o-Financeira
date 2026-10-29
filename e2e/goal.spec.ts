@@ -7,8 +7,10 @@ test.describe('Salvar meta', () => {
   });
 
   test('abre modal de meta, preenche e salva; exibe toast Meta salva', async ({ page }) => {
+    await page.getByRole('button', { name: /^metas$/i }).click();
+    // Sem meta cadastrada o único CTA é o do estado vazio ("Criar primeira meta").
     await page
-      .getByRole('button', { name: /criar meta|editar meta/i })
+      .getByRole('button', { name: /criar primeira meta|criar meta|editar/i })
       .first()
       .click();
     await expect(page.getByRole('heading', { name: /nova meta|editar meta/i })).toBeVisible();

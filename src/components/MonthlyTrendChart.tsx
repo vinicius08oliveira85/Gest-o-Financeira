@@ -61,7 +61,7 @@ function UsageCell({ usage, cards = [] }: { usage: number | null; cards?: CardLi
               aria-hidden
             />
           )}
-          <span className="inline-block w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
+          <span className="hidden sm:inline-block w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
             <span
               className={`block h-full rounded-full ${usageStyle(usage).bar}`}
               style={{ width: `${Math.min(usage, 100)}%` }}
@@ -76,7 +76,9 @@ function UsageCell({ usage, cards = [] }: { usage: number | null; cards?: CardLi
         return (
           <span
             key={c.cardId}
-            className="inline-flex items-center justify-end gap-1.5 max-w-full"
+            // O detalhe por cartão é o que mais alarga a coluna "Uso"; no celular
+            // a tabela rolava de lado e escondia o saldo.
+            className="hidden sm:inline-flex items-center justify-end gap-1.5 max-w-full"
             title={`${c.name}: ${u.toFixed(1).replace('.', ',')}% do limite`}
           >
             <span className="truncate max-w-[72px] text-slate-400 dark:text-slate-500">
@@ -597,17 +599,23 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
         )}
       </div>
 
+      {/* No celular as colunas "Cartão" e "Limite" não cabiam: a tabela rolava
+          de lado e a última coluna (Saldo) ficava escondida fora da tela. */}
       <div className="overflow-x-auto">
         <table className="w-full text-3xs text-slate-600 dark:text-slate-400">
           <thead>
             <tr className="text-left text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              <th className="py-1 pr-2 font-semibold">Mês</th>
-              <th className="py-1 px-2 font-semibold text-right">Entradas</th>
-              <th className="py-1 px-2 font-semibold text-right">Saídas</th>
-              <th className="py-1 px-2 font-semibold text-right">Cartão</th>
-              <th className="py-1 px-2 font-semibold text-right">Limite</th>
-              <th className="py-1 px-2 font-semibold text-right">Uso</th>
-              <th className="py-1 pl-2 font-semibold text-right">Saldo</th>
+              <th className="py-1 px-1.5 sm:pr-2 font-semibold">Mês</th>
+              <th className="py-1 px-1.5 sm:px-2 font-semibold text-right">Entradas</th>
+              <th className="py-1 px-1.5 sm:px-2 font-semibold text-right">Saídas</th>
+              <th className="py-1 px-1.5 sm:px-2 font-semibold text-right hidden sm:table-cell">
+                Cartão
+              </th>
+              <th className="py-1 px-1.5 sm:px-2 font-semibold text-right hidden sm:table-cell">
+                Limite
+              </th>
+              <th className="py-1 px-1.5 sm:px-2 font-semibold text-right">Uso</th>
+              <th className="py-1 px-1.5 sm:pl-2 font-semibold text-right">Saldo</th>
             </tr>
           </thead>
           <tbody>
@@ -620,31 +628,31 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
                     : undefined
                 }
               >
-                <td className="py-1 pr-2 capitalize">
+                <td className="py-1 px-1.5 sm:pr-2 capitalize whitespace-nowrap">
                   {p.label}/{String(p.year).slice(2)}
                   {i === currentIndex && (
-                    <span className="ml-1 text-4xs font-medium text-emerald-600 dark:text-emerald-400 uppercase">
+                    <span className="ml-1 text-4xs font-medium text-emerald-600 dark:text-emerald-400 uppercase hidden sm:inline">
                       atual
                     </span>
                   )}
                 </td>
-                <td className="py-1 px-2 text-right text-emerald-600 dark:text-emerald-400">
+                <td className="py-1 px-1.5 sm:px-2 text-right whitespace-nowrap text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(p.entradas)}
                 </td>
-                <td className="py-1 px-2 text-right text-red-600 dark:text-red-400">
+                <td className="py-1 px-1.5 sm:px-2 text-right whitespace-nowrap text-red-600 dark:text-red-400">
                   {formatCurrency(p.saidas)}
                 </td>
-                <td className="py-1 px-2 text-right text-sky-600 dark:text-sky-400">
+                <td className="py-1 px-1.5 sm:px-2 text-right whitespace-nowrap text-sky-600 dark:text-sky-400 hidden sm:table-cell">
                   {formatCurrency(p.cardSpending)}
                 </td>
-                <td className="py-1 px-2 text-right text-blue-600 dark:text-blue-400">
+                <td className="py-1 px-1.5 sm:px-2 text-right whitespace-nowrap text-blue-600 dark:text-blue-400 hidden sm:table-cell">
                   {formatCurrency(p.cardLimit)}
                 </td>
-                <td className="py-1 px-2 text-right">
+                <td className="py-1 px-1.5 sm:px-2 text-right whitespace-nowrap">
                   <UsageCell usage={p.cardUsage} cards={p.cardLimits} />
                 </td>
                 <td
-                  className={`py-1 pl-2 text-right ${
+                  className={`py-1 px-1.5 sm:pl-2 text-right whitespace-nowrap ${
                     p.saldo >= 0
                       ? 'text-emerald-600 dark:text-emerald-400'
                       : 'text-red-600 dark:text-red-400'
@@ -660,17 +668,17 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
               <tr className="border-t border-slate-200 dark:border-slate-700">
                 <td
                   colSpan={5}
-                  className="py-1.5 pr-2 font-medium text-slate-500 dark:text-slate-400"
+                  className="py-1.5 px-1.5 sm:pr-2 font-medium text-slate-500 dark:text-slate-400 leading-tight"
                   title="Média do percentual de uso nos meses com limite cadastrado"
                 >
                   Média de uso
                   {monthsWithUsage !== data.length && ` (${monthsWithUsage} meses com limite)`}
                   {overLimitCount > 0 && ` · ${overLimitCount} acima de 90%`}
                 </td>
-                <td className="py-1.5 px-2 text-right">
+                <td className="py-1.5 px-1.5 sm:px-2 text-right">
                   <UsageCell usage={avgUsage} />
                 </td>
-                <td className="py-1.5 pl-2" />
+                <td className="py-1.5 px-1.5 sm:pl-2" />
               </tr>
             </tfoot>
           )}

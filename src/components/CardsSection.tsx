@@ -34,10 +34,13 @@ export function CardsSection({
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Cartões de crédito
         </h2>
-        <button type="button" onClick={onNewCard} className="neu-btn-primary btn-action">
-          <Plus size={16} />
-          Novo cartão
-        </button>
+        {/* Com a lista vazia o botão duplicava a ação do EmptyState logo abaixo. */}
+        {cards.length > 0 && (
+          <button type="button" onClick={onNewCard} className="neu-btn-primary btn-action">
+            <Plus size={16} />
+            Novo cartão
+          </button>
+        )}
       </div>
 
       {cards.length === 0 ? (

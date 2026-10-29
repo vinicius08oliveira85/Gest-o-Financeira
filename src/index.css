@@ -139,6 +139,9 @@
     max-width: var(--page-max);
     margin-inline: auto;
     padding-inline: var(--page-px);
+    /* Sem isto, filhos com conteúdo largo (ex.: pílulas de filtro) forçavam a
+       página inteira a ficar mais larga que a tela no celular. */
+    min-width: 0;
   }
 
   .page-stack {
@@ -146,12 +149,22 @@
     flex-direction: column;
     gap: var(--stack-gap);
     padding-block: var(--page-py);
+    min-width: 0;
+  }
+
+  /* O botão flutuante (só no celular) fica por cima do conteúdo: sem esta folga
+     o último lançamento nunca saía de baixo dele. */
+  @media (max-width: 47.9375rem) {
+    .page-stack {
+      padding-bottom: calc(var(--page-py) + 4.5rem);
+    }
   }
 
   .section-stack {
     display: flex;
     flex-direction: column;
     gap: var(--section-gap);
+    min-width: 0;
   }
 
   .header-shell {
@@ -210,6 +223,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--inline-gap);
+    min-width: 0;
   }
 
   .banner-row {
@@ -238,32 +252,36 @@
     gap: var(--section-gap);
     max-width: var(--goals-max);
     width: 100%;
+    min-width: 0;
   }
 
+  /* `minmax(0, 1fr)`: com `1fr` o mínimo automático da coluna é o min-content do
+     card, então textos longos (ex.: "Só entradas e saídas finalizadas") alargavam
+     a coluna e o card vazava para fora da tela. */
   .dashboard-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--card-gap);
     width: 100%;
   }
 
   .cards-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--card-gap);
     width: 100%;
   }
 
   .reports-kpi-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--card-gap);
     width: 100%;
   }
 
   .reports-split-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--card-gap);
     width: 100%;
   }

@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import type { Entry } from '../types';
 import { EntryItem } from './EntryItem';
@@ -12,6 +12,9 @@ type EntryListProps = {
   compact?: boolean;
   /** Agrupa os itens por data de vencimento com um cabeçalho por dia */
   groupByDate?: boolean;
+  /** Lista vazia por causa de filtro/busca (não por falta de lançamentos) */
+  filtered?: boolean;
+  onClearFilters?: () => void;
 };
 
 function groupEntriesByDate(entries: Entry[]): Map<string, Entry[]> {
@@ -29,6 +32,17 @@ function groupEntriesByDate(entries: Entry[]): Map<string, Entry[]> {
     result.set(key, map.get(key)!);
   }
   return result;
+}
+
+/**
+ * Atraso da animação de entrada por posição.
+ *
+ * Antes era `index * 50ms`: numa lista de 60 lançamentos o último item só
+ * aparecia 3s depois de abrir a aba (parecia que faltavam registros). O atraso
+ * agora para nos primeiros itens — o resto entra junto.
+ */
+function staggerDelay(index: number): number {
+  return Math.min(index, 6) * 40;
 }
 
 function formatDateGroupLabel(isoDate: string): string {
@@ -51,6 +65,8 @@ export function EntryList({
   onDeleteRequest,
   compact = false,
   groupByDate = false,
+  filtered = false,
+  onClearFilters,
 }: EntryListProps) {
   const groupedByDate = useMemo(
     () => (groupByDate && entries.length > 0 ? groupEntriesByDate(entries) : null),
@@ -70,16 +86,15 @@ export function EntryList({
                   </div>
                   <div className="space-y-1">
                     {dayEntries.map((entry, index) => (
-                      <React.Fragment key={entry.id}>
-                        <EntryItem
-                          entry={entry}
-                          onTogglePaid={onTogglePaid}
-                          onEdit={onEdit}
-                          onDeleteRequest={onDeleteRequest}
-                          compact={compact}
-                          staggerDelay={index * 50}
-                        />
-                      </React.Fragment>
+                      <EntryItem
+                        key={entry.id}
+                        entry={entry}
+                        onTogglePaid={onTogglePaid}
+                        onEdit={onEdit}
+                        onDeleteRequest={onDeleteRequest}
+                        compact={compact}
+                        staggerDelay={staggerDelay(index)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -88,23 +103,22 @@ export function EntryList({
           ) : (
             <div className="neu-list">
               {entries.map((entry, index) => (
-                <React.Fragment key={entry.id}>
-                  <EntryItem
-                    entry={entry}
-                    onTogglePaid={onTogglePaid}
-                    onEdit={onEdit}
-                    onDeleteRequest={onDeleteRequest}
-                    compact={compact}
-                    staggerDelay={index * 50}
-                  />
-                </React.Fragment>
+                <EntryItem
+                  key={entry.id}
+                  entry={entry}
+                  onTogglePaid={onTogglePaid}
+                  onEdit={onEdit}
+                  onDeleteRequest={onDeleteRequest}
+                  compact={compact}
+                  staggerDelay={staggerDelay(index)}
+                />
               ))}
             </div>
           )
         ) : (
           <EmptyState
-            variant={entries.length === 0 ? 'entries' : 'entries-filtered'}
-            onAction={onEdit}
+            variant={filtered ? 'entries-filtered' : 'entries'}
+            onAction={filtered ? onClearFilters : onEdit}
           />
         )}
       </AnimatePresence>

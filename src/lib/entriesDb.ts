@@ -97,14 +97,33 @@ export function bumpEntryUpdatedAt(entry: Entry): Entry {
   return { ...entry, updatedAt: Date.now() };
 }
 
+/**
+ * Tamanho da página na leitura do Supabase.
+ *
+ * O PostgREST devolve no máximo `max-rows` (1000 por padrão) por requisição. Uma
+ * única chamada `.select('*')` truncava a lista em silêncio a partir de 1000
+ * lançamentos — o app mostrava "só alguns" registros. Paginamos até a última.
+ */
+const ENTRIES_PAGE_SIZE = 1000;
+
 export async function fetchEntries(): Promise<Entry[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('entries')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((row) => rowToEntry(row as EntryRow));
+  const rows: EntryRow[] = [];
+  for (let from = 0; ; from += ENTRIES_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('entries')
+      .select('*')
+      // Ordem determinística: sem o desempate por `id` a paginação pode repetir
+      // ou pular linhas com o mesmo `created_at`.
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + ENTRIES_PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = (data ?? []) as EntryRow[];
+    rows.push(...page);
+    if (page.length < ENTRIES_PAGE_SIZE) break;
+  }
+  return rows.map(rowToEntry);
 }
 
 function entryToBatchRow(entry: Entry): Record<string, unknown> {

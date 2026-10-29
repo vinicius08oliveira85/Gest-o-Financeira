@@ -73,9 +73,11 @@ export function Header({
           <h1 className="font-semibold text-base sm:text-lg tracking-tight text-slate-900 dark:text-slate-100 truncate">
             Gestão Financeira
           </h1>
+          {/* Escondido no celular: com ele a barra de ações quebrava para uma
+              segunda linha e o cabeçalho fixo comia metade da tela. */}
           {!showEntriesCloudSync && (
             <span
-              className="neu-inset inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap shrink-0"
+              className="neu-inset hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap shrink-0"
               title="Sem nuvem — os dados são salvos apenas neste dispositivo"
             >
               <CloudOff size={11} aria-hidden />

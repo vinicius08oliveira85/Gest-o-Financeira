@@ -9,6 +9,17 @@ import {
   type StoreName,
 } from './idb';
 
+/**
+ * Barreira de inicialização.
+ *
+ * `initializeStorage()` é disparado no boot (main.tsx) sem `await` e a migração
+ * `localStorage` → IndexedDB grava registro por registro. Toda leitura/escrita
+ * agora espera essa promise terminar: sem isso, o hydrate podia ler o store
+ * ainda pela metade e o autosave persistia a lista truncada, fazendo lançamentos
+ * "desaparecerem" da lista mesmo estando salvos.
+ */
+let initPromise: Promise<void> | null = null;
+
 export const STORAGE_SCHEMA_VERSION = 1;
 
 const STORE_MAP: Record<string, StoreName> = {
@@ -83,6 +94,7 @@ function getStoreName(key: string): StoreName {
 }
 
 export async function readStored<T>(key: string, migrations: Migration<T>[] = []): Promise<T[]> {
+  await initializeStorage();
   const useIDB = await checkIDBAvailable();
   const store = getStoreName(key);
 
@@ -124,6 +136,9 @@ export async function readStored<T>(key: string, migrations: Migration<T>[] = []
 }
 
 export async function writeStored<T>(key: string, data: T[]): Promise<void> {
+  // Não grava antes da migração concluir: um write precoce sobrescreveria o
+  // store com o estado parcial lido durante a migração.
+  await initializeStorage();
   const useIDB = await checkIDBAvailable();
   const store = getStoreName(key);
 
@@ -169,6 +184,7 @@ function runMigrations<T>(data: T[], fromVersion: number, migrations: Migration<
 }
 
 export async function clearStorage(key: string): Promise<void> {
+  await initializeStorage();
   const useIDB = await checkIDBAvailable();
   const store = getStoreName(key);
 
@@ -249,7 +265,7 @@ export async function migrateAllStores(
   migrationsMap: Record<string, Migration<unknown>[]>
 ): Promise<void> {
   // First, migrate any existing localStorage data to IndexedDB
-  await migrateFromLocalStorage();
+  await initializeStorage();
 
   for (const [key, migrations] of Object.entries(migrationsMap)) {
     const currentVersion = await getStorageVersion(key);
@@ -261,7 +277,17 @@ export async function migrateAllStores(
   }
 }
 
-export async function initializeStorage(): Promise<void> {
-  await checkIDBAvailable();
-  await migrateFromLocalStorage();
+export function initializeStorage(): Promise<void> {
+  if (!initPromise) {
+    initPromise = (async () => {
+      await checkIDBAvailable();
+      await migrateFromLocalStorage();
+    })().catch((e) => {
+      // Uma falha aqui não pode travar o app para sempre: o próximo acesso cai
+      // no fallback de `localStorage`, e a migração é tentada de novo no boot.
+      logWarn('Falha ao inicializar o armazenamento; usando fallback', e);
+      initPromise = null;
+    });
+  }
+  return initPromise;
 }

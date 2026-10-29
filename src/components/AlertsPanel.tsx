@@ -36,7 +36,9 @@ export function AlertsPanel({ alerts, onDismiss, onAction }: AlertsPanelProps) {
         {alerts.map((alert) => (
           <div
             key={alert.id}
-            className={`neu-list-item px-3 py-2 text-xs text-slate-700 dark:text-slate-300 ${
+            // `flex`: sem isso o botão de dispensar caía numa linha própria, à
+            // esquerda, embaixo do texto do alerta.
+            className={`neu-list-item flex items-start gap-2 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 ${
               onAction ? 'transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/60' : ''
             }`}
           >

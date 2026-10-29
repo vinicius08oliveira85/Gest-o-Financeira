@@ -139,6 +139,16 @@ export function CashFlowSection({
   } = usePeriod();
   const showSkipButton = !showNewEntryHint && !showReportsHint;
 
+  // `capitalize` do CSS deixava "Out. De 2026": capitalizava cada palavra. Só a
+  // inicial do mês deve subir.
+  const monthLabel = useMemo(() => {
+    const raw = new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', {
+      month: 'short',
+      year: 'numeric',
+    });
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }, [currentMonth, currentYear]);
+
   const totalLimiteDisponivel = useMemo(
     () =>
       cards.reduce((sum, card) => {
@@ -226,11 +236,8 @@ export function CashFlowSection({
                 Hoje
               </button>
             )}
-            <span className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200 capitalize whitespace-nowrap">
-              {new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', {
-                month: 'short',
-                year: 'numeric',
-              })}
+            <span className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+              {monthLabel}
             </span>
             <button
               type="button"
@@ -348,6 +355,12 @@ export function CashFlowSection({
                 }}
                 compact
                 groupByDate
+                filtered={entriesCount > 0 && filteredEntries.length === 0}
+                onClearFilters={() => {
+                  setFilter('all');
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
               />
             ) : (
               <Suspense
@@ -403,6 +416,7 @@ export function CashFlowSection({
                 <GoalsCard
                   goal={null}
                   metaBalance={0}
+                  asAddCard={goals.length > 0}
                   onOpenModal={() => onOpenGoalModal()}
                   onDeposit={onDepositToGoal}
                   onWithdraw={onWithdrawFromGoal}

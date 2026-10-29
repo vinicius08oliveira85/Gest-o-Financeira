@@ -46,8 +46,8 @@ export function FilterBar({
 }: FilterBarProps) {
   return (
     <div className="section-stack">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-[var(--inline-gap)]">
-        <div className="relative flex-1 sm:max-w-[min(100%,12.5rem)]">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-[var(--inline-gap)] min-w-0">
+        <div className="relative flex-1 min-w-0 sm:max-w-[min(100%,12.5rem)]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
           <input
             type="search"
@@ -70,7 +70,9 @@ export function FilterBar({
             </button>
           )}
         </div>
-        <div className="neu-inset flex p-1 sm:p-1.5 rounded-full w-full sm:w-auto overflow-x-auto">
+        {/* Quebra em duas linhas no celular em vez de rolar: antes os filtros da
+            direita (Entradas) ficavam fora da área visível. */}
+        <div className="neu-inset flex flex-wrap justify-center gap-0.5 p-1 sm:p-1.5 rounded-2xl sm:rounded-full w-full sm:w-auto min-w-0">
           {FILTER_OPTIONS.map(({ value, label }) => (
             <button
               key={value}
@@ -79,7 +81,7 @@ export function FilterBar({
                 onFilterChange(value);
                 if (value === 'all') onCategoryChange('all');
               }}
-              className={`whitespace-nowrap px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all ${
+              className={`whitespace-nowrap px-2 py-1 sm:px-4 sm:py-1.5 rounded-full text-2xs sm:text-sm font-medium transition-all ${
                 filter === value
                   ? 'neu-filter-active'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -99,8 +101,8 @@ export function FilterBar({
           Filtros avançados
           <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
         </summary>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-[var(--inline-gap)] flex-wrap mt-[var(--section-gap)]">
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-[var(--inline-gap)] flex-wrap mt-[var(--section-gap)] min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 min-w-0">
             <span className="font-medium">Ordenar:</span>
             <NeuSelect
               value={sortBy}
@@ -122,7 +124,7 @@ export function FilterBar({
               ]}
             />
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 min-w-0">
             <span className="font-medium">Categoria:</span>
             <NeuSelect
               value={selectedCategory}

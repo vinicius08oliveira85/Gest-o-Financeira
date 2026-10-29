@@ -179,6 +179,29 @@ export function idbPut<T>(store: StoreName, id: string, data: T, version = 1): P
   });
 }
 
+/**
+ * Grava vários registros numa única transação `readwrite`.
+ *
+ * A migração do `localStorage` usava um `idbPut` por item: enquanto ela corria, o
+ * store ficava visível com apenas parte dos registros e uma leitura concorrente
+ * (o hydrate do app) enxergava uma lista truncada — os demais lançamentos só
+ * existiam no `localStorage`, que a migração apagava no final. Escrever o lote de
+ * uma vez elimina esse estado intermediário.
+ */
+export function idbPutMany<T>(
+  store: StoreName,
+  items: Array<{ id: string; data: T }>,
+  version = 1
+): Promise<void> {
+  if (items.length === 0) return Promise.resolve();
+  const updatedAt = Date.now();
+  return runWriteTransaction(store, (objectStore) => {
+    for (const { id, data } of items) {
+      objectStore.put({ id, data, updatedAt, version } as StoredRecord<T>, id);
+    }
+  });
+}
+
 export function idbDelete(store: StoreName, id: string): Promise<void> {
   return runWriteTransaction(store, (objectStore) => {
     objectStore.delete(id);
@@ -284,18 +307,20 @@ export async function migrateFromLocalStorage(): Promise<void> {
 
     if (!items) continue;
 
-    // `failed` mantém a origem caso alguma escrita não conclua, para que a
-    // próxima execução tente de novo.
-    let failed = false;
-    for (const item of items) {
-      if (!item || typeof item !== 'object') continue;
+    const records = items.flatMap((item) => {
+      if (!item || typeof item !== 'object') return [];
       const record = item as Record<string, unknown>;
       const id = typeof record.id === 'string' && record.id ? record.id : crypto.randomUUID();
-      try {
-        await idbPut(store, id, { ...record, id });
-      } catch {
-        failed = true;
-      }
+      return [{ id, data: { ...record, id } }];
+    });
+
+    // Um único lote: ou o store fica com todos os registros, ou com nenhum —
+    // nunca com metade deles enquanto a migração ainda corre.
+    let failed = false;
+    try {
+      await idbPutMany(store, records);
+    } catch {
+      failed = true;
     }
 
     if (!failed) {
