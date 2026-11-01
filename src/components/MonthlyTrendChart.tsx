@@ -81,7 +81,7 @@ function UsageCell({ usage, cards = [] }: { usage: number | null; cards?: CardLi
             className="hidden sm:inline-flex items-center justify-end gap-1.5 max-w-full"
             title={`${c.name}: ${u.toFixed(1).replace('.', ',')}% do limite`}
           >
-            <span className="truncate max-w-[72px] text-slate-400 dark:text-slate-500">
+            <span className="truncate max-w-[72px] text-slate-600 dark:text-slate-400">
               {c.name}
             </span>
             <span className="inline-block w-8 h-1 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
@@ -129,7 +129,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
 
   if (n === 0 || !hasData) {
     return (
-      <p className="text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-xs text-slate-600 dark:text-slate-400">
         Sem lançamentos nos últimos {n} meses para exibir a evolução.
       </p>
     );
@@ -227,7 +227,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-slate-500 dark:text-slate-400">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-slate-600 dark:text-slate-400">
         <span className="inline-flex items-center gap-1">
           <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500" aria-hidden />
           Entradas
@@ -604,7 +604,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-3xs text-slate-600 dark:text-slate-400">
           <thead>
-            <tr className="text-left text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <tr className="text-left text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               <th className="py-1 px-1.5 sm:pr-2 font-semibold">Mês</th>
               <th className="py-1 px-1.5 sm:px-2 font-semibold text-right">Entradas</th>
               <th className="py-1 px-1.5 sm:px-2 font-semibold text-right">Saídas</th>
@@ -668,7 +668,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
               <tr className="border-t border-slate-200 dark:border-slate-700">
                 <td
                   colSpan={5}
-                  className="py-1.5 px-1.5 sm:pr-2 font-medium text-slate-500 dark:text-slate-400 leading-tight"
+                  className="py-1.5 px-1.5 sm:pr-2 font-medium text-slate-600 dark:text-slate-400 leading-tight"
                   title="Média do percentual de uso nos meses com limite cadastrado"
                 >
                   Média de uso

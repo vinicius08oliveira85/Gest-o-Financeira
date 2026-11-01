@@ -201,7 +201,7 @@
   }
 
   .info-bar {
-    @apply rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm leading-snug text-slate-500 dark:text-slate-400;
+    @apply rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm leading-snug text-slate-600 dark:text-slate-400;
     background-color: color-mix(in srgb, var(--neu-surface) 90%, transparent);
     box-shadow: var(--neu-inset-sm);
     border: 1px dashed color-mix(in srgb, var(--neu-dark) 15%, transparent);
@@ -714,7 +714,7 @@
     background-color: var(--neu-surface);
     box-shadow: var(--neu-raised-sm);
     border: none;
-    @apply p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0 transition-all duration-200;
+    @apply p-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0 transition-all duration-200;
   }
 
   .neu-modal-close:active {
@@ -722,7 +722,7 @@
   }
 
   .neu-btn-link {
-    @apply w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-center;
+    @apply w-full py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-center;
   }
 
   .neu-btn-danger-soft {
@@ -1047,6 +1047,23 @@
 .animate-stagger-in {
   animation: stagger-in 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-stagger-in {
+    animation: none;
+    opacity: 1;
+  }
+  .tap-scale,
+  .hover-lift {
+    transition: none;
+  }
+  .tap-scale:active {
+    transform: none;
+  }
+  .hover-lift:hover {
+    transform: none;
+  }
 }
 
 /* —— Empty state illustration container —— */

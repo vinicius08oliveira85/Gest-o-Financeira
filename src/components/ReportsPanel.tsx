@@ -171,7 +171,7 @@ export function ReportsPanel({
               <Download size={14} />
               Exportar
             </button>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               Visão rápida de entradas, saídas e categorias.
             </p>
           </div>
@@ -183,7 +183,7 @@ export function ReportsPanel({
 
       <div className="reports-kpi-grid">
         <div className="neu-surface rounded-xl card-pad">
-          <p className="text-3xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <p className="text-3xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Total entradas
           </p>
           <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
@@ -192,7 +192,7 @@ export function ReportsPanel({
           <DeltaBadge current={totalByType.entradas} previous={prevTotalEntradas} />
         </div>
         <div className="neu-surface rounded-xl card-pad">
-          <p className="text-3xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <p className="text-3xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Total saídas
           </p>
           <p className="text-lg font-semibold text-red-600 dark:text-red-400 mt-0.5">
@@ -201,7 +201,7 @@ export function ReportsPanel({
           <DeltaBadge current={totalByType.saidas} previous={prevTotalSaidas} invert />
         </div>
         <div className="neu-surface rounded-xl card-pad">
-          <p className="text-3xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <p className="text-3xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Saldo do mês
           </p>
           <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
@@ -213,7 +213,7 @@ export function ReportsPanel({
 
       <div className="reports-split-grid">
         <div className="neu-surface rounded-2xl card-pad section-stack">
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Entradas x Saídas
           </h3>
           <div className="flex flex-col gap-2">
@@ -259,7 +259,7 @@ export function ReportsPanel({
         </div>
 
         <div className="neu-surface rounded-2xl card-pad section-stack">
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Categorias (saídas)
           </h3>
           {categorySaidasEntries.length === 0 ? (
@@ -290,7 +290,7 @@ export function ReportsPanel({
         </div>
 
         <div className="neu-surface rounded-2xl card-pad section-stack">
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Categorias (entradas)
           </h3>
           {categoryEntradasEntries.length === 0 ? (
@@ -325,7 +325,7 @@ export function ReportsPanel({
 
       <div className="neu-surface rounded-2xl card-pad section-stack">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Evolução mensal
           </h3>
           <div className="flex flex-wrap items-center gap-2">
@@ -355,7 +355,7 @@ export function ReportsPanel({
               <Download size={14} />
               Exportar
             </button>
-            <p className="text-3xs text-slate-400 dark:text-slate-500">
+            <p className="text-3xs text-slate-600 dark:text-slate-400">
               Últimos {trend.length} meses (entradas e saídas lançadas)
             </p>
           </div>
@@ -365,7 +365,7 @@ export function ReportsPanel({
 
       {cards.length > 0 && (
         <div className="neu-surface rounded-2xl card-pad section-stack">
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Faturas do mês
           </h3>
           <div className="space-y-3">
@@ -383,7 +383,9 @@ export function ReportsPanel({
                     <span className="font-medium">{card.name}</span>
                     <span>
                       {formatCurrency(card.total)}{' '}
-                      <span className="text-slate-400">/ {formatCurrency(card.limit)}</span>
+                      <span className="text-slate-600 dark:text-slate-400">
+                        / {formatCurrency(card.limit)}
+                      </span>
                     </span>
                   </div>
                   <div className="h-1.5 neu-progress-track">
@@ -392,7 +394,7 @@ export function ReportsPanel({
                       style={{ width: `${Math.min(usageRatio * 100, 100)}%` }}
                     />
                   </div>
-                  <p className="text-3xs text-slate-400 mt-0.5">
+                  <p className="text-3xs text-slate-600 dark:text-slate-400 mt-0.5">
                     {(usageRatio * 100).toFixed(0)}% do limite utilizado
                   </p>
                 </div>

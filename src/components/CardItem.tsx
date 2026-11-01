@@ -118,7 +118,7 @@ export function CardItem({
 
       {/* Limit usage bar */}
       <div className="card-pad pt-0">
-        <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+        <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
           <span>
             Fatura{' '}
             {new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', { month: 'long' })}
@@ -135,7 +135,9 @@ export function CardItem({
           <span className="font-semibold text-slate-800 dark:text-slate-200">
             {formatCurrency(currentTotal)}
           </span>
-          <span className="text-slate-400">de {formatCurrency(card.limitAmount)}</span>
+          <span className="text-slate-600 dark:text-slate-400">
+            de {formatCurrency(card.limitAmount)}
+          </span>
         </div>
       </div>
 
@@ -175,7 +177,9 @@ export function CardItem({
         <div className="neu-modal-divider card-pad">
           <div className="neu-list max-h-60 overflow-y-auto">
             {currentExpenses.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-2">Nenhum gasto nesta fatura</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 text-center py-2">
+                Nenhum gasto nesta fatura
+              </p>
             ) : (
               currentExpenses.map((exp) => (
                 <button
@@ -189,13 +193,15 @@ export function CardItem({
                     <span className="block text-slate-800 dark:text-slate-200 font-medium truncate">
                       {exp.name}
                       {exp.installmentsCount && exp.installmentsCount > 1 && (
-                        <span className="ml-1 text-xs text-slate-400">
+                        <span className="ml-1 text-xs text-slate-600 dark:text-slate-400">
                           ({exp.installmentNumber}/{exp.installmentsCount})
                         </span>
                       )}
                     </span>
                     {exp.category && (
-                      <span className="block text-xs text-slate-400">{exp.category}</span>
+                      <span className="block text-xs text-slate-600 dark:text-slate-400">
+                        {exp.category}
+                      </span>
                     )}
                   </span>
                   <span className="flex items-center gap-1.5 shrink-0">
@@ -214,12 +220,14 @@ export function CardItem({
       {/* Past invoices */}
       {invoices.slice(1).some((inv) => inv.total > 0) && (
         <div className="neu-modal-divider card-pad py-[var(--inline-gap)]">
-          <p className="text-xs text-slate-400 mb-1.5 font-medium px-1">Faturas anteriores</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1.5 font-medium px-1">
+            Faturas anteriores
+          </p>
           <div className="neu-list">
             {invoices.slice(1).map((inv) => (
               <div
                 key={`${inv.year}-${inv.month}`}
-                className="neu-list-item flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 px-3 py-2"
+                className="neu-list-item flex justify-between items-center text-xs text-slate-600 dark:text-slate-400 px-3 py-2"
               >
                 <span className="flex items-center gap-1.5 min-w-0">
                   {inv.hasEntry &&

@@ -48,7 +48,7 @@ export function FilterBar({
     <div className="section-stack">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-[var(--inline-gap)] min-w-0">
         <div className="relative flex-1 min-w-0 sm:max-w-[min(100%,12.5rem)]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 dark:text-slate-400 pointer-events-none" />
           <input
             type="search"
             value={searchQuery}
@@ -64,7 +64,7 @@ export function FilterBar({
               type="button"
               onClick={() => onSearchChange('')}
               aria-label="Limpar busca"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
             >
               <X size={14} />
             </button>
@@ -84,25 +84,25 @@ export function FilterBar({
               className={`whitespace-nowrap px-2 py-1 sm:px-4 sm:py-1.5 rounded-full text-2xs sm:text-sm font-medium transition-all ${
                 filter === value
                   ? 'neu-filter-active'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
               {label}
             </button>
           ))}
         </div>
-        <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium text-center sm:text-right">
+        <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium text-center sm:text-right">
           Mostrando {filteredCount} de {totalCount} registros
         </div>
       </div>
       <details className="group">
-        <summary className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer list-none py-1 hover:text-slate-700 dark:hover:text-slate-300 [&::-webkit-details-marker]:hidden">
+        <summary className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer list-none py-1 hover:text-slate-700 dark:hover:text-slate-300 [&::-webkit-details-marker]:hidden">
           <SlidersHorizontal size={14} />
           Filtros avançados
           <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
         </summary>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-[var(--inline-gap)] flex-wrap mt-[var(--section-gap)] min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400 min-w-0">
             <span className="font-medium">Ordenar:</span>
             <NeuSelect
               value={sortBy}
@@ -124,7 +124,7 @@ export function FilterBar({
               ]}
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400 min-w-0">
             <span className="font-medium">Categoria:</span>
             <NeuSelect
               value={selectedCategory}

@@ -254,7 +254,7 @@ export function CashFlowSection({
               <button
                 type="button"
                 onClick={skip}
-                className="text-2xs text-slate-400 dark:text-slate-500 underline underline-offset-2"
+                className="text-2xs text-slate-600 dark:text-slate-400 underline underline-offset-2"
               >
                 Pular dicas
               </button>
@@ -326,7 +326,7 @@ export function CashFlowSection({
                   className={`px-3 py-1 rounded-full font-medium ${
                     viewMode === 'list'
                       ? 'neu-filter-active'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   Lista
@@ -337,7 +337,7 @@ export function CashFlowSection({
                   className={`px-3 py-1 rounded-full font-medium ${
                     viewMode === 'calendar'
                       ? 'neu-filter-active'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   Calendário

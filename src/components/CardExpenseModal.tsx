@@ -132,7 +132,7 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
   const inputClass =
     'w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 transition-all';
   const labelClass =
-    'block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5';
+    'block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5';
   const errorClass = 'mt-1 text-xs text-red-500 dark:text-red-400';
 
   return (
@@ -145,7 +145,7 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
           >
             {expense ? 'Editar gasto' : 'Novo gasto'}
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">{card.name}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{card.name}</p>
         </div>
         <button type="button" onClick={onClose} className="neu-modal-close" aria-label="Fechar">
           <X size={22} />
@@ -200,7 +200,7 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
         </div>
 
         {billing && (
-          <p className="neu-sticky-label text-xs text-slate-500 dark:text-slate-400 rounded-lg px-3 py-2">
+          <p className="neu-sticky-label text-xs text-slate-600 dark:text-slate-400 rounded-lg px-3 py-2">
             Fatura:{' '}
             <strong>
               {new Date(billing.year, billing.month).toLocaleDateString('pt-BR', {
@@ -234,12 +234,12 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
           />
           {errors.installments && <p className={errorClass}>{errors.installments}</p>}
           {expense && (
-            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
               O número de parcelas é fixo ao editar (evita corromper as irmãs do grupo).
             </p>
           )}
           {parseInt(installments, 10) > 1 && (parseCurrencyInput(amount) ?? 0) > 0 && (
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
               {parseInt(installments, 10)}x de R${' '}
               {((parseCurrencyInput(amount) ?? 0) / parseInt(installments, 10)).toLocaleString(
                 'pt-BR',

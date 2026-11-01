@@ -13,7 +13,7 @@ function AlertIcon({ type }: { type: AlertType }) {
       return <Gauge className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" />;
     case 'concentration':
     default:
-      return <Info className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />;
+      return <Info className="w-4 h-4 text-slate-600 dark:text-slate-400 shrink-0" />;
   }
 }
 
@@ -29,7 +29,7 @@ export function AlertsPanel({ alerts, onDismiss, onAction }: AlertsPanelProps) {
 
   return (
     <section>
-      <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+      <h2 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
         Alertas inteligentes
       </h2>
       <div className="section-stack">

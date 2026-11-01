@@ -100,7 +100,7 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
         <div>
           <label
             htmlFor="change-password-atual"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Senha atual
           </label>
@@ -117,7 +117,7 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
         <div>
           <label
             htmlFor="change-password-nova"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Nova senha
           </label>
@@ -135,7 +135,7 @@ export function ChangePasswordModal({ open, onClose, onSuccess }: ChangePassword
         <div>
           <label
             htmlFor="change-password-confirmar"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Confirmar nova senha
           </label>

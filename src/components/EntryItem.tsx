@@ -56,7 +56,7 @@ function EntryItemInner({
         className={`mr-3 transition-all duration-150 self-start mt-1 sm:self-center sm:mt-0 tap-scale ${
           entry.isPaid
             ? 'text-emerald-500'
-            : 'text-slate-300 dark:text-slate-500 hover:text-slate-400 dark:hover:text-slate-400'
+            : 'text-slate-300 dark:text-slate-400 hover:text-slate-400 dark:hover:text-slate-400'
         }`}
       >
         {entry.isPaid ? (
@@ -71,7 +71,7 @@ function EntryItemInner({
           <h3
             className={`font-medium truncate ${
               entry.isPaid
-                ? 'text-slate-400 dark:text-slate-500 line-through'
+                ? 'text-slate-600 dark:text-slate-400 line-through'
                 : 'text-slate-900 dark:text-slate-100'
             }`}
           >
@@ -80,13 +80,13 @@ function EntryItemInner({
           {entry.type === 'cash' && <span className="neu-chip-cash">Entrada</span>}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-          <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 flex-wrap">
+          <span className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1 flex-wrap">
             <Calendar size={12} />
             {entry.isCardInvoice ? (
               entry.invoicePaymentDueDate ? (
                 <>
                   Fecha em {formatDate(entry.dueDate)}
-                  <span className="text-slate-500 dark:text-slate-400">
+                  <span className="text-slate-600 dark:text-slate-400">
                     · Vence em {formatDate(entry.invoicePaymentDueDate)}
                   </span>
                 </>
@@ -120,10 +120,10 @@ function EntryItemInner({
           )}
           {entry.tag && (
             <span
-              className="text-xs text-slate-400 dark:text-slate-500 truncate inline-flex items-center gap-1 max-w-[120px] sm:max-w-[140px] lg:max-w-[180px]"
+              className="text-xs text-slate-600 dark:text-slate-400 truncate inline-flex items-center gap-1 max-w-[120px] sm:max-w-[140px] lg:max-w-[180px]"
               title={entry.tag}
             >
-              <Tag size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
+              <Tag size={12} className="shrink-0 text-slate-600 dark:text-slate-400" />
               {entry.tag}
             </span>
           )}
@@ -137,7 +137,7 @@ function EntryItemInner({
               entry.goalId
                 ? 'text-amber-800 dark:text-amber-400'
                 : entry.isPaid
-                  ? 'text-slate-400 dark:text-slate-500'
+                  ? 'text-slate-600 dark:text-slate-400'
                   : entry.type === 'cash'
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-red-600 dark:text-red-400'
@@ -152,7 +152,7 @@ function EntryItemInner({
           <button
             type="button"
             onClick={() => onEdit(entry)}
-            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400"
+            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
             aria-label="Editar"
           >
             <Pencil size={18} className="sm:w-4 sm:h-4" />
@@ -160,7 +160,7 @@ function EntryItemInner({
           <button
             type="button"
             onClick={() => onDeleteRequest(entry.id)}
-            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400"
+            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400"
             aria-label="Excluir"
           >
             <Trash2 size={18} className="sm:w-4 sm:h-4" />

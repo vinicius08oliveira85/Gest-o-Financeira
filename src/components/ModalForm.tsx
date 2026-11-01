@@ -127,7 +127,7 @@ export function ModalForm({
             className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
               type === 'cash'
                 ? 'neu-pill-active text-emerald-600 dark:text-emerald-400'
-                : 'text-slate-500 dark:text-slate-400'
+                : 'text-slate-600 dark:text-slate-400'
             }`}
           >
             Entrada
@@ -138,7 +138,7 @@ export function ModalForm({
             className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
               type === 'debt'
                 ? 'neu-pill-active text-red-600 dark:text-red-400'
-                : 'text-slate-500 dark:text-slate-400'
+                : 'text-slate-600 dark:text-slate-400'
             }`}
           >
             Saída
@@ -148,7 +148,7 @@ export function ModalForm({
         <div>
           <label
             htmlFor="modal-form-name"
-            className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Nome do Registro
           </label>
@@ -175,7 +175,7 @@ export function ModalForm({
           <div>
             <label
               htmlFor="modal-form-amount"
-              className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+              className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
             >
               Valor (R$)
             </label>
@@ -201,7 +201,7 @@ export function ModalForm({
           <div>
             <label
               htmlFor="modal-form-due-date"
-              className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+              className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
             >
               Data
             </label>
@@ -225,7 +225,7 @@ export function ModalForm({
           <div>
             <label
               htmlFor="modal-form-category"
-              className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+              className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
             >
               Categoria
             </label>
@@ -249,7 +249,7 @@ export function ModalForm({
           <div>
             <label
               htmlFor="modal-form-tag"
-              className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+              className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
             >
               Tag (opcional)
             </label>
@@ -282,7 +282,10 @@ export function ModalForm({
           </label>
           {isInstallment && (
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <label htmlFor="modal-form-installments" className="text-xs text-slate-500">
+              <label
+                htmlFor="modal-form-installments"
+                className="text-xs text-slate-600 dark:text-slate-400"
+              >
                 Nº de parcelas
               </label>
               <input
@@ -299,7 +302,7 @@ export function ModalForm({
         </div>
 
         {showInstallmentPreview && (
-          <p className="text-2xs text-slate-500 dark:text-slate-400">
+          <p className="text-2xs text-slate-600 dark:text-slate-400">
             {installmentCountNum}x de {formatCurrency(installmentTotal / installmentCountNum)} — o
             valor informado é o total ({formatCurrency(installmentTotal)}).
           </p>
@@ -317,7 +320,10 @@ export function ModalForm({
           </label>
           {isRecurring && (
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <label htmlFor="modal-form-recurrence-count" className="text-xs text-slate-500">
+              <label
+                htmlFor="modal-form-recurrence-count"
+                className="text-xs text-slate-600 dark:text-slate-400"
+              >
                 Quantidade de repetições (opcional)
               </label>
               <input
@@ -338,7 +344,7 @@ export function ModalForm({
           <div>
             <label
               htmlFor="modal-form-paid-date"
-              className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+              className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
             >
               Data do pagamento
             </label>

@@ -147,7 +147,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
             ))}
           </div>
         </div>
-        <p className="text-2xs text-slate-400 dark:text-slate-500 font-medium">
+        <p className="text-2xs text-slate-600 dark:text-slate-400 font-medium">
           {visibleEntries.length} lançamento{visibleEntries.length === 1 ? '' : 's'}
           {overdueCount > 0 && (
             <span className="text-red-500 dark:text-red-400"> · {overdueCount} atrasado(s)</span>
@@ -164,7 +164,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
         />
       )}
 
-      <div className="grid grid-cols-7 gap-[var(--inline-gap)] mb-[var(--inline-gap)] text-3xs font-medium text-slate-500 dark:text-slate-400 text-center">
+      <div className="grid grid-cols-7 gap-[var(--inline-gap)] mb-[var(--inline-gap)] text-3xs font-medium text-slate-600 dark:text-slate-400 text-center">
         {WEEK_DAYS.map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -252,7 +252,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                     <span key={i} className={`inline-block h-1.5 w-1.5 rounded-full ${color}`} />
                   ))}
                   {bucket.entries.length > 3 && (
-                    <span className="text-4xs text-slate-400 leading-none">
+                    <span className="text-4xs text-slate-600 dark:text-slate-400 leading-none">
                       +{bucket.entries.length - 3}
                     </span>
                   )}
@@ -278,7 +278,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                     <span className="truncate">
                       {e.name}
                       {e.installmentsCount && e.installmentNumber && (
-                        <span className="ml-1 text-5xs text-slate-500 dark:text-slate-400">
+                        <span className="ml-1 text-5xs text-slate-600 dark:text-slate-400">
                           {e.installmentNumber}/{e.installmentsCount}
                         </span>
                       )}
@@ -286,7 +286,7 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                   </div>
                 ))}
                 {remaining > 0 && (
-                  <div className="text-5xs text-slate-500 dark:text-slate-400">
+                  <div className="text-5xs text-slate-600 dark:text-slate-400">
                     +{remaining} lançamentos
                   </div>
                 )}

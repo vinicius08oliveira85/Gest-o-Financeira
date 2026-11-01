@@ -75,7 +75,7 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
         <div>
           <label
             htmlFor="goal-modal-name"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Nome da meta
           </label>
@@ -94,7 +94,7 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
         <div>
           <label
             htmlFor="goal-modal-target"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Valor alvo (R$)
           </label>
@@ -113,7 +113,7 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
         <div>
           <label
             htmlFor="goal-modal-target-date"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Atingir até (data, opcional)
           </label>
@@ -125,7 +125,7 @@ export function GoalModal({ open, goal, onSave, onRequestDelete, onClose }: Goal
           />
         </div>
 
-        <p className="text-3xs text-slate-500 dark:text-slate-400">
+        <p className="text-3xs text-slate-600 dark:text-slate-400">
           Os depósitos acumulam ao longo dos meses até atingir o valor alvo.
         </p>
 

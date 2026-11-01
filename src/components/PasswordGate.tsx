@@ -64,7 +64,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
   if (checking) {
     return (
       <div className="min-h-dvh neu-bg flex items-center justify-center p-4">
-        <div className="text-slate-500 dark:text-slate-400">Carregando...</div>
+        <div className="text-slate-600 dark:text-slate-400">Carregando...</div>
       </div>
     );
   }
@@ -81,7 +81,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
           <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 text-center mb-1">
             Gestão Financeira
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm text-center mb-6">
+          <p className="text-slate-600 dark:text-slate-400 text-sm text-center mb-6">
             {needsSetup
               ? 'Cadastre uma senha para proteger o acesso'
               : 'Digite a senha para acessar'}
@@ -92,7 +92,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
           {needsSetup ? (
             <form onSubmit={handleSetPassword} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                   Nova senha
                 </label>
                 <input
@@ -106,7 +106,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                   Confirmar senha
                 </label>
                 <input
@@ -129,7 +129,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                   Senha
                 </label>
                 <input

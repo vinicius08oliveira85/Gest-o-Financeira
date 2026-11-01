@@ -90,7 +90,7 @@ export function NeuSelect({
         <span className="truncate text-left">{selected?.label ?? value}</span>
         <ChevronDown
           size={14}
-          className={`shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`shrink-0 text-slate-600 dark:text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (

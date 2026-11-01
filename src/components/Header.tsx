@@ -77,7 +77,7 @@ export function Header({
               segunda linha e o cabeçalho fixo comia metade da tela. */}
           {!showEntriesCloudSync && (
             <span
-              className="neu-inset hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap shrink-0"
+              className="neu-inset hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap shrink-0"
               title="Sem nuvem — os dados são salvos apenas neste dispositivo"
             >
               <CloudOff size={11} aria-hidden />
@@ -172,7 +172,7 @@ export function Header({
           <button
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
-            className="neu-btn p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            className="neu-btn p-1.5 rounded-lg text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
             aria-label="Menu"
             aria-expanded={menuOpen}
           >

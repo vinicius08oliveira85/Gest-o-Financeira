@@ -79,12 +79,12 @@ export function GoalsCard({
     <div className="neu-surface card-pad rounded-xl section-stack">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
             {isComplete ? '✓ Meta concluída' : 'Meta'}
           </p>
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{goal.name}</h2>
           {goal.targetDate && (
-            <p className="text-3xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-3xs text-slate-600 dark:text-slate-400 mt-0.5">
               Até {formatDate(goal.targetDate)}
             </p>
           )}
@@ -127,7 +127,7 @@ export function GoalsCard({
           </span>
         </div>
         {!isComplete && (
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
             <span>Faltam</span>
             <span className="font-medium text-slate-700 dark:text-slate-300">
               {formatCurrency(Math.max(0, goal.targetAmount - metaBalance))}

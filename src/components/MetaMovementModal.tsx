@@ -93,7 +93,7 @@ export function MetaMovementModal({
         <div>
           <label
             htmlFor="meta-movement-amount"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Valor (R$)
           </label>
@@ -129,7 +129,7 @@ export function MetaMovementModal({
         <div>
           <label
             htmlFor="meta-movement-date"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Data programada
           </label>
@@ -164,7 +164,7 @@ export function MetaMovementModal({
         <div>
           <label
             htmlFor="meta-movement-note"
-            className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5"
           >
             Observação (opcional)
           </label>

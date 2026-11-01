@@ -56,7 +56,7 @@ export function DashboardCards({
         className="neu-surface card-pad rounded-xl flex flex-col h-full"
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
             Total Entradas{suffix}
           </span>
           <div className="neu-icon-badge-emerald p-1.5">
@@ -66,7 +66,7 @@ export function DashboardCards({
         <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-emerald-600 dark:text-emerald-400">
           {formatCurrency(totalEntradasLancadas)}
         </div>
-        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
           <span>{entradasCount} entradas lançadas</span>
           {prevEntradasLancadas !== undefined && (
             <DeltaBadge current={totalEntradasLancadas} previous={prevEntradasLancadas} />
@@ -76,7 +76,7 @@ export function DashboardCards({
           <div className="mt-1.5 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1.5">
             {totalEntradasFinalizadas !== undefined && (
               <div className="flex items-center justify-between text-3xs">
-                <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   Finalizadas
                 </span>
@@ -87,11 +87,11 @@ export function DashboardCards({
             )}
             {totalEntradasPendentes !== undefined && (
               <div className="flex items-center justify-between text-3xs">
-                <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-500" />
                   Pendentes
                 </span>
-                <span className="font-medium text-slate-500 dark:text-slate-400">
+                <span className="font-medium text-slate-600 dark:text-slate-400">
                   {formatCurrency(totalEntradasPendentes)}
                 </span>
               </div>
@@ -107,7 +107,7 @@ export function DashboardCards({
         className="neu-surface card-pad rounded-xl flex flex-col h-full"
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
             Total Saídas{suffix}
           </span>
           <div className="neu-icon-badge-red p-1.5">
@@ -117,7 +117,7 @@ export function DashboardCards({
         <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-red-600 dark:text-red-400">
           {formatCurrency(totalSaidasLancadas)}
         </div>
-        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
           <span>{saidasCount} saídas lançadas</span>
           {prevSaidasLancadas !== undefined && (
             <DeltaBadge current={totalSaidasLancadas} previous={prevSaidasLancadas} invert />
@@ -127,7 +127,7 @@ export function DashboardCards({
           <div className="mt-1.5 space-y-0.5 border-t border-slate-100 dark:border-slate-700 pt-1.5">
             {totalSaidasFinalizadas !== undefined && (
               <div className="flex items-center justify-between text-3xs">
-                <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
                   Finalizadas
                 </span>
@@ -138,11 +138,11 @@ export function DashboardCards({
             )}
             {totalSaidasPendentes !== undefined && (
               <div className="flex items-center justify-between text-3xs">
-                <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-500" />
                   Pendentes
                 </span>
-                <span className="font-medium text-slate-500 dark:text-slate-400">
+                <span className="font-medium text-slate-600 dark:text-slate-400">
                   {formatCurrency(totalSaidasPendentes)}
                 </span>
               </div>
@@ -160,7 +160,7 @@ export function DashboardCards({
         }`}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
             Saldo{suffix}
           </span>
           <div className="neu-inset-sm p-1.5 rounded-full">
@@ -170,14 +170,14 @@ export function DashboardCards({
         <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-white">
           {formatCurrency(saldo)}
         </div>
-        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-400">
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
           <span>Só entradas e saídas finalizadas</span>
           {prevSaldo !== undefined && <DeltaBadge current={saldo} previous={prevSaldo} light />}
         </div>
         {saldoProjetado !== undefined && (
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-3xs">
-              <span className="text-slate-400 flex items-center gap-1">
+              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400" />
                 Projetado
               </span>
@@ -194,7 +194,7 @@ export function DashboardCards({
         {totalLimiteDisponivel !== undefined && (
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-3xs">
-              <span className="text-slate-400 flex items-center gap-1">
+              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />
                 Limite cartões
               </span>
@@ -203,7 +203,7 @@ export function DashboardCards({
               </span>
             </div>
             <div className="flex items-center justify-between text-3xs">
-              <span className="text-slate-400 flex items-center gap-1">
+              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" />
                 Total disponível
               </span>
@@ -213,7 +213,7 @@ export function DashboardCards({
             </div>
             {cardSpending !== undefined && prevCardSpending !== undefined && (
               <div className="flex items-center justify-between text-3xs">
-                <span className="text-slate-400 flex items-center gap-1">
+                <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
                   Gastos no cartão (mês)
                 </span>

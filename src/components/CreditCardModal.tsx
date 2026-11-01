@@ -89,7 +89,7 @@ export function CreditCardModal({ open, card, onSave, onRequestDelete, onClose }
   const inputClass =
     'w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 transition-all';
   const labelClass =
-    'block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5';
+    'block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5';
   const errorClass = 'mt-1 text-xs text-red-500 dark:text-red-400';
 
   return (
