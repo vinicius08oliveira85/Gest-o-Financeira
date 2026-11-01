@@ -36,8 +36,15 @@ export function parseCurrencyInput(value: string): number | null {
   if (hasComma) {
     normalized = trimmed.replace(/\./g, '').replace(',', '.');
   } else if (hasDot) {
-    const lastDot = trimmed.lastIndexOf('.');
-    normalized = trimmed.slice(0, lastDot).replace(/\./g, '') + '.' + trimmed.slice(lastDot + 1);
+    if (/^\d{1,3}(\.\d{3})+$/.test(trimmed)) {
+      // Só pontos, sempre em grupos de 3 dígitos: são separadores de milhar.
+      // Sem esta regra, a própria máscara quebrava o valor: digitar "1234"
+      // produzia "1.234" e o salvar lia R$ 1,234 (bem menor que o digitado).
+      normalized = trimmed.replace(/\./g, '');
+    } else {
+      const lastDot = trimmed.lastIndexOf('.');
+      normalized = trimmed.slice(0, lastDot).replace(/\./g, '') + '.' + trimmed.slice(lastDot + 1);
+    }
   } else {
     normalized = trimmed;
   }

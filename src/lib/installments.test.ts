@@ -3,6 +3,7 @@ import {
   generateInstallmentEntries,
   propagateInstallmentUpdate,
   propagateEntryInstallmentUpdate,
+  splitInstallments,
 } from './installments';
 import type { CardExpense, Entry } from '../types';
 
@@ -10,7 +11,7 @@ describe('generateInstallmentEntries', () => {
   it('gera N parcelas com datas mensais, grupo compartilhado e numeração', () => {
     const entries = generateInstallmentEntries({
       name: 'Curso',
-      amountPerInstallment: 100,
+      totalAmount: 300,
       firstDueDate: '2026-01-15',
       type: 'debt',
       count: 3,
@@ -28,7 +29,7 @@ describe('generateInstallmentEntries', () => {
   it('atravessa anos e limita o dia ao fim do mês', () => {
     const entries = generateInstallmentEntries({
       name: 'Assinatura',
-      amountPerInstallment: 50,
+      totalAmount: 200,
       firstDueDate: '2026-11-30',
       type: 'cash',
       count: 4,
@@ -40,6 +41,18 @@ describe('generateInstallmentEntries', () => {
       '2027-01-30',
       '2027-02-28',
     ]);
+  });
+});
+
+describe('splitInstallments', () => {
+  it('distribui o resto de centavos e mantém a soma igual ao total', () => {
+    expect(splitInstallments(100, 3)).toEqual([33.34, 33.33, 33.33]);
+    expect(splitInstallments(10, 7).reduce((sum, v) => sum + Math.round(v * 100), 0)).toBe(1000);
+    expect(splitInstallments(3000, 3)).toEqual([1000, 1000, 1000]);
+  });
+
+  it('parcela única devolve o total', () => {
+    expect(splitInstallments(123.45, 1)).toEqual([123.45]);
   });
 });
 

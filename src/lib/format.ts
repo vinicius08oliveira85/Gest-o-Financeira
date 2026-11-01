@@ -109,5 +109,5 @@ export function exportEntriesToCSV(entries: Entry[], options?: ExportCSVOptions)
   // BOM UTF-8 (\uFEFF) para o Excel abrir os acentos ("Saída"/"Fatura") corretamente.
   const csvContent = '\uFEFF' + csvLines.join('\n');
   const suffix = options?.filenameSuffix ?? '';
-  downloadCsv(csvContent, `lancamentos_${new Date().toISOString().split('T')[0]}${suffix}.csv`);
+  downloadCsv(csvContent, `lancamentos_${todayLocalISO()}${suffix}.csv`);
 }

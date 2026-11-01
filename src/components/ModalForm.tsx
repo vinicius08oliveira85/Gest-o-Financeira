@@ -5,7 +5,8 @@ import type { EntryType } from '../types';
 import type { FormErrors } from '../hooks/useEntryForm';
 import { DateInput } from './DateInput';
 import { ModalShell } from './ModalShell';
-import { maskCurrencyInput } from '../lib/currencyInput';
+import { maskCurrencyInput, parseCurrencyInput } from '../lib/currencyInput';
+import { formatCurrency } from '../lib/format';
 
 const MODAL_FORM_TITLE_ID = 'modal-form-title';
 
@@ -81,6 +82,12 @@ export function ModalForm({
     'w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 transition-all';
   const contentRef = useRef<HTMLDivElement>(null);
   useFocusTrap(contentRef, isOpen);
+
+  // O valor digitado é o total do lançamento; a prévia mostra quanto cai em cada
+  // parcela, do mesmo jeito que o modal de gasto do cartão.
+  const installmentTotal = parseCurrencyInput(amount) ?? 0;
+  const installmentCountNum = parseInt(installmentsCount, 10);
+  const showInstallmentPreview = isInstallment && installmentTotal > 0 && installmentCountNum > 1;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -290,6 +297,13 @@ export function ModalForm({
             </div>
           )}
         </div>
+
+        {showInstallmentPreview && (
+          <p className="text-2xs text-slate-500 dark:text-slate-400">
+            {installmentCountNum}x de {formatCurrency(installmentTotal / installmentCountNum)} — o
+            valor informado é o total ({formatCurrency(installmentTotal)}).
+          </p>
+        )}
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
           <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">

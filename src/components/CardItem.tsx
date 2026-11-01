@@ -72,7 +72,7 @@ export function CardItem({
       });
     }
     return result;
-  }, [expenses, invoiceEntries, currentMonth, currentYear, card.id]);
+  }, [expenses, invoiceEntries, currentMonth, currentYear, card.id, card.closingDay, card.dueDay]);
 
   const currentInvoice = invoices[0];
   const currentTotal = currentInvoice?.total ?? 0;

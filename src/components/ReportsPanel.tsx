@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react';
 import { Download } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry } from '../types';
-import { downloadCsv, formatCurrency, parseDateLocal } from '../lib/format';
+import { downloadCsv, formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
 import { buildMonthlyTrend, buildTrendCsv } from '../lib/monthlyTrend';
 import { buildReportsCsv } from '../lib/reports';
 import { chipClass } from '../lib/neu';
@@ -131,10 +131,7 @@ export function ReportsPanel({
   }));
 
   const handleExportTrend = () => {
-    downloadCsv(
-      buildTrendCsv(trend),
-      `evolucao-mensal_${new Date().toISOString().split('T')[0]}.csv`
-    );
+    downloadCsv(buildTrendCsv(trend), `evolucao-mensal_${todayLocalISO()}.csv`);
   };
 
   const handleExportReports = () => {
@@ -152,7 +149,7 @@ export function ReportsPanel({
         categories: { saidas: totalByCategorySaidas, entradas: totalByCategoryEntradas },
         cards: cardTotals,
       }),
-      `relatorios_${new Date().toISOString().split('T')[0]}.csv`
+      `relatorios_${todayLocalISO()}.csv`
     );
   };
 

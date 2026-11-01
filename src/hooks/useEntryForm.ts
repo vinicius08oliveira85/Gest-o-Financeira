@@ -81,6 +81,9 @@ export function useEntryForm(
       setInstallmentsCount('2');
       setIsRecurring(false);
       setRecurrenceCount('');
+      // Sem este reset, abrir "Novo Registro" depois de editar um lançamento
+      // pago herdava a data de pagamento do lançamento anterior.
+      setPaidDate('');
     }
   }, []);
 
@@ -145,7 +148,7 @@ export function useEntryForm(
         } else {
           const entries = generateInstallmentEntries({
             name,
-            amountPerInstallment: amountValue,
+            totalAmount: amountValue,
             firstDueDate: dueDate,
             type,
             category: category || undefined,

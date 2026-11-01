@@ -53,6 +53,19 @@ describe('parseCurrencyInput', () => {
     expect(parseCurrencyInput('')).toBeNull();
     expect(parseCurrencyInput('abc')).toBeNull();
   });
+
+  it('trata pontos em grupos de 3 dígitos como separador de milhar', () => {
+    // Regressão: a máscara agrupa milhares com ponto ("1234" -> "1.234") e o
+    // parser lia o ponto como decimal, salvando R$ 1,234 no lugar de R$ 1234.
+    expect(parseCurrencyInput('1.234')).toBe(1234);
+    expect(parseCurrencyInput('1.234.567')).toBe(1234567);
+  });
+
+  it('faz round-trip com a máscara de entrada', () => {
+    expect(parseCurrencyInput(maskCurrencyInput('1234'))).toBe(1234);
+    expect(parseCurrencyInput(maskCurrencyInput('1234,56'))).toBe(1234.56);
+    expect(parseCurrencyInput(maskCurrencyInput('1500.00'))).toBe(1500);
+  });
 });
 
 describe('formatCurrencyForInput', () => {

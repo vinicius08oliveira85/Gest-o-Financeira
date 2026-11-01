@@ -111,6 +111,13 @@ describe('buildInstallmentCardExpenses', () => {
     expect(rows.every((r) => r.parentInstallmentId === 'p1')).toBe(true);
   });
 
+  it('divide o total em centavos exatos (soma das parcelas = total)', () => {
+    const rows = buildInstallmentCardExpenses({ ...base, totalAmount: 100, count: 3 });
+    expect(rows.map((r) => r.amount)).toEqual([33.34, 33.33, 33.33]);
+    const sumCents = rows.reduce((sum, r) => sum + Math.round(r.amount * 100), 0);
+    expect(sumCents).toBe(10000);
+  });
+
   it('não "vaza" o dia 31 para meses curtos', () => {
     const rows = buildInstallmentCardExpenses({ ...base, date: '2026-01-31', count: 3 });
     expect(rows.map((r) => r.date)).toEqual(['2026-01-31', '2026-02-28', '2026-03-31']);

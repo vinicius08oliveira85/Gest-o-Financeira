@@ -27,6 +27,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Valores com milhar salvos errados**: a máscara agrupa milhares com ponto
+  ("1234" → "1.234") e o parser lia o ponto como decimal — digitar 1234 salvava
+  R$ 1,234. Pontos em grupos de 3 dígitos agora são separadores de milhar.
+- **Parcelas com soma diferente do total**: cada parcela era `total / count`
+  (3x de R$ 100 virava 3× R$ 33,33). Agora o resto de centavos fica na primeira
+  parcela e a soma fecha exatamente com o valor informado.
+- **Lançamento parcelado** passa a usar o valor informado como TOTAL (igual ao
+  gasto de cartão) e mostra a prévia de quanto cai em cada parcela.
+- **Recorrências apagadas voltando após reload**: a migration para IndexedDB
+  descartava listas de strings (recorrências suprimidas e alertas dispensados) e
+  removia a chave original. A chave só é removida quando todos os itens migram.
+- Fatura registrada de novo reescrevia a `createdAt` do lançamento já existente.
+- Adicionar/editar gasto de cartão sem retorno visual e com promise rejeitada
+  não tratada quando a gravação falhava (agora mostra toast de sucesso/erro).
+- Abrir "Novo Registro" após editar um lançamento pago herdava a data de
+  pagamento anterior.
+- Nome dos CSVs usava a data UTC (podia sair com o dia anterior à noite).
+- Faturas do cartão não se atualizavam ao mudar o dia de fechamento/vencimento
+  (memo com dependências faltando).
 - Warning de act() em testes do App ao aguardar resolução de componentes lazy.
 - **Lançamentos sumindo da lista**: o hydrate lia o IndexedDB antes da migração
   `localStorage` → IndexedDB terminar e recebia só parte dos registros; o autosave

@@ -314,6 +314,13 @@ export async function migrateFromLocalStorage(): Promise<void> {
       return [{ id, data: { ...record, id } }];
     });
 
+    // Nem todo valor guardado é uma lista de objetos: as chaves de alertas
+    // dispensados e de recorrências suprimidas são listas de strings, lidas de
+    // forma síncrona do `localStorage`. Convertê-las gravaria zero registros e
+    // apagaria a chave de origem, perdendo a informação (as recorrências
+    // apagadas voltavam a ser geradas). Sem conversão completa, a chave fica.
+    if (records.length !== items.length) continue;
+
     // Um único lote: ou o store fica com todos os registros, ou com nenhum —
     // nunca com metade deles enquanto a migração ainda corre.
     let failed = false;

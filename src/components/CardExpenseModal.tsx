@@ -2,6 +2,7 @@
 import { X } from 'lucide-react';
 import type { CardExpense, CreditCard } from '../types';
 import { buildInstallmentCardExpenses, getBillingPeriod } from '../lib/cardInvoice';
+import { splitInstallments } from '../lib/installments';
 import { todayLocalISO } from '../lib/format';
 import {
   formatCurrencyForInput,
@@ -92,10 +93,11 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
       // Edição: emite apenas a parcela editada (com parentId estável). O pai
       // (useCardExpenses.updateExpense) propaga os campos compartilhados para
       // as demais parcelas do mesmo grupo, preservando data/fatura/parcela de cada uma.
+      const amounts = splitInstallments(totalAmount, inst);
       onSave({
         cardId: card.id,
         name: name.trim(),
-        amount: inst > 1 ? totalAmount / inst : totalAmount,
+        amount: amounts[(expense.installmentNumber ?? 1) - 1] ?? totalAmount,
         date,
         billingMonth: billing.month,
         billingYear: billing.year,

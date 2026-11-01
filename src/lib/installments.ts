@@ -3,9 +3,26 @@ import { parseDateLocal } from './format';
 import { copyDueDateForMonth } from './recurringEntries';
 import { randomUUID } from './uuid';
 
+/**
+ * Divide um total em `count` parcelas com centavos exatos: a soma das parcelas é
+ * sempre igual ao total e o resto de centavos fica na primeira.
+ *
+ * Antes cada parcela era `total / count`, então 3x de R$ 100 gerava três
+ * parcelas de R$ 33,33 — a soma ficava R$ 0,01 abaixo da compra, e um parcelado
+ * de 7x podia ficar até R$ 0,06 fora do valor real.
+ */
+export function splitInstallments(totalAmount: number, count: number): number[] {
+  const safeCount = Math.max(1, Math.floor(count));
+  const totalCents = Math.round(totalAmount * 100);
+  const baseCents = Math.floor(totalCents / safeCount);
+  const remainder = totalCents - baseCents * safeCount;
+  return Array.from({ length: safeCount }, (_, i) => (baseCents + (i === 0 ? remainder : 0)) / 100);
+}
+
 type BaseInstallmentInput = {
   name: string;
-  amountPerInstallment: number;
+  /** Valor TOTAL do lançamento (é dividido entre as parcelas) */
+  totalAmount: number;
   firstDueDate: string;
   type: EntryType;
   category?: string;
@@ -14,11 +31,12 @@ type BaseInstallmentInput = {
 };
 
 export function generateInstallmentEntries(input: BaseInstallmentInput): Entry[] {
-  const { name, amountPerInstallment, firstDueDate, type, category, tag, count } = input;
+  const { name, totalAmount, firstDueDate, type, category, tag, count } = input;
 
   const baseDate = parseDateLocal(firstDueDate);
   const createdAt = Date.now();
   const groupId = randomUUID();
+  const amounts = splitInstallments(totalAmount, count);
 
   const entries: Entry[] = [];
 
@@ -33,7 +51,7 @@ export function generateInstallmentEntries(input: BaseInstallmentInput): Entry[]
     entries.push({
       id,
       name,
-      amount: amountPerInstallment,
+      amount: amounts[i],
       dueDate,
       isPaid: false,
       type,

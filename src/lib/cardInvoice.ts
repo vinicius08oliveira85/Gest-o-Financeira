@@ -1,6 +1,7 @@
 import type { CardExpense, CreditCard, Entry } from '../types';
 import { parseDateLocal } from './format';
 import { copyDueDateForMonth } from './recurringEntries';
+import { splitInstallments } from './installments';
 import { randomUUID } from './uuid';
 
 /**
@@ -148,7 +149,8 @@ export function buildInstallmentCardExpenses(
 ): Array<Omit<CardExpense, 'id' | 'createdAt'>> {
   const { cardId, name, totalAmount, date, closingDay, count, category, tag, parentId } = input;
   const safeCount = Math.max(1, Math.floor(count));
-  const installmentAmount = safeCount > 1 ? totalAmount / safeCount : totalAmount;
+  // Centavos exatos: a soma das parcelas é igual ao valor total da compra.
+  const amounts = splitInstallments(totalAmount, safeCount);
   const base = parseDateLocal(date);
 
   const rows: Array<Omit<CardExpense, 'id' | 'createdAt'>> = [];
@@ -161,7 +163,7 @@ export function buildInstallmentCardExpenses(
     rows.push({
       cardId,
       name,
-      amount: installmentAmount,
+      amount: amounts[i],
       date: dueDate,
       billingMonth: billing.month,
       billingYear: billing.year,

@@ -117,6 +117,18 @@ describe('idb', () => {
     expect(localStorage.getItem(PASSWORD_STORAGE_KEY)).toBe(stored);
   });
 
+  it('preserva chaves cujo conteúdo não é uma lista de objetos', async () => {
+    // Alertas dispensados e recorrências suprimidas são listas de strings, lidas
+    // de forma síncrona do localStorage. A migration convertia zero registros e
+    // removia a chave — as recorrências apagadas voltavam a ser geradas.
+    const stored = JSON.stringify(['concentration-Lazer-1-2026', 'due-soon-1-2026']);
+    localStorage.setItem('gestao-financeira-dismissed-alerts', stored);
+
+    await migrateFromLocalStorage();
+
+    expect(localStorage.getItem('gestao-financeira-dismissed-alerts')).toBe(stored);
+  });
+
   it('remove a chave de origem após migrar com sucesso', async () => {
     localStorage.setItem('personal-debts', JSON.stringify([{ id: 'e1', description: 'Aluguel' }]));
 

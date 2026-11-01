@@ -303,9 +303,15 @@ export default function App() {
         card.dueDay
       );
       const entry = buildInvoiceEntry(card, month, year, total, existing?.id);
-      // Re-registrar a fatura não pode zerar o status de pagamento já registrado.
+      // Re-registrar a fatura não pode zerar o status de pagamento já registrado
+      // nem reescrever a data de criação (usada na ordenação/paginação do Supabase).
       addOrUpdateEntry(
-        { ...entry, isPaid: existing?.isPaid ?? false, paidDate: existing?.paidDate },
+        {
+          ...entry,
+          createdAt: existing?.createdAt ?? entry.createdAt,
+          isPaid: existing?.isPaid ?? false,
+          paidDate: existing?.paidDate,
+        },
         existing != null
       );
       showToast('Fatura registrada no fluxo de caixa');
@@ -651,16 +657,22 @@ export default function App() {
             card={expenseModalCard}
             expense={expenseToEdit}
             onSave={(partial) => {
+              const onError = () => showToast('Não foi possível salvar o gasto');
               if (expenseToEdit) {
-                updateExpense({
+                void updateExpense({
                   ...expenseToEdit,
                   ...partial,
                   id: expenseToEdit.id,
                   createdAt: expenseToEdit.createdAt,
-                });
-                showToast('Gasto atualizado');
+                })
+                  .then(() => showToast('Gasto atualizado'))
+                  .catch(onError);
               } else {
-                addExpense(partial);
+                // Sem o catch, uma falha de gravação virava unhandled rejection e
+                // o usuário não recebia nenhum retorno do que aconteceu.
+                void addExpense(partial)
+                  .then(() => showToast('Gasto adicionado'))
+                  .catch(onError);
               }
             }}
             onClose={() => {
