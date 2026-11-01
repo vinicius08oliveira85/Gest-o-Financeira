@@ -521,6 +521,14 @@ export function useEntries() {
           next = next.map((e) => (siblingIds.includes(e.id) ? bumpEntryUpdatedAt(e) : e));
         }
       }
+      if (updated.isRecurring) {
+        // Ao editar a recorrência (ex.: aumentar o nº de meses), gera as cópias que faltam.
+        const copies = generateMissingRecurringCopies(next, suppressedRecurringSlotsRef.current);
+        for (const c of copies) {
+          dirtyEntryIdsRef.current.add(c.id);
+        }
+        if (copies.length > 0) next = [...next, ...copies];
+      }
       commitEntries(next);
       return Promise.resolve();
     }
@@ -541,18 +549,21 @@ export function useEntries() {
     return Promise.resolve();
   }
 
-  const togglePaid = useCallback((id: string) => {
-    dirtyEntryIdsRef.current.add(id);
-    setEntries((prev) =>
-      prev.map((e) => {
-        if (e.id !== id) return e;
-        const nextPaid = !e.isPaid;
-        // Data local (fuso do dispositivo), não UTC: toISOString podia gravar ontem/amanhã.
-        const paidDate = nextPaid ? todayLocalISO() : undefined;
-        return bumpEntryUpdatedAt({ ...e, isPaid: nextPaid, paidDate });
-      })
-    );
-  }, []);
+  const togglePaid = useCallback(
+    (id: string) => {
+      dirtyEntryIdsRef.current.add(id);
+      commitEntries(
+        entriesRef.current.map((e) => {
+          if (e.id !== id) return e;
+          const nextPaid = !e.isPaid;
+          // Data local (fuso do dispositivo), não UTC: toISOString podia gravar ontem/amanhã.
+          const paidDate = nextPaid ? todayLocalISO() : undefined;
+          return bumpEntryUpdatedAt({ ...e, isPaid: nextPaid, paidDate });
+        })
+      );
+    },
+    [commitEntries]
+  );
 
   const deleteEntry = useCallback(
     (id: string) => {

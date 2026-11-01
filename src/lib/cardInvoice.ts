@@ -73,18 +73,27 @@ export function findInvoiceEntryForCycle(
   cardId: string,
   billingMonth: number,
   billingYear: number,
-  closingDay: number,
-  dueDay: number
+  _closingDay: number,
+  _dueDay: number
 ): Entry | undefined {
-  const closingIso = getInvoiceClosingDate(billingMonth, billingYear, closingDay);
-  const paymentIso = getInvoiceDueDate(billingMonth, billingYear, dueDay);
+  // Compara por mês/ano, não por dia exato: trocar closingDay ou dueDay muda as
+  // datas da fatura e, com comparação exata, geraria uma segunda fatura do mesmo ciclo.
+  const sameMonth = (iso: string, month: number, year: number) => {
+    const d = parseDateLocal(iso);
+    return d.getMonth() === month && d.getFullYear() === year;
+  };
+  // O vencimento cai no mês seguinte ao ciclo (Date normaliza o overflow de dezembro).
+  const due = new Date(billingYear, billingMonth + 1, 1);
+  const dueMonth = due.getMonth();
+  const dueYear = due.getFullYear();
   return entries.find(
     (e) =>
       e.isCardInvoice &&
       e.cardId === cardId &&
-      (e.dueDate === closingIso ||
-        e.invoicePaymentDueDate === paymentIso ||
-        (!e.invoicePaymentDueDate && e.dueDate === paymentIso))
+      (sameMonth(e.dueDate, billingMonth, billingYear) ||
+        (e.invoicePaymentDueDate
+          ? sameMonth(e.invoicePaymentDueDate, dueMonth, dueYear)
+          : sameMonth(e.dueDate, dueMonth, dueYear)))
   );
 }
 
