@@ -265,6 +265,8 @@ export function useEntries() {
 
   useEffect(() => {
     setSearchQuery('');
+    setFilter('all');
+    setSelectedCategory('all');
   }, [currentMonth, currentYear]);
 
   const filteredEntries = useMemo(() => {
