@@ -8,6 +8,7 @@ import {
   MoreVertical,
   FileDown,
   Save,
+  Cloud,
   CloudDownload,
   CloudOff,
   Loader2,
@@ -82,6 +83,24 @@ export function Header({
             >
               <CloudOff size={11} aria-hidden />
               Local
+            </span>
+          )}
+          {showEntriesCloudSync && (
+            <span
+              className="neu-inset hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0"
+              title={
+                isSyncingEntries
+                  ? 'Gravando alterações no Supabase…'
+                  : 'Dados salvos no Supabase e disponíveis em qualquer dispositivo'
+              }
+              aria-live="polite"
+            >
+              {isSyncingEntries ? (
+                <Loader2 size={11} className="animate-spin" aria-hidden />
+              ) : (
+                <Cloud size={11} aria-hidden />
+              )}
+              {isSyncingEntries ? 'Salvando' : 'Nuvem'}
             </span>
           )}
         </div>

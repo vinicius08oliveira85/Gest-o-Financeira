@@ -40,6 +40,7 @@ vi.mock('./hooks/useEntries', () => ({
     deleteRecurringModel: vi.fn(),
     availableCategories: [],
     refetchEntries: vi.fn(),
+    syncEntriesNow: vi.fn(),
     getSaldoForMonth: vi.fn(() => 0),
     getMetaBalanceForGoal: vi.fn(() => 0),
     searchQuery: '',

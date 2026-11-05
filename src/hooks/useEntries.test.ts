@@ -86,6 +86,38 @@ describe('useEntries', () => {
     expect(result.current.entries).toHaveLength(2);
   });
 
+  it('com Supabase: grava automaticamente no servidor após uma alteração, sem clicar em Salvar', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { fetchEntries, syncEntriesDelta } = await import('../lib/entriesDb');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(fetchEntries).mockResolvedValue([]);
+    vi.mocked(syncEntriesDelta).mockResolvedValue(undefined as unknown as void);
+
+    const { result } = renderHook(() => useEntries());
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 2000 });
+
+    const entry: Entry = {
+      id: 'auto-sync',
+      name: 'Conta de luz',
+      amount: 120,
+      dueDate: '2026-11-10',
+      isPaid: false,
+      type: 'debt',
+      createdAt: Date.now(),
+    };
+    await act(async () => {
+      await result.current.addOrUpdateEntry(entry, false);
+    });
+
+    await waitFor(() => expect(syncEntriesDelta).toHaveBeenCalled(), { timeout: 4000 });
+    expect(
+      vi
+        .mocked(syncEntriesDelta)
+        .mock.calls.at(-1)?.[1]
+        .map((e) => e.id)
+    ).toContain('auto-sync');
+  }, 10000);
+
   it('com Supabase: reenvia e mantém entries locais exclusivas quando a nuvem vem não vazia', async () => {
     const { isSupabaseConfigured } = await import('../lib/supabase');
     const { fetchEntries, insertEntriesBatch } = await import('../lib/entriesDb');
