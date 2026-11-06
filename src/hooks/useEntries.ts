@@ -19,6 +19,9 @@ import { propagateEntryInstallmentUpdate } from '../lib/installments';
 import { readStored, writeStored } from '../lib/storage';
 import { mergeUnconfirmed } from '../lib/recovery';
 
+/** Espera após a última alteração antes de gravar automaticamente no Supabase. */
+const AUTO_SYNC_DEBOUNCE_MS = 1500;
+
 function readSuppressedRecurringSlots(): Set<string> {
   try {
     const raw = localStorage.getItem(RECURRING_SUPPRESSED_SLOTS_KEY);
@@ -88,6 +91,26 @@ export function useEntries() {
   const deletedEntryIdsRef = useRef<Set<string>>(new Set());
   /** Cópias de recorrência apagadas manualmente: não voltar a gerar após salvar/sincronizar. */
   const suppressedRecurringSlotsRef = useRef<Set<string>>(readSuppressedRecurringSlots());
+  /** Evita dois pushes concorrentes (autosave + botão manual + retomada de foco). */
+  const syncInFlightRef = useRef(false);
+  /** Timer do autosave remoto; reiniciado a cada alteração local. */
+  const autoSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Versão de cada id pendente. Se o utilizador alterar o mesmo lançamento enquanto
+   * o push está em curso, a versão muda e a alteração não é apagada pelo retorno
+   * do servidor (fica pendente para o próximo sync).
+   */
+  const dirtyEntryVersionsRef = useRef<Map<string, number>>(new Map());
+
+  const markEntryDirty = useCallback((id: string) => {
+    dirtyEntryIdsRef.current.add(id);
+    dirtyEntryVersionsRef.current.set(id, (dirtyEntryVersionsRef.current.get(id) ?? 0) + 1);
+  }, []);
+
+  const clearDirtyEntry = useCallback((id: string) => {
+    dirtyEntryIdsRef.current.delete(id);
+    dirtyEntryVersionsRef.current.delete(id);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +131,7 @@ export function useEntries() {
           // Ids locais ainda não confirmados pela nuvem continuam pendentes para o
           // próximo save; só os confirmados pela resposta são limpos.
           dirtyEntryIdsRef.current = new Set(localOnly.map((e) => e.id));
+          dirtyEntryVersionsRef.current.clear();
 
           const copies = generateMissingRecurringCopies(data, suppressedRecurringSlotsRef.current);
           if (copies.length > 0 && !cancelled) {
@@ -137,6 +161,7 @@ export function useEntries() {
             }
           } else {
             dirtyEntryIdsRef.current.clear();
+            dirtyEntryVersionsRef.current.clear();
           }
         } catch (e) {
           logError('Failed to load entries from Supabase', e);
@@ -148,6 +173,7 @@ export function useEntries() {
           if (saved.length > 0 && !cancelled) {
             setEntries(saved);
             dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
+            dirtyEntryVersionsRef.current.clear();
           } else if (!cancelled) {
             setEntries([]);
           }
@@ -159,6 +185,7 @@ export function useEntries() {
         if (saved.length > 0) {
           setEntries(saved);
           dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
+          dirtyEntryVersionsRef.current.clear();
         }
         setIsLoading(false);
       }
@@ -170,19 +197,23 @@ export function useEntries() {
   }, []);
 
   const refetchEntries = useCallback(async () => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
     try {
       const data = await fetchMergedWithRecurringRespectSuppressed(
         suppressedRecurringSlotsRef.current
       );
       setEntries(data);
       dirtyEntryIdsRef.current.clear();
+      dirtyEntryVersionsRef.current.clear();
       setShowOfflineBanner(false);
       setIsCloudUnavailable(false);
     } catch (e) {
       logError('Failed to refetch entries', e);
       setShowOfflineBanner(true);
       setIsCloudUnavailable(true);
+    } finally {
+      syncInFlightRef.current = false;
     }
   }, []);
 
@@ -210,22 +241,66 @@ export function useEntries() {
 
   /** Envia alterações locais (delta) ao Supabase e atualiza o estado com o retorno do servidor. */
   const pushEntriesToSupabase = useCallback(async () => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || syncInFlightRef.current) return;
+
+    const localSnapshot = entriesRef.current;
+    const dirty = dirtyEntryIdsRef.current;
+    const changedEntries = localSnapshot.filter((e) => dirty.has(e.id));
+    const deletedIds = [...deletedEntryIdsRef.current];
+    if (changedEntries.length === 0 && deletedIds.length === 0) return;
+
+    syncInFlightRef.current = true;
     setIsSyncing(true);
     setSaveError(null);
+    // Fotografa o que está sendo enviado: alterações feitas durante a requisição
+    // não podem ser apagadas pelo retorno (possivelmente mais antigo) do servidor.
+    const startedVersions = new Map(
+      changedEntries.map((e) => [e.id, dirtyEntryVersionsRef.current.get(e.id) ?? 0])
+    );
+    const startedDeleted = new Set(deletedIds);
     try {
-      const localSnapshot = entriesRef.current;
       const presentIds = localSnapshot.map((e) => e.id);
-      const dirty = dirtyEntryIdsRef.current;
-      const changedEntries = localSnapshot.filter((e) => dirty.has(e.id));
-      const deletedIds = [...deletedEntryIdsRef.current];
       await syncEntriesDelta(presentIds, changedEntries, deletedIds);
       const merged = await fetchMergedWithRecurringRespectSuppressed(
         suppressedRecurringSlotsRef.current
       );
-      setEntries(merged);
-      dirtyEntryIdsRef.current.clear();
-      deletedEntryIdsRef.current.clear();
+
+      // Mantém a versão local do que mudou durante o push e adota a revisão do
+      // servidor, para que o próximo envio passe no controle otimista (OCC).
+      const overlayIds = new Set<string>();
+      for (const [id, version] of startedVersions) {
+        if ((dirtyEntryVersionsRef.current.get(id) ?? 0) !== version) overlayIds.add(id);
+      }
+      for (const id of dirtyEntryIdsRef.current) {
+        if (!startedVersions.has(id)) overlayIds.add(id);
+      }
+
+      const pendingDeleted = new Set(deletedEntryIdsRef.current);
+      const localById = new Map(entriesRef.current.map((e) => [e.id, e]));
+      const fetchedById = new Map(merged.map((e) => [e.id, e]));
+      const result = merged.filter((e) => !pendingDeleted.has(e.id));
+      for (const id of overlayIds) {
+        if (pendingDeleted.has(id)) continue;
+        const local = localById.get(id);
+        if (!local) continue;
+        const fromServer = fetchedById.get(id);
+        const overlay = fromServer
+          ? { ...local, revision: fromServer.revision ?? local.revision }
+          : local;
+        const index = result.findIndex((e) => e.id === id);
+        if (index >= 0) result[index] = overlay;
+        else result.unshift(overlay);
+      }
+
+      // Só considera confirmado o que foi enviado e não mudou desde então.
+      for (const [id, version] of startedVersions) {
+        if ((dirtyEntryVersionsRef.current.get(id) ?? 0) === version) clearDirtyEntry(id);
+      }
+      for (const id of startedDeleted) {
+        if (deletedEntryIdsRef.current.has(id)) deletedEntryIdsRef.current.delete(id);
+      }
+
+      commitEntries(result);
       setShowOfflineBanner(false);
       setIsCloudUnavailable(false);
     } catch (e) {
@@ -235,21 +310,28 @@ export function useEntries() {
       setIsCloudUnavailable(true);
       throw e;
     } finally {
+      syncInFlightRef.current = false;
       setIsSyncing(false);
     }
-  }, []);
+  }, [clearDirtyEntry, commitEntries]);
 
-  /** Apenas busca lançamentos do Supabase e substitui o estado local (sem enviar delta). */
+  /** Busca lançamentos do Supabase; se houver alterações pendentes, envia antes de baixar. */
   const pullEntriesFromSupabase = useCallback(async () => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || syncInFlightRef.current) return;
+    if (dirtyEntryIdsRef.current.size > 0 || deletedEntryIdsRef.current.size > 0) {
+      await pushEntriesToSupabase();
+      return;
+    }
+    syncInFlightRef.current = true;
     setIsSyncing(true);
     setSaveError(null);
     try {
       const merged = await fetchMergedWithRecurringRespectSuppressed(
         suppressedRecurringSlotsRef.current
       );
-      setEntries(merged);
+      commitEntries(merged);
       dirtyEntryIdsRef.current.clear();
+      dirtyEntryVersionsRef.current.clear();
       setShowOfflineBanner(false);
       setIsCloudUnavailable(false);
     } catch (e) {
@@ -259,9 +341,66 @@ export function useEntries() {
       setIsCloudUnavailable(true);
       throw e;
     } finally {
+      syncInFlightRef.current = false;
       setIsSyncing(false);
     }
-  }, []);
+  }, [commitEntries, pushEntriesToSupabase]);
+
+  /** Reconexão/retry: envia o que está pendente ou, se não há nada, busca o servidor. */
+  const syncEntriesNow = useCallback(async () => {
+    if (!isSupabaseConfigured() || syncInFlightRef.current) return;
+    if (dirtyEntryIdsRef.current.size > 0 || deletedEntryIdsRef.current.size > 0) {
+      await pushEntriesToSupabase();
+    } else {
+      await refetchEntries();
+    }
+  }, [pushEntriesToSupabase, refetchEntries]);
+
+  /**
+   * Autosave remoto. Sem isto os lançamentos só chegavam ao Supabase ao clicar
+   * em "Salvar"; um reload antes do clique deixava o outro dispositivo sem eles.
+   */
+  useEffect(() => {
+    if (!isSupabaseConfigured() || isLoading || isMigrating) return;
+    if (dirtyEntryIdsRef.current.size === 0 && deletedEntryIdsRef.current.size === 0) return;
+
+    if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current);
+    autoSyncTimerRef.current = setTimeout(() => {
+      autoSyncTimerRef.current = null;
+      void pushEntriesToSupabase().catch(() => {
+        // O banner/saveError já informa a falha; a próxima alteração tenta de novo.
+      });
+    }, AUTO_SYNC_DEBOUNCE_MS);
+
+    return () => {
+      if (autoSyncTimerRef.current) {
+        clearTimeout(autoSyncTimerRef.current);
+        autoSyncTimerRef.current = null;
+      }
+    };
+  }, [entries, isLoading, isMigrating, pushEntriesToSupabase]);
+
+  /** Ao voltar para o app (foco/visibilidade/rede), grava pendências ou busca o que mudou noutro dispositivo. */
+  useEffect(() => {
+    if (!isSupabaseConfigured() || isLoading) return;
+
+    const syncOnResume = () => {
+      if (document.visibilityState === 'hidden' || syncInFlightRef.current) return;
+      void syncEntriesNow().catch(() => {});
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') syncOnResume();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', syncOnResume);
+    window.addEventListener('online', syncOnResume);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', syncOnResume);
+      window.removeEventListener('online', syncOnResume);
+    };
+  }, [isLoading, syncEntriesNow]);
 
   useEffect(() => {
     setSearchQuery('');
@@ -504,7 +643,7 @@ export function useEntries() {
     if (isEdit) {
       // Se o lançamento foi excluído e agora está sendo restaurado, cancela a deleção pendente.
       deletedEntryIdsRef.current.delete(entry.id);
-      dirtyEntryIdsRef.current.add(entry.id);
+      markEntryDirty(entry.id);
       const updated = bumpEntryUpdatedAt(entry);
       let next = entriesRef.current.map((e) => (e.id === entry.id ? updated : e));
       if (updated.parentInstallmentId) {
@@ -517,7 +656,7 @@ export function useEntries() {
           )
           .map((e) => e.id);
         for (const sid of siblingIds) {
-          dirtyEntryIdsRef.current.add(sid);
+          markEntryDirty(sid);
         }
         if (siblingIds.length > 0) {
           next = next.map((e) => (siblingIds.includes(e.id) ? bumpEntryUpdatedAt(e) : e));
@@ -527,7 +666,7 @@ export function useEntries() {
         // Ao editar a recorrência (ex.: aumentar o nº de meses), gera as cópias que faltam.
         const copies = generateMissingRecurringCopies(next, suppressedRecurringSlotsRef.current);
         for (const c of copies) {
-          dirtyEntryIdsRef.current.add(c.id);
+          markEntryDirty(c.id);
         }
         if (copies.length > 0) next = [...next, ...copies];
       }
@@ -537,13 +676,13 @@ export function useEntries() {
     const stamped = bumpEntryUpdatedAt(entry);
     // Restauração via "desfazer" não deve ser enviada como deleção no próximo sync.
     deletedEntryIdsRef.current.delete(stamped.id);
-    dirtyEntryIdsRef.current.add(stamped.id);
+    markEntryDirty(stamped.id);
     const base = [stamped, ...entriesRef.current];
     let next = base;
     if (stamped.isRecurring) {
       const copies = generateMissingRecurringCopies(base, suppressedRecurringSlotsRef.current);
       for (const c of copies) {
-        dirtyEntryIdsRef.current.add(c.id);
+        markEntryDirty(c.id);
       }
       next = copies.length > 0 ? [...base, ...copies] : base;
     }
@@ -553,7 +692,7 @@ export function useEntries() {
 
   const togglePaid = useCallback(
     (id: string) => {
-      dirtyEntryIdsRef.current.add(id);
+      markEntryDirty(id);
       commitEntries(
         entriesRef.current.map((e) => {
           if (e.id !== id) return e;
@@ -564,7 +703,7 @@ export function useEntries() {
         })
       );
     },
-    [commitEntries]
+    [commitEntries, markEntryDirty]
   );
 
   const deleteEntry = useCallback(
@@ -578,11 +717,11 @@ export function useEntries() {
         );
         persistSuppressedRecurringSlots(suppressedRecurringSlotsRef.current);
       }
-      dirtyEntryIdsRef.current.delete(id);
+      clearDirtyEntry(id);
       deletedEntryIdsRef.current.add(id);
       commitEntries(entriesRef.current.filter((e) => e.id !== id));
     },
-    [commitEntries]
+    [clearDirtyEntry, commitEntries]
   );
 
   const updateRecurringApplyToAll = useCallback(
@@ -609,12 +748,12 @@ export function useEntries() {
         });
       });
       for (const m of merged) {
-        dirtyEntryIdsRef.current.add(m.id);
+        markEntryDirty(m.id);
       }
       const mergedById = new Map(merged.map((m) => [m.id, m]));
       commitEntries(entriesRef.current.map((e) => mergedById.get(e.id) ?? e));
     },
-    [commitEntries]
+    [commitEntries, markEntryDirty]
   );
 
   const deleteRecurringModel = useCallback(
@@ -640,12 +779,12 @@ export function useEntries() {
           : [entryInCurrent];
       const ids = new Set(toRemove.map((e) => e.id));
       for (const rid of ids) {
-        dirtyEntryIdsRef.current.delete(rid);
+        clearDirtyEntry(rid);
         deletedEntryIdsRef.current.add(rid);
       }
       commitEntries(entriesRef.current.filter((e) => !ids.has(e.id)));
     },
-    [commitEntries]
+    [clearDirtyEntry, commitEntries]
   );
 
   return {
@@ -696,6 +835,7 @@ export function useEntries() {
     deleteRecurringModel,
     availableCategories,
     refetchEntries,
+    syncEntriesNow,
     getSaldoForMonth,
     getMetaBalanceForGoal,
     saveEntriesLocal,

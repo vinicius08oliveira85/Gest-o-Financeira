@@ -4,9 +4,9 @@
 
 # Gestão Financeira
 
-App de controle de fluxo de caixa: lançamentos de entradas e saídas por mês, metas, alertas e exportação em CSV. Proteção por senha local e suporte a Supabase para sincronização; quando o Supabase não está configurado, os dados ficam apenas no dispositivo (localStorage). Disponível como PWA para instalação no celular.
+App de controle de fluxo de caixa: lançamentos de entradas e saídas por mês, metas, alertas e exportação em CSV. Proteção por senha local e sincronização automática com Supabase; quando o Supabase não está configurado, os dados ficam apenas no dispositivo (localStorage). Disponível como PWA para instalação no celular.
 
-**Funcionalidades:** entradas e saídas com categorias e tags; filtros por mês e categoria; metas por mês; alertas (concentração de gastos, vencimentos próximos); parcelamento de lançamentos; visualização em lista ou calendário; export CSV; proteção por senha; sincronização opcional com Supabase.
+**Funcionalidades:** entradas e saídas com categorias e tags; filtros por mês e categoria; metas por mês; alertas (concentração de gastos, vencimentos próximos); parcelamento de lançamentos; visualização em lista ou calendário; export CSV; proteção por senha; sincronização automática com Supabase.
 
 ---
 
@@ -32,10 +32,16 @@ Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Supabase (opcional).
    - `20250319000000_create_credit_cards_table.sql` / `20250319000001_credit_cards_rls_policies.sql` — tabelas e RLS de cartões e gastos
    - Migrações `2026042*` — sincronização (snapshot, coluna `updated_at`, `sync_entries_delta`, coluna `revision`, `insert_entries_batch` robusto, coluna `invoice_payment_due_date`)
    - `20260807000000_sync_entries_delta_safe_merge.sql` — sync seguro (sem "delete cego"; deleção explícita via `deleted_ids`)
+   - `20260807000001_drop_unsafe_sync_entries_delta_2args.sql` — remove a sobrecarga antiga de 2 argumentos, que ainda apagava registros de outros dispositivos
+   - `20260807000002_drop_unsafe_sync_entries_snapshot.sql` — remove o RPC antigo de snapshot, que podia apagar a tabela inteira com uma chamada
 
    > **Atenção:** ignore `add_missing_fields.sql` — é legado (cria colunas camelCase que o app não usa); use `20250316000003_entries_optional_columns_snake.sql`.
 
+   Se preferir aplicar tudo de uma vez pelo SQL Editor, use [`supabase/apply_all.sql`](supabase/apply_all.sql): ele contém todas as migrações na ordem correta e é idempotente.
+
    No Dashboard do Supabase, ative **Realtime** para a tabela `entries` (Database > Replication); opcionalmente, ative também para `goals`. Defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em `.env.local`. As variáveis estão listadas em [.env.example](.env.example).
+
+   Com as variáveis configuradas, o app grava cada alteração automaticamente no Supabase (cerca de 1,5 s após a última edição) e mantém um espelho local para funcionar offline. Ao voltar para o app, ele envia o que estiver pendente e busca o que mudou em outros dispositivos. O botão **Salvar** continua disponível para forçar o envio imediato; **Sincronizar** baixa o estado atual do servidor.
 
 3. Run the app:
    `npm run dev`
@@ -61,10 +67,12 @@ Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Supabase (opcional).
 Para o app persistir dados no Supabase em produção, configure as variáveis de ambiente no projeto Vercel:
 
 1. Vercel Dashboard → seu projeto → **Settings** → **Environment Variables**.
-2. Adicione `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` com os mesmos valores do Supabase (Project Settings > API). Atribua a Production (e Preview, se quiser).
+2. Adicione `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` com os mesmos valores do Supabase (Project Settings > API Keys; use a chave **publishable** ou a **anon public**). Atribua a Production (e Preview, se quiser).
 3. Após alterar variáveis, faça um **redeploy** para o build incorporar os novos valores.
 
 Sem essas variáveis, o app em produção usará apenas `localStorage` (dados só no dispositivo).
+
+> **Segurança:** a sincronização usa a chave pública e as políticas RLS atuais liberam o papel `anon`. A senha do app é local (não é enviada ao Supabase), então ela não protege os dados na nuvem: quem tiver a URL do site e a chave pública consegue ler e gravar. Para dados financeiros sensíveis em produção, o próximo passo é usar **Supabase Auth + RLS por usuário**.
 
 ## Solução de problemas (Supabase)
 

@@ -127,7 +127,7 @@ export default function App() {
     updateRecurringApplyToAll,
     deleteRecurringModel,
     availableCategories,
-    refetchEntries,
+    syncEntriesNow,
     getMetaBalanceForGoal,
     saveEntriesLocal,
     pushEntriesToSupabase,
@@ -340,7 +340,7 @@ export default function App() {
             onDismissOffline={() => setShowOfflineBanner(false)}
             saveError={saveError}
             onDismissSaveError={() => setSaveError(null)}
-            onRetryOffline={refetchEntries}
+            onRetryOffline={syncEntriesNow}
             onRetrySaveError={() => {
               if (lastSyncAttemptRef.current === 'push') {
                 void handleSaveEntriesToSupabase();
