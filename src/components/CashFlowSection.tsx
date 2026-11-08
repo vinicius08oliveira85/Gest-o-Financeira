@@ -49,6 +49,9 @@ type CashFlowSectionProps = {
   setSortOrder: (s: 'asc' | 'desc') => void;
   selectedCategory: string;
   setSelectedCategory: (c: string) => void;
+  /** Todos os lançamentos após filtros, de qualquer mês (aba Lançamentos). */
+  listEntries: Entry[];
+  /** Só o mês selecionado (calendário). */
   filteredEntries: Entry[];
   entriesCount: number;
   availableCategories: string[];
@@ -107,6 +110,7 @@ export function CashFlowSection({
   setSortOrder,
   selectedCategory,
   setSelectedCategory,
+  listEntries,
   filteredEntries,
   entriesCount,
   availableCategories,
@@ -335,7 +339,7 @@ export function CashFlowSection({
               <FilterBar
                 filter={filter}
                 onFilterChange={setFilter}
-                filteredCount={filteredEntries.length}
+                filteredCount={listEntries.length}
                 totalCount={entriesCount}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -374,16 +378,16 @@ export function CashFlowSection({
             </div>
             {viewMode === 'list' ? (
               <EntryList
-                entries={filteredEntries}
+                entries={listEntries}
                 onTogglePaid={onTogglePaid}
                 onEdit={onEdit}
                 onDeleteRequest={(id) => {
-                  const entry = filteredEntries.find((e) => e.id === id);
+                  const entry = listEntries.find((e) => e.id === id);
                   if (entry) onDeleteRequest(entry);
                 }}
                 compact
                 groupByDate
-                filtered={entriesCount > 0 && filteredEntries.length === 0}
+                filtered={entriesCount > 0 && listEntries.length === 0}
                 onClearFilters={() => {
                   setFilter('all');
                   setSearchQuery('');

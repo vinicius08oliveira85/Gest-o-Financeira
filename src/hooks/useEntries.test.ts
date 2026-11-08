@@ -78,6 +78,57 @@ describe('useEntries', () => {
     expect(result.current.filteredEntries).toHaveLength(60);
   });
 
+  it('a lista da aba Lançamentos mostra lançamentos de todos os meses', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const multi: Entry[] = [
+      {
+        id: 'a',
+        name: 'Jan',
+        amount: 10,
+        dueDate: '2025-01-10',
+        isPaid: false,
+        type: 'debt',
+        createdAt: 1,
+      },
+      {
+        id: 'b',
+        name: 'Mar',
+        amount: 20,
+        dueDate: '2025-03-10',
+        isPaid: false,
+        type: 'debt',
+        createdAt: 2,
+      },
+      {
+        id: 'c',
+        name: 'Jul',
+        amount: 30,
+        dueDate: '2025-07-10',
+        isPaid: true,
+        type: 'cash',
+        createdAt: 3,
+      },
+    ];
+    localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(multi));
+
+    const { result } = renderHook(() => useEntries());
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 2000 });
+    const now = new Date();
+    const steps = (2025 - now.getFullYear()) * 12 + (2 - now.getMonth());
+    for (let i = 0; i < Math.abs(steps); i++) {
+      act(() => (steps > 0 ? result.current.goToNextMonth() : result.current.goToPreviousMonth()));
+    }
+
+    // Calendário: só fevereiro/março de 2025 (mês selecionado = março → 1 item).
+    expect(result.current.filteredEntries.map((e) => e.id)).toEqual(['b']);
+    // Lista: todos, independente do mês.
+    expect(result.current.listEntries).toHaveLength(3);
+
+    act(() => result.current.setFilter('paid'));
+    expect(result.current.listEntries.map((e) => e.id)).toEqual(['c']);
+  });
+
   beforeEach(() => {
     localStorage.clear();
     // Don't clear mocks - supabase mock needs to stay configured
