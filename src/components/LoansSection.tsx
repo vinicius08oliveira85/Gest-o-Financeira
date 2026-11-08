@@ -41,7 +41,13 @@ export function LoansSection({ loans, onNewLoan, onEditLoan }: Props) {
       </div>
 
       {loans.length === 0 ? (
-        <EmptyState variant="cards" onAction={onNewLoan} />
+        <EmptyState
+          variant="cards"
+          title="Nenhum empréstimo cadastrado"
+          description="Registre empréstimos para acompanhar o valor em aberto e o que já foi pago."
+          actionLabel="Novo empréstimo"
+          onAction={onNewLoan}
+        />
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -13,7 +13,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { exportEntriesToCSV } from './lib/format';
 import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
-import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
+import { DISMISSED_ALERTS_KEY } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal, Loan } from './types';
 import type { TabId } from './components/TabNav';
 import { PeriodProvider } from './contexts/PeriodContext';
@@ -21,14 +21,9 @@ import {
   MainLayout,
   CashFlowSection,
   FloatingActionButton,
-  PasswordGate,
   ErrorBoundary,
   Toast,
 } from './components';
-
-const ChangePasswordModal = lazy(() =>
-  import('./components/ChangePasswordModal').then((m) => ({ default: m.ChangePasswordModal }))
-);
 const ConfirmDeleteModal = lazy(() =>
   import('./components/ConfirmDeleteModal').then((m) => ({ default: m.ConfirmDeleteModal }))
 );
@@ -63,9 +58,7 @@ const ModalForm = lazy(() =>
 );
 
 export default function App() {
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(UNLOCK_KEY) === '1');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('resumo');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
@@ -225,7 +218,7 @@ export default function App() {
     completeStep('stepNewEntry');
   }, [handleOpenForm, completeStep]);
 
-  // Keyboard shortcuts (only when unlocked and not in a modal)
+  // Keyboard shortcuts (only when not in a modal)
   useKeyboardShortcuts([
     {
       key: 'n',
@@ -267,11 +260,6 @@ export default function App() {
       });
     }
   }, [entryToDelete, deleteEntry, showToast, addOrUpdateEntry]);
-
-  const handleUnlock = useCallback(() => {
-    setUnlocked(true);
-    sessionStorage.setItem(UNLOCK_KEY, '1');
-  }, []);
 
   const handleSaveEntriesLocal = useCallback(() => {
     saveEntriesLocal();
@@ -328,10 +316,6 @@ export default function App() {
     [entries, addOrUpdateEntry, showToast]
   );
 
-  if (!unlocked) {
-    return <PasswordGate onUnlock={handleUnlock} />;
-  }
-
   return (
     <ErrorBoundary>
       <MotionConfig reducedMotion="user">
@@ -364,7 +348,6 @@ export default function App() {
               exportEntriesToCSV(entriesDoMes, { filenameSuffix: '_mes_atual' })
             }
             onNewEntry={handleNewEntryWithStep}
-            onOpenChangePassword={() => setShowChangePasswordModal(true)}
             onSaveEntriesLocal={handleSaveEntriesLocal}
             onSaveEntriesToSupabase={entriesSyncAvailable ? handleSaveEntriesToSupabase : undefined}
             onPullEntriesFromSupabase={
@@ -499,11 +482,6 @@ export default function App() {
       <FloatingActionButton onClick={() => handleOpenForm()} />
 
       <Suspense fallback={null}>
-        <ChangePasswordModal
-          open={showChangePasswordModal}
-          onClose={() => setShowChangePasswordModal(false)}
-          onSuccess={() => setShowChangePasswordModal(false)}
-        />
         {entryToDelete &&
         entryToDelete.isRecurring === true &&
         !entryToDelete.recurrenceTemplateId ? (
@@ -622,6 +600,9 @@ export default function App() {
           confirmLabel="Excluir"
           onConfirm={() => {
             if (goalToDelete) {
+              // Depósitos vinculados à meta são removidos junto, para não sobrarem como
+              // lançamentos órfãos nos totais de Lançamentos, Resumo e Relatórios.
+              entries.filter((e) => e.goalId === goalToDelete.id).forEach((e) => deleteEntry(e.id));
               deleteGoal(goalToDelete.id);
               setGoalToDelete(null);
               showToast('Meta excluída');

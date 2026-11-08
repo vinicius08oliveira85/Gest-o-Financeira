@@ -50,6 +50,8 @@ function isOverdue(e: Entry): boolean {
 export function CalendarView({ entries, month, year }: CalendarViewProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  // Dia selecionado no mobile para listar todos os lançamentos.
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   // Filtros locais do calendário (compõem com o FilterBar global da aba).
   const visibleEntries = useMemo(
@@ -200,7 +202,10 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
           return (
             <div
               key={idx}
-              className={`min-h-[clamp(3rem,14vw,6rem)] rounded-lg sm:rounded-xl px-1 py-1 sm:px-1.5 flex flex-col gap-0.5 ${
+              onClick={() => setSelectedDay(day)}
+              className={`min-h-[clamp(3rem,14vw,6rem)] rounded-lg sm:rounded-xl px-1 py-1 sm:px-1.5 flex flex-col gap-0.5 cursor-pointer sm:cursor-default ${
+                selectedDay === day ? 'ring-2 ring-emerald-500' : ''
+              } ${
                 isToday
                   ? 'neu-calendar-today'
                   : hasInstallments
@@ -287,6 +292,40 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
           );
         })}
       </div>
+
+      {/* Mobile: lista completa do dia selecionado ao tocar na data */}
+      {selectedDay !== null && (
+        <div className="sm:hidden neu-card p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              Dia {selectedDay} · {buckets[selectedDay]?.entries.length ?? 0} lançamento(s)
+            </p>
+            <button
+              type="button"
+              onClick={() => setSelectedDay(null)}
+              className="text-xs text-slate-600 dark:text-slate-400"
+            >
+              Fechar
+            </button>
+          </div>
+          {(buckets[selectedDay]?.entries ?? []).map((e) => (
+            <div
+              key={e.id}
+              className="flex items-center justify-between gap-2 text-xs text-slate-700 dark:text-slate-300"
+            >
+              <span className="truncate">{e.name}</span>
+              <span
+                className={`shrink-0 font-semibold ${
+                  isEntrada(e) ? 'text-emerald-600' : 'text-red-600'
+                }`}
+              >
+                {isEntrada(e) ? '+' : '-'}
+                {formatCurrency(e.amount)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

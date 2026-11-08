@@ -34,13 +34,6 @@ const STORE_MAP: Record<string, StoreName> = {
   'gestao-financeira-loans': 'loans',
 };
 
-// `gestao-financeira-pw` fica de fora de propósito. O hash da senha é lido de
-// forma síncrona por `password.ts`, que só conversa com `localStorage`. A
-// migration movia o hash para o IndexedDB e apagava a chave original, deixando o
-// registro órfão num store que ninguém lê: a trava de tela deixava de existir
-// silenciosamente após a migration. Manter a chave no localStorage preserva o
-// comportamento sem custo de sincronização.
-
 export type StoredData<T> = {
   version: number;
   data: T[];

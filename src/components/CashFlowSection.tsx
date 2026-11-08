@@ -13,6 +13,7 @@ import { GuidedTooltip } from './GuidedTooltip';
 import { TabNav, type TabId } from './TabNav';
 import { CardsSection } from './CardsSection';
 import { LoansSection } from './LoansSection';
+import { getLoanTotals } from '../lib/loans';
 
 const CalendarView = lazy(() =>
   import('./CalendarView').then((m) => ({ default: m.CalendarView }))
@@ -308,9 +309,7 @@ export function CashFlowSection({
                     Empréstimos em aberto
                   </p>
                   <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    {formatCurrency(
-                      loans.filter((l) => !l.paid).reduce((sum, l) => sum + l.amount, 0)
-                    )}
+                    {formatCurrency(getLoanTotals(loans, todayLocalISO()).open)}
                   </p>
                 </div>
                 <div className="neu-card p-4">
@@ -318,11 +317,7 @@ export function CashFlowSection({
                     Empréstimos vencidos
                   </p>
                   <p className="text-lg font-semibold text-red-600 dark:text-red-400">
-                    {formatCurrency(
-                      loans
-                        .filter((l) => !l.paid && l.dueDate < todayLocalISO())
-                        .reduce((sum, l) => sum + l.amount, 0)
-                    )}
+                    {formatCurrency(getLoanTotals(loans, todayLocalISO()).overdue)}
                   </p>
                 </div>
               </div>

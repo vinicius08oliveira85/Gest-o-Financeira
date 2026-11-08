@@ -9,7 +9,6 @@ import {
   idbClose,
   migrateFromLocalStorage,
 } from './idb';
-import { PASSWORD_STORAGE_KEY } from '../constants';
 
 const DB_NAME = 'gestao-financeira-db';
 
@@ -92,29 +91,6 @@ describe('idb', () => {
     expect(records).toHaveLength(3);
     const prefixes = new Set(records.map((record) => record.id.charAt(0)));
     expect(prefixes.size).toBe(1);
-  });
-
-  it('preserva chaves em formato desconhecido durante a migration', async () => {
-    // Formato do hash de senha: objeto sem `id`.
-    localStorage.setItem(
-      PASSWORD_STORAGE_KEY,
-      JSON.stringify({ salt: 'c2FsdA==', hash: 'aGFzaA==', iterations: 150000 })
-    );
-
-    await migrateFromLocalStorage();
-
-    // Regressão: a versão anterior removia a chave mesmo sem gravar nada,
-    // apagando a senha sem cópia.
-    expect(localStorage.getItem(PASSWORD_STORAGE_KEY)).not.toBeNull();
-  });
-
-  it('não migra nem remove a chave da senha', async () => {
-    const stored = JSON.stringify({ salt: 'c2FsdA==', hash: 'aGFzaA==', iterations: 150000 });
-    localStorage.setItem(PASSWORD_STORAGE_KEY, stored);
-
-    await migrateFromLocalStorage();
-
-    expect(localStorage.getItem(PASSWORD_STORAGE_KEY)).toBe(stored);
   });
 
   it('preserva chaves cujo conteúdo não é uma lista de objetos', async () => {
