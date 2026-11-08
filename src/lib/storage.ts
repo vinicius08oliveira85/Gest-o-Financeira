@@ -192,8 +192,8 @@ export async function clearStorage(key: string): Promise<void> {
   }
   try {
     localStorage.removeItem(key);
-  } catch {
-    // ignore
+  } catch (e) {
+    logError(`Failed to clear storage ${key}`, e);
   }
 }
 

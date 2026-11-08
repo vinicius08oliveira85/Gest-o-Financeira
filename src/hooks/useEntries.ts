@@ -36,8 +36,8 @@ function readSuppressedRecurringSlots(): Set<string> {
 function persistSuppressedRecurringSlots(slots: Set<string>) {
   try {
     localStorage.setItem(RECURRING_SUPPRESSED_SLOTS_KEY, JSON.stringify([...slots]));
-  } catch {
-    // quota / private mode
+  } catch (e) {
+    logError('Failed to save suppressed recurring slots', e);
   }
 }
 

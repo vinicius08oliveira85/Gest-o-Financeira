@@ -58,8 +58,9 @@ export async function upsertGoal(goal: Omit<Goal, 'id'> & { id?: string }): Prom
   return rowToGoal(data as GoalRow);
 }
 
+/** Remove a meta e os lançamentos vinculados numa única transação no banco. */
 export async function deleteGoal(id: string): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase.from('goals').delete().eq('id', id);
+  const { error } = await supabase.rpc('delete_goal_with_entries', { p_goal_id: id });
   if (error) throw error;
 }

@@ -13,6 +13,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { exportEntriesToCSV } from './lib/format';
 import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
+import { logError } from './lib/logger';
 import { DISMISSED_ALERTS_KEY } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal, Loan } from './types';
 import type { TabId } from './components/TabNav';
@@ -188,8 +189,8 @@ export default function App() {
       next.add(id);
       try {
         localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify([...next]));
-      } catch {
-        // ignore
+      } catch (e) {
+        logError('Failed to save dismissed alerts', e);
       }
       return next;
     });
@@ -605,14 +606,21 @@ export default function App() {
               : 'Excluir esta meta? Esta ação não pode ser desfeita.'
           }
           confirmLabel="Excluir"
-          onConfirm={() => {
+          onConfirm={async () => {
             if (goalToDelete) {
-              // Depósitos vinculados à meta são removidos junto, para não sobrarem como
-              // lançamentos órfãos nos totais de Lançamentos, Resumo e Relatórios.
-              entries.filter((e) => e.goalId === goalToDelete.id).forEach((e) => deleteEntry(e.id));
-              deleteGoal(goalToDelete.id);
+              // Depósitos vinculados são removidos junto com a meta, na mesma transação
+              // no banco; localmente só saem depois da confirmação.
+              const linkedIds = entries
+                .filter((e) => e.goalId === goalToDelete.id)
+                .map((e) => e.id);
+              const ok = await deleteGoal(goalToDelete.id);
               setGoalToDelete(null);
-              showToast('Meta excluída');
+              if (ok) {
+                linkedIds.forEach((id) => deleteEntry(id));
+                showToast('Meta excluída');
+              } else {
+                showToast('Não foi possível excluir a meta. Tente novamente.');
+              }
             }
           }}
           onClose={() => setGoalToDelete(null)}
