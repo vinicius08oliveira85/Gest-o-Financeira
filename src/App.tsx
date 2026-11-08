@@ -141,6 +141,9 @@ export default function App() {
   const { goals, upsertGoal, deleteGoal, isLoadingGoals } = useGoals();
   const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
+  const linkedGoalEntriesCount = goalToDelete
+    ? entries.filter((e) => e.goalId === goalToDelete.id).length
+    : 0;
   const { toastMessage, toastAction, showToast, dismissToast } = useToast();
   const { alerts } = useAlerts({
     entries,
@@ -596,7 +599,11 @@ export default function App() {
         <ConfirmDeleteModal
           open={goalToDelete !== null}
           title="Excluir meta"
-          message="Excluir esta meta? Esta ação não pode ser desfeita."
+          message={
+            linkedGoalEntriesCount > 0
+              ? `Esta meta tem ${linkedGoalEntriesCount} ${linkedGoalEntriesCount === 1 ? 'lançamento vinculado' : 'lançamentos vinculados'}, que também ${linkedGoalEntriesCount === 1 ? 'será excluído' : 'serão excluídos'}. Esta ação não pode ser desfeita.`
+              : 'Excluir esta meta? Esta ação não pode ser desfeita.'
+          }
           confirmLabel="Excluir"
           onConfirm={() => {
             if (goalToDelete) {
