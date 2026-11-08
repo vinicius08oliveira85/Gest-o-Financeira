@@ -85,4 +85,20 @@ describe('CalendarView', () => {
 
     expect(screen.getByText(/1 atrasado/i)).toBeTruthy();
   });
+
+  it('mostra todos os lançamentos de um dia com vários itens (não só os 2 primeiros)', () => {
+    const many: Entry[] = [
+      entry({ id: 'a', name: 'Item A', amount: 10 }),
+      entry({ id: 'b', name: 'Item B', amount: 20 }),
+      entry({ id: 'c', name: 'Item C', amount: 30 }),
+      entry({ id: 'd', name: 'Item D', amount: 40 }),
+    ];
+    render(<CalendarView entries={many} month={month} year={year} />);
+
+    expect(screen.getByText('4 lançamentos')).toBeTruthy();
+    for (const name of ['Item A', 'Item B', 'Item C', 'Item D']) {
+      expect(screen.getByText(name)).toBeTruthy();
+    }
+    expect(screen.queryByText(/\+2 lançamentos/)).toBeNull();
+  });
 });

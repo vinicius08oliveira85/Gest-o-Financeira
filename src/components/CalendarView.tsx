@@ -191,9 +191,6 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
             (e) => e.installmentsCount && e.installmentNumber
           );
 
-          const visible = bucket.entries.slice(0, 2);
-          const remaining = bucket.entries.length - visible.length;
-
           const dotColors = bucket.entries
             .slice(0, 3)
             .map((e) =>
@@ -259,9 +256,9 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                 </div>
               )}
 
-              {/* Desktop: nomes dos lançamentos */}
-              <div className="hidden sm:block mt-0.5 space-y-0.5">
-                {visible.map((e) => (
+              {/* Desktop: todos os lançamentos do dia (rolável dentro da célula) */}
+              <div className="hidden sm:block mt-0.5 space-y-0.5 max-h-24 overflow-y-auto">
+                {bucket.entries.map((e) => (
                   <div
                     key={e.id}
                     className="truncate text-2xs text-slate-700 dark:text-slate-300 flex items-center gap-1"
@@ -285,11 +282,6 @@ export function CalendarView({ entries, month, year }: CalendarViewProps) {
                     </span>
                   </div>
                 ))}
-                {remaining > 0 && (
-                  <div className="text-5xs text-slate-600 dark:text-slate-400">
-                    +{remaining} lançamentos
-                  </div>
-                )}
               </div>
             </div>
           );

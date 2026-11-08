@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CardExpense, CreditCard, Entry, FilterType, Goal, Loan } from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
-import { parseDateLocal } from '../lib/format';
+import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
 import { DashboardCards } from './DashboardCards';
 import { GoalsCard } from './GoalsCard';
 import { FilterBar } from './FilterBar';
@@ -301,6 +301,32 @@ export function CashFlowSection({
               <span className="font-semibold">finalizados</span>. Entradas aumentam e saídas
               diminuem o saldo.
             </p>
+            {loans.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="neu-card p-4">
+                  <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Empréstimos em aberto
+                  </p>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {formatCurrency(
+                      loans.filter((l) => !l.paid).reduce((sum, l) => sum + l.amount, 0)
+                    )}
+                  </p>
+                </div>
+                <div className="neu-card p-4">
+                  <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Empréstimos vencidos
+                  </p>
+                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                    {formatCurrency(
+                      loans
+                        .filter((l) => !l.paid && l.dueDate < todayLocalISO())
+                        .reduce((sum, l) => sum + l.amount, 0)
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
             <AlertsPanel alerts={alerts} onDismiss={onDismissAlert} onAction={onAlertAction} />
             {showReportsHint && (
               <GuidedTooltip text="Use as abas para ver Lançamentos, Relatórios e Metas." />
