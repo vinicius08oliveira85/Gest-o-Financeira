@@ -40,6 +40,44 @@ vi.mock('../lib/entriesDb', () => ({
 }));
 
 describe('useEntries', () => {
+  it('mostra todos os lançamentos do mês, com e sem filtros', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const many: Entry[] = Array.from({ length: 60 }, (_, i) => ({
+      id: `m${i}`,
+      name: `Lançamento ${i}`,
+      amount: 10 + i,
+      dueDate: `2025-03-${String((i % 28) + 1).padStart(2, '0')}`,
+      isPaid: i % 2 === 0,
+      type: i % 3 === 0 ? 'debt' : 'cash',
+      createdAt: Date.now(),
+      category: i % 2 === 0 ? 'Contas' : 'Salário',
+    }));
+    localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(many));
+
+    const { result } = renderHook(() => useEntries());
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 2000 });
+    // Leva o hook até março de 2025, onde estão todos os lançamentos.
+    const now = new Date();
+    const steps = (2025 - now.getFullYear()) * 12 + (2 - now.getMonth());
+    for (let i = 0; i < Math.abs(steps); i++) {
+      act(() => (steps > 0 ? result.current.goToNextMonth() : result.current.goToPreviousMonth()));
+    }
+
+    expect(result.current.filteredEntries).toHaveLength(60);
+
+    act(() => result.current.setFilter('pending'));
+    expect(result.current.filteredEntries).toHaveLength(30);
+
+    act(() => result.current.setFilter('all'));
+    act(() => result.current.setSelectedCategory('Contas'));
+    expect(result.current.filteredEntries).toHaveLength(30);
+
+    act(() => result.current.setSelectedCategory('all'));
+    act(() => result.current.setSearchQuery('Lançamento'));
+    expect(result.current.filteredEntries).toHaveLength(60);
+  });
+
   beforeEach(() => {
     localStorage.clear();
     // Don't clear mocks - supabase mock needs to stay configured

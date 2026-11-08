@@ -31,6 +31,7 @@ const STORE_MAP: Record<string, StoreName> = {
   'gestao-financeira-onboarding': 'onboarding',
   'gestao-financeira-dismissed-alerts': 'dismissedAlerts',
   'gestao-financeira-trend-months': 'trendMonths',
+  'gestao-financeira-loans': 'loans',
 };
 
 // `gestao-financeira-pw` fica de fora de propósito. O hash da senha é lido de

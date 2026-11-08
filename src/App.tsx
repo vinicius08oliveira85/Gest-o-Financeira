@@ -4,6 +4,7 @@ import { useEntries } from './hooks/useEntries';
 import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
 import { useCreditCards } from './hooks/useCreditCards';
+import { useLoans } from './hooks/useLoans';
 import { useCardExpenses } from './hooks/useCardExpenses';
 import { useAlerts, type Alert } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
@@ -13,7 +14,7 @@ import { exportEntriesToCSV } from './lib/format';
 import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
 import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
-import type { CardExpense, CreditCard, Entry, Goal } from './types';
+import type { CardExpense, CreditCard, Entry, Goal, Loan } from './types';
 import type { TabId } from './components/TabNav';
 import { PeriodProvider } from './contexts/PeriodContext';
 import {
@@ -53,6 +54,10 @@ const CardExpenseModal = lazy(() =>
   import('./components/CardExpenseModal').then((m) => ({ default: m.CardExpenseModal }))
 );
 
+const LoanModal = lazy(() =>
+  import('./components/LoanModal').then((m) => ({ default: m.LoanModal }))
+);
+
 const ModalForm = lazy(() =>
   import('./components/ModalForm').then((m) => ({ default: m.ModalForm }))
 );
@@ -79,6 +84,10 @@ export default function App() {
   const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
 
   const { cards, upsertCard, deleteCard } = useCreditCards();
+  const { loans, upsertLoan, deleteLoan } = useLoans();
+  const [loanModalOpen, setLoanModalOpen] = useState(false);
+  const [loanToEdit, setLoanToEdit] = useState<Loan | null>(null);
+  const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
   const {
     expenses: cardExpenses,
     addExpense,
@@ -438,6 +447,15 @@ export default function App() {
                 }
               }}
               onRegisterInvoice={handleRegisterInvoice}
+              loans={loans}
+              onNewLoan={() => {
+                setLoanToEdit(null);
+                setLoanModalOpen(true);
+              }}
+              onEditLoan={(loan) => {
+                setLoanToEdit(loan);
+                setLoanModalOpen(true);
+              }}
             />
           </MainLayout>
         </PeriodProvider>
@@ -610,6 +628,40 @@ export default function App() {
             }
           }}
           onClose={() => setGoalToDelete(null)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <LoanModal
+          open={loanModalOpen}
+          loan={loanToEdit}
+          onSave={(partial) => {
+            upsertLoan(partial);
+            showToast('Empréstimo salvo');
+          }}
+          onRequestDelete={(loan) => {
+            setLoanToDelete(loan);
+            setLoanModalOpen(false);
+            setLoanToEdit(null);
+          }}
+          onClose={() => {
+            setLoanModalOpen(false);
+            setLoanToEdit(null);
+          }}
+        />
+        <ConfirmDeleteModal
+          open={loanToDelete !== null}
+          title="Excluir empréstimo"
+          message="Excluir este empréstimo? Esta ação não pode ser desfeita."
+          confirmLabel="Excluir"
+          onConfirm={() => {
+            if (loanToDelete) {
+              deleteLoan(loanToDelete.id);
+              setLoanToDelete(null);
+              showToast('Empréstimo excluído');
+            }
+          }}
+          onClose={() => setLoanToDelete(null)}
         />
       </Suspense>
 

@@ -1,6 +1,6 @@
 ﻿import { lazy, Suspense, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { CardExpense, CreditCard, Entry, FilterType, Goal } from '../types';
+import type { CardExpense, CreditCard, Entry, FilterType, Goal, Loan } from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
 import { parseDateLocal } from '../lib/format';
@@ -12,6 +12,7 @@ import { AlertsPanel } from './AlertsPanel';
 import { GuidedTooltip } from './GuidedTooltip';
 import { TabNav, type TabId } from './TabNav';
 import { CardsSection } from './CardsSection';
+import { LoansSection } from './LoansSection';
 
 const CalendarView = lazy(() =>
   import('./CalendarView').then((m) => ({ default: m.CalendarView }))
@@ -73,6 +74,9 @@ type CashFlowSectionProps = {
   onAddExpense: (card: CreditCard) => void;
   onEditExpense: (expense: CardExpense) => void;
   onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
+  loans: Loan[];
+  onNewLoan: () => void;
+  onEditLoan: (loan: Loan) => void;
 };
 
 export function CashFlowSection({
@@ -128,6 +132,9 @@ export function CashFlowSection({
   onAddExpense,
   onEditExpense,
   onRegisterInvoice,
+  loans,
+  onNewLoan,
+  onEditLoan,
 }: CashFlowSectionProps) {
   const {
     currentMonth,
@@ -440,6 +447,12 @@ export function CashFlowSection({
               onEditExpense={onEditExpense}
               onRegisterInvoice={onRegisterInvoice}
             />
+          </section>
+        )}
+
+        {activeTab === 'emprestimos' && (
+          <section>
+            <LoansSection loans={loans} onNewLoan={onNewLoan} onEditLoan={onEditLoan} />
           </section>
         )}
       </section>

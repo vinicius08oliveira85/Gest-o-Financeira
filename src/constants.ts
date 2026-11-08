@@ -17,6 +17,8 @@ export const GOAL_DEADLINE_ALERT_DAYS = 7;
 export const CARDS_STORAGE_KEY = 'gestao-financeira-cards';
 export const CARD_EXPENSES_STORAGE_KEY = 'gestao-financeira-card-expenses';
 
+export const LOANS_STORAGE_KEY = 'gestao-financeira-loans';
+
 /** Janela de meses escolhida no gráfico de evolução mensal (3 | 6 | 12). */
 export const TREND_MONTHS_KEY = 'gestao-financeira-trend-months';
 

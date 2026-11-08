@@ -1,7 +1,7 @@
 ﻿import type { ComponentType } from 'react';
-import { LayoutDashboard, ListTodo, BarChart3, Target, CreditCard } from 'lucide-react';
+import { LayoutDashboard, ListTodo, BarChart3, Target, CreditCard, Landmark } from 'lucide-react';
 
-export type TabId = 'resumo' | 'lancamentos' | 'relatorios' | 'metas' | 'cartoes';
+export type TabId = 'resumo' | 'lancamentos' | 'relatorios' | 'metas' | 'cartoes' | 'emprestimos';
 
 const TABS: {
   id: TabId;
@@ -14,6 +14,7 @@ const TABS: {
   { id: 'relatorios', label: 'Relatórios', shortLabel: 'Rel.', icon: BarChart3 },
   { id: 'metas', label: 'Metas', shortLabel: 'Metas', icon: Target },
   { id: 'cartoes', label: 'Cartões', shortLabel: 'Cart.', icon: CreditCard },
+  { id: 'emprestimos', label: 'Empréstimos', shortLabel: 'Empr.', icon: Landmark },
 ];
 
 type TabNavProps = {
