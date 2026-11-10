@@ -89,6 +89,7 @@ type CashFlowSectionProps = {
   loans: Loan[];
   onNewLoan: () => void;
   onEditLoan: (loan: Loan) => void;
+  onOpenLoanInstallments: (loan: Loan) => void;
   wishlistItems: WishlistItem[];
   onNewWishlistItem: () => void;
   onEditWishlistItem: (item: WishlistItem) => void;
@@ -151,6 +152,7 @@ export function CashFlowSection({
   loans,
   onNewLoan,
   onEditLoan,
+  onOpenLoanInstallments,
   wishlistItems,
   onNewWishlistItem,
   onEditWishlistItem,
@@ -492,7 +494,12 @@ export function CashFlowSection({
 
         {activeTab === 'emprestimos' && (
           <section>
-            <LoansSection loans={loans} onNewLoan={onNewLoan} onEditLoan={onEditLoan} />
+            <LoansSection
+              loans={loans}
+              onNewLoan={onNewLoan}
+              onEditLoan={onEditLoan}
+              onOpenInstallments={onOpenLoanInstallments}
+            />
           </section>
         )}
 

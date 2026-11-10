@@ -7,7 +7,8 @@ import {
   maskCurrencyInput,
   parseCurrencyInput,
 } from '../lib/currencyInput';
-import { todayLocalISO } from '../lib/format';
+import { formatCurrency, todayLocalISO } from '../lib/format';
+import { buildInstallments } from '../lib/loans';
 
 const MODAL_TITLE_ID = 'loan-modal-title';
 
@@ -31,6 +32,8 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
   const [sourceName, setSourceName] = React.useState('');
   const [dueDate, setDueDate] = React.useState('');
   const [paid, setPaid] = React.useState(false);
+  const [isInstallment, setIsInstallment] = React.useState(false);
+  const [installmentsCount, setInstallmentsCount] = React.useState('12');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -40,6 +43,9 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     setSourceName(loan?.sourceName ?? '');
     setDueDate(loan?.dueDate ?? todayLocalISO());
     setPaid(loan?.paid ?? false);
+    const count = loan?.installmentsCount ?? 1;
+    setIsInstallment(count > 1);
+    setInstallmentsCount(String(count > 1 ? count : 12));
     setErrors({});
   }, [loan, open]);
 
@@ -58,6 +64,12 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     const value = parseCurrencyInput(amount);
     if (value === null || value <= 0) errs.amount = 'Informe um valor válido';
     if (!dueDate) errs.dueDate = 'Informe a data';
+    if (isInstallment) {
+      const count = Number(installmentsCount);
+      if (!Number.isInteger(count) || count < 2 || count > 120) {
+        errs.installmentsCount = 'Informe de 2 a 120 parcelas';
+      }
+    }
     return errs;
   }
 
@@ -68,17 +80,29 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
       setErrors(errs);
       return;
     }
+    const total = parseCurrencyInput(amount) ?? 0;
+    const count = isInstallment ? Number(installmentsCount) : 1;
+    // Parcelas já pagas são preservadas por `buildInstallments`.
+    const installments =
+      count > 1 ? buildInstallments(total, count, dueDate, loan?.installments ?? []) : undefined;
+
     onSave({
       id: loan?.id,
       name: name.trim(),
-      amount: parseCurrencyInput(amount) ?? 0,
+      amount: total,
       sourceType,
       sourceName: sourceName.trim() || undefined,
       dueDate,
-      paid,
+      // Num parcelado, "pago" significa todas as parcelas pagas.
+      paid: installments ? installments.every((i) => i.paid) : paid,
+      installmentsCount: count > 1 ? count : undefined,
+      installments,
     });
     onClose();
   }
+
+  const previewTotal = parseCurrencyInput(amount);
+  const previewCount = Number(installmentsCount);
 
   const inputClass =
     'w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 transition-all';
@@ -167,8 +191,58 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
         </div>
 
         <div>
+          <span className={labelClass}>Forma de pagamento</span>
+          <div className="flex gap-2 mt-1">
+            <button
+              type="button"
+              onClick={() => setIsInstallment(false)}
+              aria-pressed={!isInstallment}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium ${
+                !isInstallment ? 'neu-tab-active' : 'neu-btn-secondary'
+              }`}
+            >
+              À vista
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsInstallment(true)}
+              aria-pressed={isInstallment}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium ${
+                isInstallment ? 'neu-tab-active' : 'neu-btn-secondary'
+              }`}
+            >
+              Parcelado
+            </button>
+          </div>
+        </div>
+
+        {isInstallment && (
+          <div>
+            <label htmlFor="loan-installments" className={labelClass}>
+              Número de parcelas
+            </label>
+            <input
+              id="loan-installments"
+              type="number"
+              min={2}
+              max={120}
+              inputMode="numeric"
+              value={installmentsCount}
+              onChange={(e) => setInstallmentsCount(e.target.value)}
+              className={inputClass + (errors.installmentsCount ? ' border-red-400' : '')}
+            />
+            {errors.installmentsCount && <p className={errorClass}>{errors.installmentsCount}</p>}
+            {previewTotal !== null && previewCount >= 2 && (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {previewCount}x de aproximadamente {formatCurrency(previewTotal / previewCount)}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div>
           <label htmlFor="loan-due" className={labelClass}>
-            Data prevista de pagamento
+            {isInstallment ? 'Vencimento da 1ª parcela' : 'Data prevista de pagamento'}
           </label>
           <input
             id="loan-due"
@@ -178,17 +252,24 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
             className={inputClass + (errors.dueDate ? ' border-red-400' : '')}
           />
           {errors.dueDate && <p className={errorClass}>{errors.dueDate}</p>}
+          {isInstallment && (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              As demais parcelas vencem mês a mês a partir desta data.
+            </p>
+          )}
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-          <input
-            type="checkbox"
-            checked={paid}
-            onChange={(e) => setPaid(e.target.checked)}
-            className="h-4 w-4"
-          />
-          Já foi pago
-        </label>
+        {!isInstallment && (
+          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={paid}
+              onChange={(e) => setPaid(e.target.checked)}
+              className="h-4 w-4"
+            />
+            Já foi pago
+          </label>
+        )}
 
         <div className="flex flex-col gap-2 pt-1">
           <button

@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Loan } from '../types';
+import type { Loan, LoanInstallment } from '../types';
 import { randomUUID } from './uuid';
 
 export type LoanRow = {
@@ -10,6 +10,8 @@ export type LoanRow = {
   source_name?: string | null;
   due_date: string;
   paid: boolean;
+  installments_count?: number | null;
+  installments?: LoanInstallment[] | null;
   created_at?: string | null;
 };
 
@@ -23,6 +25,10 @@ export function rowToLoan(row: LoanRow): Loan {
     dueDate: row.due_date,
     paid: row.paid ?? false,
     createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    installmentsCount: row.installments_count ?? undefined,
+    installments: Array.isArray(row.installments)
+      ? row.installments.map((i) => ({ ...i, amount: Number(i.amount) }))
+      : undefined,
   };
 }
 
@@ -36,6 +42,8 @@ export function loanToRow(
     source_name: loan.sourceName?.trim() ? loan.sourceName.trim() : null,
     due_date: loan.dueDate,
     paid: loan.paid,
+    installments_count: loan.installmentsCount ?? null,
+    installments: loan.installments ?? null,
   };
 }
 

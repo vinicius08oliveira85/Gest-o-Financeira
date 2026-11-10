@@ -1824,3 +1824,16 @@ create policy "wishlist_items_anon_delete"
   using (true);
 
 notify pgrst, 'reload schema';
+
+-- ===== 20261110000003_loans_installments.sql =====
+-- Empréstimos parcelados: `installments` guarda as parcelas (number, amount,
+-- dueDate, paid, paidDate, entryId) e `installments_count` o número delas
+-- (null = pagamento único).
+
+alter table public.loans
+  add column if not exists installments_count integer;
+
+alter table public.loans
+  add column if not exists installments jsonb;
+
+notify pgrst, 'reload schema';

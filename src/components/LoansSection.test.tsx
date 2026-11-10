@@ -47,7 +47,9 @@ function card(label: string) {
 
 describe('LoansSection', () => {
   it('mostra o total em aberto e o total já pago', () => {
-    render(<LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} />);
+    render(
+      <LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} onOpenInstallments={noop} />
+    );
 
     // Em aberto: 100 + 200 + 300 + 400 + 500 = 1500. Já pago: 1000.
     expect(within(card('Em aberto')).getByText('R$ 1.500,00')).toBeTruthy();
@@ -55,7 +57,9 @@ describe('LoansSection', () => {
   });
 
   it('soma por origem apenas o que está em aberto', () => {
-    render(<LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} />);
+    render(
+      <LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} onOpenInstallments={noop} />
+    );
 
     // Pessoa física em aberto: 100+200+300+400+500 = 1500.
     expect(within(card('Pessoa física · a pagar')).getByText('R$ 1.500,00')).toBeTruthy();
@@ -64,7 +68,9 @@ describe('LoansSection', () => {
   });
 
   it('lista até 3 próximos vencimentos, em ordem, sem pagos nem vencidos', () => {
-    render(<LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} />);
+    render(
+      <LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} onOpenInstallments={noop} />
+    );
 
     const heading = screen.getByText('Próximos vencimentos');
     const list = heading.parentElement as HTMLElement;
@@ -83,7 +89,9 @@ describe('LoansSection', () => {
   });
 
   it('marca como vencido só o que não foi pago e tem data passada', () => {
-    render(<LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} />);
+    render(
+      <LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} onOpenInstallments={noop} />
+    );
 
     const overdueItem = screen.getByText('Vencido').closest('li') as HTMLElement;
     expect(overdueItem.className).toContain('ring-red-400');
@@ -105,6 +113,7 @@ describe('LoansSection', () => {
         loans={[loan({ id: 'x', name: 'Só vencido', amount: 50, dueDate: '2026-10-01' })]}
         onNewLoan={noop}
         onEditLoan={noop}
+        onOpenInstallments={noop}
       />
     );
 

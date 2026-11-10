@@ -1,32 +1,50 @@
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, ListOrdered } from 'lucide-react';
 import type { Loan, LoanSourceType } from '../types';
 import { EmptyState } from './EmptyState';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
+import {
+  getLoanPaidAmount,
+  getLoanTotals,
+  getNextDueDate,
+  getOpenInstallments,
+  isInstallmentLoan,
+} from '../lib/loans';
 
 const SOURCE_LABELS: Record<LoanSourceType, string> = {
   pessoa_fisica: 'Pessoa física',
   trabalhador: 'Empréstimo do trabalhador',
 };
 
+/** Quanto ainda falta pagar deste empréstimo (parcelas em aberto ou o valor único). */
+function openAmount(loan: Loan): number {
+  if (isInstallmentLoan(loan)) {
+    return getOpenInstallments(loan).reduce((sum, i) => sum + i.amount, 0);
+  }
+  return loan.paid ? 0 : loan.amount;
+}
+
 type Props = {
   loans: Loan[];
   onNewLoan: () => void;
   onEditLoan: (loan: Loan) => void;
+  /** Abre a lista de parcelas (empréstimo parcelado). */
+  onOpenInstallments: (loan: Loan) => void;
 };
 
-export function LoansSection({ loans, onNewLoan, onEditLoan }: Props) {
-  const sumAmount = (list: Loan[]) => list.reduce((sum, l) => sum + l.amount, 0);
-  const openLoans = loans.filter((l) => !l.paid);
-  const paidLoans = loans.filter((l) => l.paid);
-  const totalOpen = sumAmount(openLoans);
-  const totalPaid = sumAmount(paidLoans);
-  const openBySource = (source: LoanSourceType) =>
-    sumAmount(openLoans.filter((l) => l.sourceType === source));
-
-  const sorted = [...loans].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments }: Props) {
   const today = todayLocalISO();
-  const isOverdue = (loan: Loan) => !loan.paid && loan.dueDate < today;
-  const upcoming = sorted.filter((l) => !l.paid && l.dueDate >= today).slice(0, 3);
+  const totalOpen = getLoanTotals(loans, today).open;
+  const totalPaid = loans.reduce((sum, loan) => sum + getLoanPaidAmount(loan), 0);
+  const openBySource = (source: LoanSourceType) =>
+    loans
+      .filter((loan) => loan.sourceType === source)
+      .reduce((sum, loan) => sum + openAmount(loan), 0);
+
+  const sorted = [...loans].sort((a, b) => getNextDueDate(a).localeCompare(getNextDueDate(b)));
+  const isOverdue = (loan: Loan) => openAmount(loan) > 0 && getNextDueDate(loan) < today;
+  const upcoming = sorted
+    .filter((l) => openAmount(l) > 0 && getNextDueDate(l) >= today)
+    .slice(0, 3);
 
   return (
     <div className="section-stack">
@@ -91,10 +109,10 @@ export function LoansSection({ loans, onNewLoan, onEditLoan }: Props) {
                 {upcoming.map((loan) => (
                   <li key={loan.id} className="flex items-center justify-between gap-3 text-sm">
                     <span className="truncate text-slate-900 dark:text-slate-100">
-                      {formatDate(loan.dueDate)} · {loan.name}
+                      {formatDate(getNextDueDate(loan))} · {loan.name}
                     </span>
                     <span className="font-semibold text-slate-900 dark:text-slate-100 shrink-0">
-                      {formatCurrency(loan.amount)}
+                      {formatCurrency(openAmount(loan))}
                     </span>
                   </li>
                 ))}
@@ -103,43 +121,62 @@ export function LoansSection({ loans, onNewLoan, onEditLoan }: Props) {
           )}
 
           <ul className="flex flex-col gap-2">
-            {sorted.map((loan) => (
-              <li
-                key={loan.id}
-                className={`neu-card p-4 flex items-center justify-between gap-3 ${
-                  isOverdue(loan) ? 'ring-2 ring-red-400 dark:ring-red-500' : ''
-                }`}
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-900 dark:text-slate-100 truncate">
-                    {loan.name}
-                  </p>
-                  {isOverdue(loan) && (
-                    <span className="text-xs font-semibold text-red-600 dark:text-red-400">
-                      Vencido e não pago
+            {sorted.map((loan) => {
+              const paidCount = loan.installments?.filter((i) => i.paid).length ?? 0;
+              const count = loan.installments?.length ?? 1;
+              return (
+                <li
+                  key={loan.id}
+                  className={`neu-card p-4 flex items-start justify-between gap-3 ${
+                    isOverdue(loan) ? 'ring-2 ring-red-400 dark:ring-red-500' : ''
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900 dark:text-slate-100 truncate">
+                      {loan.name}
+                    </p>
+                    {isOverdue(loan) && (
+                      <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                        Vencido e não pago
+                      </span>
+                    )}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {SOURCE_LABELS[loan.sourceType]}
+                      {loan.sourceName ? ` · ${loan.sourceName}` : ''} ·{' '}
+                      {isInstallmentLoan(loan)
+                        ? `${paidCount}/${count} parcelas pagas`
+                        : `Pagar em ${formatDate(loan.dueDate)}`}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      {formatCurrency(isInstallmentLoan(loan) ? openAmount(loan) : loan.amount)}
                     </span>
-                  )}
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {SOURCE_LABELS[loan.sourceType]}
-                    {loan.sourceName ? ` · ${loan.sourceName}` : ''} · Pagar em{' '}
-                    {formatDate(loan.dueDate)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">
-                    {formatCurrency(loan.amount)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onEditLoan(loan)}
-                    className="neu-btn-secondary p-2 rounded-xl"
-                    aria-label={`Editar ${loan.name}`}
-                  >
-                    <Pencil size={16} />
-                  </button>
-                </div>
-              </li>
-            ))}
+                    <div className="flex items-center gap-2">
+                      {isInstallmentLoan(loan) && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenInstallments(loan)}
+                          className="neu-btn-secondary px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                          aria-label={`Ver parcelas de ${loan.name}`}
+                        >
+                          <ListOrdered size={14} />
+                          Ver parcelas
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onEditLoan(loan)}
+                        className="neu-btn-secondary p-2 rounded-xl"
+                        aria-label={`Editar ${loan.name}`}
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}

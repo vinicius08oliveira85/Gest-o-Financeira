@@ -55,6 +55,12 @@ const LoanModal = lazy(() =>
   import('./components/LoanModal').then((m) => ({ default: m.LoanModal }))
 );
 
+const LoanInstallmentsModal = lazy(() =>
+  import('./components/LoanInstallmentsModal').then((m) => ({
+    default: m.LoanInstallmentsModal,
+  }))
+);
+
 const WishlistModal = lazy(() =>
   import('./components/WishlistModal').then((m) => ({ default: m.WishlistModal }))
 );
@@ -87,6 +93,8 @@ export default function App() {
   const [loanModalOpen, setLoanModalOpen] = useState(false);
   const [loanToEdit, setLoanToEdit] = useState<Loan | null>(null);
   const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
+
+  const [loanInstallmentsLoan, setLoanInstallmentsLoan] = useState<Loan | null>(null);
 
   const { wishlistItems, upsertWishlistItem, deleteWishlistItem } = useWishlist();
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
@@ -331,6 +339,88 @@ export default function App() {
   );
 
   /**
+   * Parcela de empréstimo marcada como paga gera a saída no mês do vencimento da
+   * parcela (o saldo daquele mês é abatido); desmarcar remove a saída.
+   */
+  const handleToggleLoanInstallmentPaid = useCallback(
+    (loan: Loan, number: number, paid: boolean) => {
+      const installments = loan.installments ?? [];
+      const installment = installments.find((i) => i.number === number);
+      if (!installment || installment.paid === paid) return;
+
+      let entryId = installment.entryId;
+      if (paid) {
+        const entry: Entry = {
+          id: randomUUID(),
+          name: `${loan.name} — parcela ${number}/${installments.length}`,
+          amount: installment.amount,
+          dueDate: installment.dueDate,
+          isPaid: true,
+          paidDate: todayLocalISO(),
+          type: 'debt',
+          createdAt: Date.now(),
+          category: 'Empréstimos',
+        };
+        void addOrUpdateEntry(entry, false);
+        entryId = entry.id;
+      } else if (installment.entryId) {
+        deleteEntry(installment.entryId);
+        entryId = undefined;
+      }
+
+      const nextInstallments = installments.map((i) =>
+        i.number === number
+          ? {
+              ...i,
+              paid,
+              paidDate: paid ? todayLocalISO() : undefined,
+              entryId,
+            }
+          : i
+      );
+      const nextLoan: Loan = {
+        ...loan,
+        installments: nextInstallments,
+        paid: nextInstallments.every((i) => i.paid),
+      };
+      upsertLoan(nextLoan);
+      setLoanInstallmentsLoan(nextLoan);
+      showToast(
+        paid
+          ? `Parcela ${number}/${installments.length} paga — ${formatCurrency(installment.amount)} abatido do mês`
+          : `Pagamento da parcela ${number}/${installments.length} desfeito`
+      );
+    },
+    [addOrUpdateEntry, deleteEntry, upsertLoan, showToast]
+  );
+
+  /**
+   * Mudar o vencimento de uma parcela paga move a saída vinculada para o mês
+   * novo, para o abatimento continuar no mês certo.
+   */
+  const handleChangeLoanInstallmentDueDate = useCallback(
+    (loan: Loan, number: number, dueDate: string) => {
+      if (!dueDate) return;
+      const installments = loan.installments ?? [];
+      const installment = installments.find((i) => i.number === number);
+      if (!installment) return;
+
+      if (installment.paid && installment.entryId) {
+        const entry = entries.find((e) => e.id === installment.entryId);
+        if (entry) void addOrUpdateEntry({ ...entry, dueDate }, true);
+      }
+
+      const nextLoan: Loan = {
+        ...loan,
+        installments: installments.map((i) => (i.number === number ? { ...i, dueDate } : i)),
+      };
+      upsertLoan(nextLoan);
+      setLoanInstallmentsLoan(nextLoan);
+    },
+    [addOrUpdateEntry, entries, upsertLoan]
+  );
+
+  /**
    * Marcar como comprado cria a saída paga do dia em Lançamentos, para o valor
    * sair do saldo do mês; desfazer a compra remove essa saída.
    */
@@ -513,6 +603,7 @@ export default function App() {
                 setLoanToEdit(loan);
                 setLoanModalOpen(true);
               }}
+              onOpenLoanInstallments={(loan) => setLoanInstallmentsLoan(loan)}
               wishlistItems={wishlistItems}
               onNewWishlistItem={() => {
                 setWishlistToEdit(null);
@@ -738,6 +829,16 @@ export default function App() {
             }
           }}
           onClose={() => setLoanToDelete(null)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <LoanInstallmentsModal
+          open={loanInstallmentsLoan !== null}
+          loan={loanInstallmentsLoan}
+          onTogglePaid={handleToggleLoanInstallmentPaid}
+          onChangeDueDate={handleChangeLoanInstallmentDueDate}
+          onClose={() => setLoanInstallmentsLoan(null)}
         />
       </Suspense>
 

@@ -71,6 +71,20 @@ export interface CardExpense {
 /** De onde vem o dinheiro para pagar o empréstimo */
 export type LoanSourceType = 'pessoa_fisica' | 'trabalhador';
 
+/** Parcela de um empréstimo parcelado */
+export interface LoanInstallment {
+  /** 1-based */
+  number: number;
+  amount: number;
+  /** Vencimento da parcela, ISO date */
+  dueDate: string;
+  paid: boolean;
+  /** Data do pagamento, ISO date */
+  paidDate?: string;
+  /** id do lançamento de saída criado ao marcar a parcela como paga (permite desmarcar) */
+  entryId?: string;
+}
+
 export interface Loan {
   id: string;
   name: string;
@@ -81,9 +95,13 @@ export interface Loan {
   sourceName?: string;
   /** Data prevista para o pagamento, ISO date */
   dueDate: string;
-  /** Já foi pago */
+  /** Já foi pago (num parcelado: todas as parcelas pagas) */
   paid: boolean;
   createdAt: number;
+  /** Número de parcelas; ausente ou 1 = pagamento único */
+  installmentsCount?: number;
+  /** Parcelas geradas quando `installmentsCount` > 1 */
+  installments?: LoanInstallment[];
 }
 
 /** Item da lista de desejos (o que se pretende comprar) */
