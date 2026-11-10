@@ -114,23 +114,52 @@ export function useEntries() {
 
   useEffect(() => {
     let cancelled = false;
+
+    /**
+     * Aplica a lista vinda do servidor sem descartar o que o utilizador alterou
+     * enquanto a leitura estava em curso (a lista local já está na tela).
+     */
+    const applyServerEntries = (data: Entry[]) => {
+      const pending = dirtyEntryIdsRef.current;
+      if (pending.size === 0) {
+        setEntries(data);
+        return;
+      }
+      const byId = new Map(data.map((e) => [e.id, e]));
+      for (const local of entriesRef.current) {
+        if (!pending.has(local.id) || deletedEntryIdsRef.current.has(local.id)) continue;
+        const fromServer = byId.get(local.id);
+        byId.set(local.id, { ...local, revision: fromServer?.revision ?? local.revision });
+      }
+      setEntries([...byId.values()]);
+    };
+
     async function load() {
+      // Espelho local primeiro: a lista abre com os dados já gravados no aparelho.
+      // Antes o esqueleto de carregamento ficava até a nuvem terminar a sequência
+      // (fetch + inserção de recorrências + refetch), e a aba parecia vazia por segundos.
+      const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
+      if (cancelled) return;
+      if (saved.length > 0) {
+        setEntries(saved);
+        setIsLoading(false);
+      }
+
       if (isSupabaseConfigured()) {
         try {
           const data = await fetchEntries();
-          // Lê o espelho local ANTES de sobrescrever o estado: quando a nuvem devolve
-          // ao menos uma linha, o backup local era ignorado e lançamentos que só
-          // existiam neste dispositivo sumiam do nada.
-          const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
           const localOnly = saved.filter((e) => !data.some((d) => d.id === e.id));
 
           if (!cancelled) {
-            setEntries(data);
+            applyServerEntries(data);
             setIsCloudUnavailable(false);
           }
           // Ids locais ainda não confirmados pela nuvem continuam pendentes para o
-          // próximo save; só os confirmados pela resposta são limpos.
-          dirtyEntryIdsRef.current = new Set(localOnly.map((e) => e.id));
+          // próximo save; só os confirmados pela resposta são limpos. Alterações
+          // feitas durante a leitura também permanecem pendentes.
+          const stillPending = new Set(localOnly.map((e) => e.id));
+          for (const id of dirtyEntryIdsRef.current) stillPending.add(id);
+          dirtyEntryIdsRef.current = stillPending;
           dirtyEntryVersionsRef.current.clear();
 
           const copies = generateMissingRecurringCopies(data, suppressedRecurringSlotsRef.current);
@@ -150,18 +179,17 @@ export function useEntries() {
               if (!cancelled) {
                 // O que o servidor recusou continua visível e pendente.
                 const merged = mergeUnconfirmed(refetched, localOnly);
-                setEntries(merged);
-                dirtyEntryIdsRef.current = new Set(
+                applyServerEntries(merged);
+                const stillPending = new Set(
                   merged.filter((e) => localOnly.some((l) => l.id === e.id)).map((e) => e.id)
                 );
+                for (const id of dirtyEntryIdsRef.current) stillPending.add(id);
+                dirtyEntryIdsRef.current = stillPending;
                 setIsCloudUnavailable(false);
               }
             } finally {
               if (!cancelled) setIsMigrating(false);
             }
-          } else {
-            dirtyEntryIdsRef.current.clear();
-            dirtyEntryVersionsRef.current.clear();
           }
         } catch (e) {
           logError('Failed to load entries from Supabase', e);
@@ -169,24 +197,25 @@ export function useEntries() {
             setShowOfflineBanner(true);
             setIsCloudUnavailable(true);
           }
-          const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
-          if (saved.length > 0 && !cancelled) {
-            setEntries(saved);
-            dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
-            dirtyEntryVersionsRef.current.clear();
-          } else if (!cancelled) {
-            setEntries([]);
+          const savedForOffline = await readStored<Entry>(ENTRIES_STORAGE_KEY);
+          if (!cancelled) {
+            if (savedForOffline.length > 0) {
+              applyServerEntries(savedForOffline);
+              const stillPending = new Set(savedForOffline.map((e) => e.id));
+              for (const id of dirtyEntryIdsRef.current) stillPending.add(id);
+              dirtyEntryIdsRef.current = stillPending;
+              dirtyEntryVersionsRef.current.clear();
+            } else if (dirtyEntryIdsRef.current.size === 0) {
+              setEntries([]);
+            }
           }
         } finally {
           if (!cancelled) setIsLoading(false);
         }
       } else {
-        const saved = await readStored<Entry>(ENTRIES_STORAGE_KEY);
-        if (saved.length > 0) {
-          setEntries(saved);
-          dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
-          dirtyEntryVersionsRef.current.clear();
-        }
+        setEntries(saved);
+        dirtyEntryIdsRef.current = new Set(saved.map((e) => e.id));
+        dirtyEntryVersionsRef.current.clear();
         setIsLoading(false);
       }
     }

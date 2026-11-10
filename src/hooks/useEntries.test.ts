@@ -358,4 +358,58 @@ describe('useEntries', () => {
       type: 'debt',
     });
   });
+
+  it('com Supabase: mostra o espelho local antes da nuvem responder', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { fetchEntries } = await import('../lib/entriesDb');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    // Nuvem lenta: a lista não pode esperar por ela para aparecer.
+    vi.mocked(fetchEntries).mockImplementation(() => new Promise<Entry[]>(() => {}));
+    localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(mockEntries));
+
+    const { result } = renderHook(() => useEntries());
+
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+        expect(result.current.entries).toHaveLength(2);
+      },
+      { timeout: 2000 }
+    );
+    expect(result.current.entries.map((e) => e.id)).toEqual(['1', '2']);
+
+    // Devolve o mock ao estado padrão para os testes seguintes.
+    vi.mocked(fetchEntries).mockReset();
+  });
+
+  it('lançamentos do mês: filteredEntries/entriesDoMes ignoram outros meses', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const dueIn = (monthOffset: number) => {
+      const d = new Date(year, month + monthOffset, 10);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-10`;
+    };
+    const entries: Entry[] = [
+      { ...mockEntries[0], id: 'atual', dueDate: dueIn(0) },
+      { ...mockEntries[1], id: 'anterior', dueDate: dueIn(-1) },
+      { ...mockEntries[0], id: 'proximo', dueDate: dueIn(1) },
+    ];
+    localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(entries));
+
+    const { result } = renderHook(() => useEntries());
+
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+        expect(result.current.entries).toHaveLength(3);
+      },
+      { timeout: 2000 }
+    );
+
+    expect(result.current.entriesDoMes.map((e) => e.id)).toEqual(['atual']);
+    expect(result.current.filteredEntries.map((e) => e.id)).toEqual(['atual']);
+  });
 });
