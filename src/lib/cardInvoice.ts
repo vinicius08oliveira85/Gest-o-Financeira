@@ -65,8 +65,9 @@ export function getInvoiceDueDate(
 
 /**
  * Encontra o lançamento de fatura (isCardInvoice) já registrado no fluxo para o
- * ciclo billingMonth/billingYear do cartão, usando o fechamento ou o vencimento
- * como chave (faturas antigas sem invoicePaymentDueDate usam o vencimento no dueDate).
+ * ciclo billingMonth/billingYear do cartão. Faturas com invoicePaymentDueDate são
+ * identificadas pelo vencimento (é a data do lançamento); faturas antigas, que
+ * guardavam o vencimento no próprio dueDate, são aceitas em qualquer um dos meses.
  */
 export function findInvoiceEntryForCycle(
   entries: Entry[],
@@ -90,16 +91,18 @@ export function findInvoiceEntryForCycle(
     (e) =>
       e.isCardInvoice &&
       e.cardId === cardId &&
-      (sameMonth(e.dueDate, billingMonth, billingYear) ||
-        (e.invoicePaymentDueDate
-          ? sameMonth(e.invoicePaymentDueDate, dueMonth, dueYear)
-          : sameMonth(e.dueDate, dueMonth, dueYear)))
+      (e.invoicePaymentDueDate
+        ? sameMonth(e.invoicePaymentDueDate, dueMonth, dueYear)
+        : sameMonth(e.dueDate, billingMonth, billingYear) ||
+          sameMonth(e.dueDate, dueMonth, dueYear))
   );
 }
 
 /**
  * Constrói um lançamento do tipo debt representando uma fatura de cartão.
- * Se existingId for fornecido, reutiliza o mesmo id (para atualização).
+ * A data do lançamento é o vencimento: é quando o valor sai do caixa, então a
+ * fatura aparece no mês do pagamento (o fechamento do ciclo fica no nome e não
+ * mais na data). Se existingId for fornecido, reutiliza o mesmo id (atualização).
  */
 export function buildInvoiceEntry(
   card: CreditCard,
@@ -113,13 +116,12 @@ export function buildInvoiceEntry(
     year: 'numeric',
   });
   const now = Date.now();
-  const closingDate = getInvoiceClosingDate(billingMonth, billingYear, card.closingDay);
   const paymentDue = getInvoiceDueDate(billingMonth, billingYear, card.dueDay);
   return {
     id: existingId ?? randomUUID(),
     name: `Fatura ${card.name} — ${monthName}`,
     amount: total,
-    dueDate: closingDate,
+    dueDate: paymentDue,
     invoicePaymentDueDate: paymentDue,
     isPaid: false,
     type: 'debt',

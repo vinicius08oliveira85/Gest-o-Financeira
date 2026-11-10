@@ -85,15 +85,15 @@ function EntryItemInner({
           <span className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1 flex-wrap">
             <Calendar size={12} />
             {entry.isCardInvoice ? (
-              entry.invoicePaymentDueDate ? (
+              entry.invoicePaymentDueDate && entry.dueDate !== entry.invoicePaymentDueDate ? (
                 <>
-                  Fecha em {formatDate(entry.dueDate)}
+                  Vence em {formatDate(entry.invoicePaymentDueDate)}
                   <span className="text-slate-600 dark:text-slate-400">
-                    · Vence em {formatDate(entry.invoicePaymentDueDate)}
+                    · Fecha em {formatDate(entry.dueDate)}
                   </span>
                 </>
               ) : (
-                <>Vence em {formatDate(entry.dueDate)}</>
+                <>Vence em {formatDate(entry.invoicePaymentDueDate ?? entry.dueDate)}</>
               )
             ) : (
               <>

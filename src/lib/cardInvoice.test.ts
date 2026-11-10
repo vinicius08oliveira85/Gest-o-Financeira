@@ -78,13 +78,23 @@ describe('findInvoiceEntryForCycle', () => {
 });
 
 describe('buildInvoiceEntry', () => {
-  it('usa data de fechamento em dueDate e vencimento em invoicePaymentDueDate', () => {
+  it('lança a fatura na data de vencimento', () => {
     const e = buildInvoiceEntry(card, 2, 2025, 1200);
-    expect(e.dueDate).toBe('2025-03-25');
+    expect(e.dueDate).toBe('2025-04-05');
     expect(e.invoicePaymentDueDate).toBe('2025-04-05');
     expect(e.amount).toBe(1200);
     expect(e.isCardInvoice).toBe(true);
     expect(e.type).toBe('debt');
+  });
+
+  it('não confunde ciclos consecutivos (cada um vence no mês seguinte)', () => {
+    const nov = buildInvoiceEntry(card, 10, 2026, 350);
+    const dez = buildInvoiceEntry(card, 11, 2026, 200);
+
+    expect(nov.dueDate).toBe('2026-12-05');
+    expect(dez.dueDate).toBe('2027-01-05');
+    expect(findInvoiceEntryForCycle([nov, dez], 'c1', 10, 2026, 25, 5)?.id).toBe(nov.id);
+    expect(findInvoiceEntryForCycle([nov, dez], 'c1', 11, 2026, 25, 5)?.id).toBe(dez.id);
   });
 });
 
