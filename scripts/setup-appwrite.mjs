@@ -36,6 +36,10 @@ const endpoint = (pick('APPWRITE_ENDPOINT', 'VITE_APPWRITE_ENDPOINT') || '').rep
 const projectId = pick('APPWRITE_PROJECT_ID', 'VITE_APPWRITE_PROJECT_ID');
 const databaseId = pick('APPWRITE_DATABASE_ID', 'VITE_APPWRITE_DATABASE_ID') || 'gestao_financeira';
 const apiKey = process.env.APPWRITE_API_KEY;
+const platforms = (pick('APPWRITE_PLATFORMS') ?? 'localhost')
+  .split(',')
+  .map((hostname) => hostname.trim())
+  .filter(Boolean);
 
 if (!endpoint || !projectId) {
   console.error(
@@ -351,8 +355,30 @@ async function ensureCollection(collection) {
   }
 }
 
+/**
+ * O navegador só fala com o projeto a partir de origens cadastradas como
+ * plataforma web (senão o Appwrite responde 403 invalid origin).
+ */
+async function ensurePlatform(hostname) {
+  const label = `plataforma web ${hostname}`;
+  const { platforms: existing } = await api('GET', `/projects/${projectId}/platforms`);
+  if (existing.some((platform) => platform.type === 'web' && platform.hostname === hostname)) {
+    console.log(`  = ${label} (já existe)`);
+    return;
+  }
+  await createOrIgnore(label, () =>
+    api('POST', `/projects/${projectId}/platforms`, {
+      platformId: 'unique()',
+      type: 'web',
+      name: hostname,
+      hostname,
+    })
+  );
+}
+
 async function main() {
   console.log(`Endpoint ${endpoint} · projeto ${projectId}`);
+  for (const hostname of platforms) await ensurePlatform(hostname);
   await ensureDatabase();
   for (const collection of collections) {
     await ensureCollection(collection);

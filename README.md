@@ -29,7 +29,13 @@ Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Appwrite (opcional).
 
       O endpoint e o projeto vêm de `APPWRITE_ENDPOINT`/`APPWRITE_PROJECT_ID` ou, se ausentes, das variáveis `VITE_APPWRITE_*` do `.env.local`. A API key é usada só nesse comando e nunca é gravada no projeto.
 
-   4. Defina `VITE_APPWRITE_ENDPOINT`, `VITE_APPWRITE_PROJECT_ID` e (opcional) `VITE_APPWRITE_DATABASE_ID` em `.env.local` — veja [.env.example](.env.example).
+   4. Cadastre as origens do navegador como **plataformas web** (Overview > Integrations > Platforms > Add platform > Web, hostname sem `https://`). Sem isso o Appwrite responde `403 invalid origin` e o app fica só no modo local. O script já cadastra `localhost`; para incluir outras, use `APPWRITE_PLATFORMS` (lista separada por vírgula):
+
+      ```bash
+      APPWRITE_API_KEY=<sua-chave> APPWRITE_PLATFORMS="localhost,meuapp.vercel.app" npm run setup:appwrite
+      ```
+
+   5. Defina `VITE_APPWRITE_ENDPOINT`, `VITE_APPWRITE_PROJECT_ID` e (opcional) `VITE_APPWRITE_DATABASE_ID` em `.env.local` — veja [.env.example](.env.example).
 
    Com as variáveis configuradas, o app grava cada alteração automaticamente no Appwrite (cerca de 1,5 s após a última edição) e mantém um espelho local para funcionar offline. Ao voltar para o app, ele envia o que estiver pendente e busca o que mudou em outros dispositivos. O botão **Salvar** continua disponível para forçar o envio imediato; **Sincronizar** baixa o estado atual do servidor.
 
@@ -43,7 +49,7 @@ Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Appwrite (opcional).
 | `npm run dev`            | Sobe o servidor de desenvolvimento (porta 3001).        |
 | `npm run build`          | Gera o build de produção.                               |
 | `npm run preview`        | Pré-visualiza o build.                                  |
-| `npm run setup:appwrite` | Cria/atualiza banco, coleções, atributos e índices.     |
+| `npm run setup:appwrite` | Cria/atualiza plataformas, banco, coleções e índices.   |
 | `npm run lint`           | Verifica tipos TypeScript (`tsc --noEmit`).             |
 | `npm run test`           | Roda os testes em modo watch.                           |
 | `npm run test:run`       | Roda os testes unitários uma vez.                       |
@@ -61,7 +67,7 @@ Para o app persistir dados no Appwrite em produção, configure as variáveis de
 2. Adicione `VITE_APPWRITE_ENDPOINT`, `VITE_APPWRITE_PROJECT_ID` e `VITE_APPWRITE_DATABASE_ID`.
 3. Após alterar variáveis, faça um **redeploy** para o build incorporar os novos valores.
 
-Sem essas variáveis, o app em produção usará apenas `localStorage` (dados só no dispositivo).
+Sem essas variáveis, o app em produção usará apenas `localStorage` (dados só no dispositivo). O domínio da Vercel (e qualquer domínio próprio) também precisa estar cadastrado como plataforma web no Appwrite — veja o passo 2.4.
 
 > **Segurança:** as coleções são criadas com permissões para o papel `any` (qualquer pessoa com o endpoint e o Project ID consegue ler e gravar), porque o app não tem login — a senha é local e não protege a nuvem. Para dados financeiros sensíveis em produção, o próximo passo é usar **Appwrite Auth** (e-mail/senha ou anonymous session) com permissões por usuário nas coleções.
 
