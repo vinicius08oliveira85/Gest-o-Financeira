@@ -1,18 +1,20 @@
 import { useMemo } from 'react';
-import type { CardExpense, CreditCard, Entry, Goal } from '../types';
+import type { CardExpense, CreditCard, Entry, Goal, Loan } from '../types';
 import {
   ALERT_CONCENTRATION_RATIO,
   CARD_LIMIT_ALERT_RATIO,
   GOAL_DEADLINE_ALERT_DAYS,
 } from '../constants';
-import { parseDateLocal, todayLocalISO } from '../lib/format';
+import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
+import { formatMonthLabel, getEndingDiscounts, getOpenAmount, monthKey } from '../lib/loans';
 
 export type AlertType =
   | 'concentration'
   | 'due-soon'
   | 'goal-deadline'
   | 'card-invoice-due'
-  | 'card-limit';
+  | 'card-limit'
+  | 'loan-discount-ending';
 
 export type Alert = {
   id: string;
@@ -28,6 +30,7 @@ type UseAlertsParams = {
   goals?: Goal[];
   cards?: CreditCard[];
   cardExpenses?: CardExpense[];
+  loans?: Loan[];
 };
 
 export function useAlerts({
@@ -37,6 +40,7 @@ export function useAlerts({
   goals = [],
   cards = [],
   cardExpenses = [],
+  loans = [],
 }: UseAlertsParams) {
   const alerts = useMemo<Alert[]>(() => {
     const byPeriod = entries.filter((d) => {
@@ -93,6 +97,21 @@ export function useAlerts({
         title: 'Lançamentos com vencimento próximo',
         description:
           'Você tem despesas a vencer nos próximos dias que ainda não foram marcadas como pagas.',
+      });
+    }
+
+    // Empréstimos cujo período de desconto termina no mês atual ou no seguinte
+    for (const { loan, end } of getEndingDiscounts(loans, todayISO, 2)) {
+      const lastMonth = end === monthKey(todayISO);
+      result.push({
+        id: `loan-discount-${loan.id}-${end}`,
+        type: 'loan-discount-ending',
+        title: lastMonth
+          ? `Empréstimo "${loan.name}": último mês de desconto`
+          : `Empréstimo "${loan.name}": desconto termina em ${formatMonthLabel(end)}`,
+        description: `Ainda faltam ${formatCurrency(getOpenAmount(loan))} para quitar${
+          lastMonth ? ' e este é o último mês de desconto.' : ' antes do desconto acabar.'
+        }`,
       });
     }
 
@@ -170,7 +189,7 @@ export function useAlerts({
     }
 
     return result;
-  }, [entries, month, year, goals, cards, cardExpenses]);
+  }, [entries, month, year, goals, cards, cardExpenses, loans]);
 
   return { alerts };
 }

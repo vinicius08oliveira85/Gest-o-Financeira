@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useAlerts } from './useAlerts';
-import type { CardExpense, CreditCard, Entry, Goal } from '../types';
+import type { CardExpense, CreditCard, Entry, Goal, Loan } from '../types';
 
 type EntryOverrides = Partial<
   Pick<Entry, 'goalId' | 'isCardInvoice' | 'cardId' | 'invoicePaymentDueDate' | 'name' | 'paidDate'>
@@ -187,5 +187,57 @@ describe('useAlerts', () => {
     const deadline = result.current.alerts.filter((a) => a.type === 'goal-deadline');
     expect(deadline.some((a) => a.title.includes('vence hoje'))).toBe(true);
     expect(deadline.some((a) => a.title.includes('data alvo passou'))).toBe(true);
+  });
+
+  it('empréstimo com desconto terminando gera alerta, os distantes e quitados não', () => {
+    const today = new Date();
+    const month = today.getMonth();
+    const year = today.getFullYear();
+    const current = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const far = `${year + 2}-06`;
+
+    const loans: Loan[] = [
+      {
+        id: 'l1',
+        name: 'Carro',
+        amount: 900,
+        sourceType: 'pessoa_fisica',
+        dueDate: iso(today),
+        paid: false,
+        createdAt: 1,
+        discountStart: current,
+        discountEnd: current,
+      },
+      {
+        id: 'l2',
+        name: 'Longe',
+        amount: 900,
+        sourceType: 'pessoa_fisica',
+        dueDate: iso(today),
+        paid: false,
+        createdAt: 2,
+        discountStart: current,
+        discountEnd: far,
+      },
+      {
+        id: 'l3',
+        name: 'Quitado',
+        amount: 900,
+        sourceType: 'pessoa_fisica',
+        dueDate: iso(today),
+        paid: true,
+        createdAt: 3,
+        discountStart: current,
+        discountEnd: current,
+      },
+    ];
+
+    const { result } = renderHook(() => useAlerts({ entries: [], month, year, loans }));
+
+    const loanAlerts = result.current.alerts.filter((a) => a.type === 'loan-discount-ending');
+    expect(loanAlerts).toHaveLength(1);
+    expect(loanAlerts[0].title).toContain('Carro');
+    expect(loanAlerts[0].title).toContain('último mês de desconto');
+    expect(loanAlerts[0].description).toContain('R$');
   });
 });

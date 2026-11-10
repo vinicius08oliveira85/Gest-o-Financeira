@@ -1,4 +1,13 @@
-import { AlertTriangle, CreditCard, Gauge, Info, Target, X, ChevronRight } from 'lucide-react';
+import {
+  AlertTriangle,
+  CreditCard,
+  Gauge,
+  Info,
+  Target,
+  X,
+  ChevronRight,
+  Landmark,
+} from 'lucide-react';
 import type { Alert, AlertType } from '../hooks/useAlerts';
 
 function AlertIcon({ type }: { type: AlertType }) {
@@ -11,6 +20,8 @@ function AlertIcon({ type }: { type: AlertType }) {
       return <CreditCard className="w-4 h-4 text-sky-500 dark:text-sky-400 shrink-0" />;
     case 'card-limit':
       return <Gauge className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" />;
+    case 'loan-discount-ending':
+      return <Landmark className="w-4 h-4 text-violet-500 dark:text-violet-400 shrink-0" />;
     case 'concentration':
     default:
       return <Info className="w-4 h-4 text-slate-600 dark:text-slate-400 shrink-0" />;

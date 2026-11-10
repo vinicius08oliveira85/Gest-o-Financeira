@@ -172,6 +172,7 @@ export default function App() {
     goals,
     cards,
     cardExpenses,
+    loans,
   });
 
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(() => {
@@ -196,6 +197,9 @@ export default function App() {
       case 'card-invoice-due':
       case 'card-limit':
         setActiveTab('cartoes');
+        break;
+      case 'loan-discount-ending':
+        setActiveTab('emprestimos');
         break;
       default:
         setActiveTab('lancamentos');
