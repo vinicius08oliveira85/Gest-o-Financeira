@@ -31,6 +31,9 @@ export function goalToRow(goal: Omit<Goal, 'id'> & { id?: string }): Omit<GoalRo
     current_amount: goal.currentAmount,
     category: goal.category ?? null,
     target_date: goal.targetDate ?? null,
+    // Enviado para preservar a data de criação local (e a ordenação de
+    // `fetchGoals`) quando a meta é migrada do dispositivo para a nuvem.
+    created_at: goal.createdAt ?? new Date().toISOString(),
   };
 }
 
