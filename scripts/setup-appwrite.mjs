@@ -234,8 +234,19 @@ const collections = [
   },
 ];
 
+/**
+ * O Appwrite responde 403 (limite do plano) antes de checar duplicidade quando o
+ * banco já existe, então consultamos antes de tentar criar.
+ */
 async function ensureDatabase() {
   console.log(`Banco "${databaseId}"`);
+  try {
+    await api('GET', `/databases/${databaseId}`);
+    console.log('  = database (já existe)');
+    return;
+  } catch (error) {
+    if (error.status !== 404) throw error;
+  }
   await createOrIgnore('database', () =>
     api('POST', '/databases', { databaseId, name: 'Gestão Financeira' })
   );
