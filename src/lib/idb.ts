@@ -17,7 +17,7 @@
  */
 
 const DB_NAME = 'gestao-financeira-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 /**
  * Chave reservada dentro de cada store para persistir a versão do schema.
@@ -35,6 +35,7 @@ export type StoreName =
   | 'onboarding'
   | 'dismissedAlerts'
   | 'loans'
+  | 'wishlist'
   | 'schemaVersion'
   | 'trendMonths';
 
@@ -72,6 +73,7 @@ function openDB(): Promise<IDBDatabase> {
         'onboarding',
         'dismissedAlerts',
         'loans',
+        'wishlist',
         'schemaVersion',
         'trendMonths',
       ] as StoreName[]) {

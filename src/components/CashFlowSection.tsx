@@ -1,6 +1,14 @@
 ﻿import { lazy, Suspense, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { CardExpense, CreditCard, Entry, FilterType, Goal, Loan } from '../types';
+import type {
+  CardExpense,
+  CreditCard,
+  Entry,
+  FilterType,
+  Goal,
+  Loan,
+  WishlistItem,
+} from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
 import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
@@ -13,6 +21,7 @@ import { GuidedTooltip } from './GuidedTooltip';
 import { TabNav, type TabId } from './TabNav';
 import { CardsSection } from './CardsSection';
 import { LoansSection } from './LoansSection';
+import { WishlistSection } from './WishlistSection';
 import { getLoanTotals } from '../lib/loans';
 
 const CalendarView = lazy(() =>
@@ -80,6 +89,10 @@ type CashFlowSectionProps = {
   loans: Loan[];
   onNewLoan: () => void;
   onEditLoan: (loan: Loan) => void;
+  wishlistItems: WishlistItem[];
+  onNewWishlistItem: () => void;
+  onEditWishlistItem: (item: WishlistItem) => void;
+  onToggleWishlistPurchased: (item: WishlistItem, purchased: boolean) => void;
 };
 
 export function CashFlowSection({
@@ -138,6 +151,10 @@ export function CashFlowSection({
   loans,
   onNewLoan,
   onEditLoan,
+  wishlistItems,
+  onNewWishlistItem,
+  onEditWishlistItem,
+  onToggleWishlistPurchased,
 }: CashFlowSectionProps) {
   const {
     currentMonth,
@@ -476,6 +493,17 @@ export function CashFlowSection({
         {activeTab === 'emprestimos' && (
           <section>
             <LoansSection loans={loans} onNewLoan={onNewLoan} onEditLoan={onEditLoan} />
+          </section>
+        )}
+
+        {activeTab === 'desejos' && (
+          <section>
+            <WishlistSection
+              items={wishlistItems}
+              onNewItem={onNewWishlistItem}
+              onEditItem={onEditWishlistItem}
+              onTogglePurchased={onToggleWishlistPurchased}
+            />
           </section>
         )}
       </section>

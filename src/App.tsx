@@ -5,17 +5,18 @@ import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
 import { useCreditCards } from './hooks/useCreditCards';
 import { useLoans } from './hooks/useLoans';
+import { useWishlist } from './hooks/useWishlist';
 import { useCardExpenses } from './hooks/useCardExpenses';
 import { useAlerts, type Alert } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { exportEntriesToCSV } from './lib/format';
+import { exportEntriesToCSV, formatCurrency, todayLocalISO } from './lib/format';
 import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
 import { logError } from './lib/logger';
-import { DISMISSED_ALERTS_KEY } from './constants';
-import type { CardExpense, CreditCard, Entry, Goal, Loan } from './types';
+import { DISMISSED_ALERTS_KEY, WISHLIST_CATEGORY } from './constants';
+import type { CardExpense, CreditCard, Entry, Goal, Loan, WishlistItem } from './types';
 import type { TabId } from './components/TabNav';
 import { PeriodProvider } from './contexts/PeriodContext';
 import {
@@ -54,6 +55,10 @@ const LoanModal = lazy(() =>
   import('./components/LoanModal').then((m) => ({ default: m.LoanModal }))
 );
 
+const WishlistModal = lazy(() =>
+  import('./components/WishlistModal').then((m) => ({ default: m.WishlistModal }))
+);
+
 const ModalForm = lazy(() =>
   import('./components/ModalForm').then((m) => ({ default: m.ModalForm }))
 );
@@ -82,6 +87,11 @@ export default function App() {
   const [loanModalOpen, setLoanModalOpen] = useState(false);
   const [loanToEdit, setLoanToEdit] = useState<Loan | null>(null);
   const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
+
+  const { wishlistItems, upsertWishlistItem, deleteWishlistItem } = useWishlist();
+  const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
+  const [wishlistToEdit, setWishlistToEdit] = useState<WishlistItem | null>(null);
+  const [wishlistToDelete, setWishlistToDelete] = useState<WishlistItem | null>(null);
   const {
     expenses: cardExpenses,
     addExpense,
@@ -320,6 +330,66 @@ export default function App() {
     [entries, addOrUpdateEntry, showToast]
   );
 
+  /**
+   * Marcar como comprado cria a saída paga do dia em Lançamentos, para o valor
+   * sair do saldo do mês; desfazer a compra remove essa saída.
+   */
+  const handleToggleWishlistPurchased = useCallback(
+    (item: WishlistItem, purchased: boolean) => {
+      const payload = {
+        id: item.id,
+        name: item.name,
+        amount: item.amount,
+        url: item.url,
+      };
+
+      if (!purchased) {
+        if (item.entryId) deleteEntry(item.entryId);
+        upsertWishlistItem({
+          ...payload,
+          purchased: false,
+          purchasedAt: undefined,
+          entryId: undefined,
+        });
+        showToast('Compra desfeita');
+        return;
+      }
+
+      const today = todayLocalISO();
+      const entry: Entry = {
+        id: randomUUID(),
+        name: item.name,
+        amount: item.amount,
+        dueDate: today,
+        isPaid: true,
+        paidDate: today,
+        type: 'debt',
+        createdAt: Date.now(),
+        category: WISHLIST_CATEGORY,
+      };
+      void addOrUpdateEntry(entry, false);
+      upsertWishlistItem({
+        ...payload,
+        purchased: true,
+        purchasedAt: today,
+        entryId: entry.id,
+      });
+      showToast(`${item.name} comprado — ${formatCurrency(item.amount)} abatido do saldo`, {
+        label: 'Desfazer',
+        callback: () => {
+          deleteEntry(entry.id);
+          upsertWishlistItem({
+            ...payload,
+            purchased: false,
+            purchasedAt: undefined,
+            entryId: undefined,
+          });
+        },
+      });
+    },
+    [addOrUpdateEntry, deleteEntry, upsertWishlistItem, showToast]
+  );
+
   return (
     <ErrorBoundary>
       <MotionConfig reducedMotion="user">
@@ -443,6 +513,16 @@ export default function App() {
                 setLoanToEdit(loan);
                 setLoanModalOpen(true);
               }}
+              wishlistItems={wishlistItems}
+              onNewWishlistItem={() => {
+                setWishlistToEdit(null);
+                setWishlistModalOpen(true);
+              }}
+              onEditWishlistItem={(item) => {
+                setWishlistToEdit(item);
+                setWishlistModalOpen(true);
+              }}
+              onToggleWishlistPurchased={handleToggleWishlistPurchased}
             />
           </MainLayout>
         </PeriodProvider>
@@ -658,6 +738,40 @@ export default function App() {
             }
           }}
           onClose={() => setLoanToDelete(null)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <WishlistModal
+          open={wishlistModalOpen}
+          item={wishlistToEdit}
+          onSave={(partial) => {
+            upsertWishlistItem(partial);
+            showToast('Item salvo');
+          }}
+          onRequestDelete={(item) => {
+            setWishlistToDelete(item);
+            setWishlistModalOpen(false);
+            setWishlistToEdit(null);
+          }}
+          onClose={() => {
+            setWishlistModalOpen(false);
+            setWishlistToEdit(null);
+          }}
+        />
+        <ConfirmDeleteModal
+          open={wishlistToDelete !== null}
+          title="Excluir item"
+          message="Excluir este item da lista de desejos? Uma compra já registrada continua em Lançamentos."
+          confirmLabel="Excluir"
+          onConfirm={() => {
+            if (wishlistToDelete) {
+              deleteWishlistItem(wishlistToDelete.id);
+              setWishlistToDelete(null);
+              showToast('Item excluído');
+            }
+          }}
+          onClose={() => setWishlistToDelete(null)}
         />
       </Suspense>
 

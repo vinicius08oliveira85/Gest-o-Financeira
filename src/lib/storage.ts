@@ -32,6 +32,7 @@ const STORE_MAP: Record<string, StoreName> = {
   'gestao-financeira-dismissed-alerts': 'dismissedAlerts',
   'gestao-financeira-trend-months': 'trendMonths',
   'gestao-financeira-loans': 'loans',
+  'gestao-financeira-wishlist': 'wishlist',
 };
 
 export type StoredData<T> = {

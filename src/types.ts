@@ -86,6 +86,22 @@ export interface Loan {
   createdAt: number;
 }
 
+/** Item da lista de desejos (o que se pretende comprar) */
+export interface WishlistItem {
+  id: string;
+  name: string;
+  amount: number;
+  /** Link do produto/site (opcional) */
+  url?: string;
+  /** true quando já foi comprado */
+  purchased: boolean;
+  /** Data da compra, ISO date */
+  purchasedAt?: string;
+  /** id do lançamento de saída criado ao marcar como comprado (permite desfazer) */
+  entryId?: string;
+  createdAt: number;
+}
+
 export interface Goal {
   id: string;
   name: string;

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { FileText, Target, CreditCard, Filter, TrendingUp, Calendar } from 'lucide-react';
+import { FileText, Target, CreditCard, Filter, TrendingUp, Calendar, Gift } from 'lucide-react';
 
 type EmptyStateVariant =
   | 'entries'
@@ -8,7 +8,8 @@ type EmptyStateVariant =
   | 'cards'
   | 'expenses'
   | 'reports'
-  | 'calendar';
+  | 'calendar'
+  | 'wishlist';
 
 interface EmptyStateProps {
   variant: EmptyStateVariant;
@@ -82,6 +83,15 @@ const variantConfig: Record<
     defaultActionLabel: 'Adicionar lançamento',
     iconColor: 'text-indigo-500',
     iconBgColor: 'bg-indigo-100 dark:bg-indigo-900/30',
+  },
+  wishlist: {
+    icon: <Gift className="w-10 h-10 text-fuchsia-500" />,
+    defaultTitle: 'Nenhum item na lista',
+    defaultDescription:
+      'Anote o que você quer comprar, com valor e link, e marque quando comprar para abater o valor do saldo.',
+    defaultActionLabel: 'Adicionar item',
+    iconColor: 'text-fuchsia-500',
+    iconBgColor: 'bg-fuchsia-100 dark:bg-fuchsia-900/30',
   },
   calendar: {
     icon: <Calendar className="w-10 h-10 text-rose-500" />,

@@ -1,7 +1,22 @@
 ﻿import type { ComponentType } from 'react';
-import { LayoutDashboard, ListTodo, BarChart3, Target, CreditCard, Landmark } from 'lucide-react';
+import {
+  LayoutDashboard,
+  ListTodo,
+  BarChart3,
+  Target,
+  CreditCard,
+  Landmark,
+  Gift,
+} from 'lucide-react';
 
-export type TabId = 'resumo' | 'lancamentos' | 'relatorios' | 'metas' | 'cartoes' | 'emprestimos';
+export type TabId =
+  | 'resumo'
+  | 'lancamentos'
+  | 'relatorios'
+  | 'metas'
+  | 'cartoes'
+  | 'emprestimos'
+  | 'desejos';
 
 const TABS: {
   id: TabId;
@@ -14,6 +29,7 @@ const TABS: {
   { id: 'metas', label: 'Metas', icon: Target },
   { id: 'cartoes', label: 'Cartões', icon: CreditCard },
   { id: 'emprestimos', label: 'Empréstimos', icon: Landmark },
+  { id: 'desejos', label: 'Desejos', icon: Gift },
 ];
 
 type TabNavProps = {
@@ -40,10 +56,13 @@ export function TabNav({ activeTab, onTabChange }: TabNavProps) {
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           }`}
           aria-current={activeTab === id ? 'page' : undefined}
+          aria-label={label}
           title={label}
         >
           <Icon size={18} className="shrink-0" />
-          <span>{label}</span>
+          {/* Com 7 abas o rótulo não cabe na largura de um celular: fica só o
+              ícone (com aria-label/title) e o texto volta a partir de `sm`. */}
+          <span className="hidden sm:inline">{label}</span>
         </button>
       ))}
     </nav>

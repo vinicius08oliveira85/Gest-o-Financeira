@@ -16,6 +16,10 @@ export const CARDS_STORAGE_KEY = 'gestao-financeira-cards';
 export const CARD_EXPENSES_STORAGE_KEY = 'gestao-financeira-card-expenses';
 
 export const LOANS_STORAGE_KEY = 'gestao-financeira-loans';
+export const WISHLIST_STORAGE_KEY = 'gestao-financeira-wishlist';
+
+/** Categoria do lançamento de saída criado ao marcar um item da lista de desejos como comprado. */
+export const WISHLIST_CATEGORY = 'Lista de desejos';
 
 /** Janela de meses escolhida no gráfico de evolução mensal (3 | 6 | 12). */
 export const TREND_MONTHS_KEY = 'gestao-financeira-trend-months';
