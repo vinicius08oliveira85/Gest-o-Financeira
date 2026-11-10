@@ -23,7 +23,6 @@ type EntryItemProps = {
   onEdit: (entry: Entry) => void;
   onDeleteRequest: (id: string) => void;
   compact?: boolean;
-  staggerDelay?: number;
 };
 
 function EntryItemInner({
@@ -32,7 +31,6 @@ function EntryItemInner({
   onEdit,
   onDeleteRequest,
   compact = false,
-  staggerDelay = 0,
 }: EntryItemProps) {
   const paymentDue = debtPaymentDueDate(entry);
   const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(paymentDue);
@@ -40,10 +38,11 @@ function EntryItemInner({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+      // Sem animação de entrada: com `AnimatePresence mode="popLayout"` os
+      // itens novos podiam ficar presos no estado inicial (opacity 0) e só
+      // apareciam muitos segundos depois, deixando um espaço vazio na lista.
+      initial={false}
       exit={{ opacity: 0, x: 20 }}
-      transition={{ delay: staggerDelay }}
       className={`group neu-list-item flex flex-wrap sm:flex-nowrap items-center ${
         compact ? 'px-3 py-2 sm:px-4 sm:py-2.5 text-sm' : 'p-3 sm:p-4'
       }`}

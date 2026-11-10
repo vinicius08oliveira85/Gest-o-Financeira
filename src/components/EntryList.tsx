@@ -34,17 +34,6 @@ function groupEntriesByDate(entries: Entry[]): Map<string, Entry[]> {
   return result;
 }
 
-/**
- * Atraso da animação de entrada por posição.
- *
- * Antes era `index * 50ms`: numa lista de 60 lançamentos o último item só
- * aparecia 3s depois de abrir a aba (parecia que faltavam registros). O atraso
- * agora para nos primeiros itens — o resto entra junto.
- */
-function staggerDelay(index: number): number {
-  return Math.min(index, 6) * 40;
-}
-
 function formatDateGroupLabel(isoDate: string): string {
   const d = new Date(isoDate + 'T12:00:00');
   const now = new Date();
@@ -85,7 +74,7 @@ export function EntryList({
                     {formatDateGroupLabel(dateKey)}
                   </div>
                   <div className="space-y-1">
-                    {dayEntries.map((entry, index) => (
+                    {dayEntries.map((entry) => (
                       <EntryItem
                         key={entry.id}
                         entry={entry}
@@ -93,7 +82,6 @@ export function EntryList({
                         onEdit={onEdit}
                         onDeleteRequest={onDeleteRequest}
                         compact={compact}
-                        staggerDelay={staggerDelay(index)}
                       />
                     ))}
                   </div>
@@ -102,7 +90,7 @@ export function EntryList({
             </div>
           ) : (
             <div className="neu-list">
-              {entries.map((entry, index) => (
+              {entries.map((entry) => (
                 <EntryItem
                   key={entry.id}
                   entry={entry}
@@ -110,7 +98,6 @@ export function EntryList({
                   onEdit={onEdit}
                   onDeleteRequest={onDeleteRequest}
                   compact={compact}
-                  staggerDelay={staggerDelay(index)}
                 />
               ))}
             </div>
