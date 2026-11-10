@@ -1,11 +1,13 @@
 ﻿import { useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
-import type { Entry } from '../types';
+import type { CreditCard, Entry } from '../types';
 import { EntryItem } from './EntryItem';
 import { EmptyState } from './EmptyState';
 
 type EntryListProps = {
   entries: Entry[];
+  /** Cartões, para mostrar o nome do cartão nas faturas. */
+  cards?: CreditCard[];
   onTogglePaid: (id: string) => void;
   onEdit: (entry?: Entry) => void;
   onDeleteRequest: (id: string) => void;
@@ -49,6 +51,7 @@ function formatDateGroupLabel(isoDate: string): string {
 
 export function EntryList({
   entries,
+  cards = [],
   onTogglePaid,
   onEdit,
   onDeleteRequest,
@@ -78,6 +81,7 @@ export function EntryList({
                       <EntryItem
                         key={entry.id}
                         entry={entry}
+                        cardName={cards.find((c) => c.id === entry.cardId)?.name}
                         onTogglePaid={onTogglePaid}
                         onEdit={onEdit}
                         onDeleteRequest={onDeleteRequest}
@@ -94,6 +98,7 @@ export function EntryList({
                 <EntryItem
                   key={entry.id}
                   entry={entry}
+                  cardName={cards.find((c) => c.id === entry.cardId)?.name}
                   onTogglePaid={onTogglePaid}
                   onEdit={onEdit}
                   onDeleteRequest={onDeleteRequest}

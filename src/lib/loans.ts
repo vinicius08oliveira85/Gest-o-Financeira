@@ -10,9 +10,9 @@ export function isInstallmentLoan(loan: Loan): boolean {
   return (loan.installmentsCount ?? 1) > 1 && (loan.installments?.length ?? 0) > 0;
 }
 
-/** Parcelas ainda em aberto (vazio quando o empréstimo é de pagamento único). */
+/** Parcelas ainda em aberto (canceladas e pagas ficam de fora). */
 export function getOpenInstallments(loan: Loan): LoanInstallment[] {
-  return isInstallmentLoan(loan) ? loan.installments!.filter((i) => !i.paid) : [];
+  return isInstallmentLoan(loan) ? loan.installments!.filter((i) => !i.paid && !i.cancelled) : [];
 }
 
 /** Valor já pago do empréstimo (parcelas pagas ou o valor total, se quitado). */
@@ -36,7 +36,7 @@ export function getLoanTotals(loans: Loan[], today: string): LoanTotals {
   for (const loan of loans) {
     if (isInstallmentLoan(loan)) {
       for (const installment of loan.installments!) {
-        if (installment.paid) continue;
+        if (installment.paid || installment.cancelled) continue;
         open += installment.amount;
         if (installment.dueDate < today) overdue += installment.amount;
       }
@@ -76,6 +76,63 @@ export function getEndingDiscounts(
         !!item.end && item.end >= todayMonth && item.end <= limit && getOpenAmount(item.loan) > 0
     )
     .sort((a, b) => a.end.localeCompare(b.end));
+}
+
+/**
+ * Compromissos de empréstimo com vencimento no mês, ainda sem lançamento: as
+ * parcelas em aberto/canceladas e o empréstimo único não pago. As parcelas
+ * pagas ficam de fora porque já são lançamentos na lista de Lançamentos.
+ */
+export type LoanMonthItem = {
+  id: string;
+  loan: Loan;
+  label: string;
+  amount: number;
+  dueDate: string;
+  status: 'pending' | 'overdue' | 'cancelled';
+};
+
+export function getLoanItemsForMonth(
+  loans: Loan[],
+  month: number,
+  year: number,
+  today: string
+): LoanMonthItem[] {
+  const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const items: LoanMonthItem[] = [];
+
+  for (const loan of loans) {
+    if (isInstallmentLoan(loan)) {
+      const count = loan.installments!.length;
+      for (const installment of loan.installments!) {
+        if (installment.paid || monthKey(installment.dueDate) !== prefix) continue;
+        items.push({
+          id: `${loan.id}-${installment.number}`,
+          loan,
+          label: `${loan.name} · parcela ${installment.number}/${count}`,
+          amount: installment.amount,
+          dueDate: installment.dueDate,
+          status: installment.cancelled
+            ? 'cancelled'
+            : installment.dueDate < today
+              ? 'overdue'
+              : 'pending',
+        });
+      }
+      continue;
+    }
+    if (loan.paid || monthKey(loan.dueDate) !== prefix) continue;
+    items.push({
+      id: loan.id,
+      loan,
+      label: loan.name,
+      amount: loan.amount,
+      dueDate: loan.dueDate,
+      status: loan.dueDate < today ? 'overdue' : 'pending',
+    });
+  }
+
+  return items.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
 /** Próximo vencimento em aberto (parcela ou empréstimo único). */
@@ -208,8 +265,9 @@ export function buildInstallments(
 
   return Array.from({ length: safeCount }, (_, index) => {
     const number = index + 1;
-    const paidBefore = previous.find((p) => p.number === number && p.paid);
-    if (paidBefore) return paidBefore;
+    // Pagas e canceladas são mantidas ao editar o empréstimo.
+    const keptBefore = previous.find((p) => p.number === number && (p.paid || p.cancelled));
+    if (keptBefore) return keptBefore;
     return {
       number,
       amount: (baseCents + (index < remainder ? 1 : 0)) / 100,

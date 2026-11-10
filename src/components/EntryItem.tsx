@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { CheckCircle2, Circle, Calendar, Pencil, Trash2, Tag } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, CreditCard, Pencil, Trash2, Tag } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Entry } from '../types';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
@@ -19,6 +19,8 @@ function debtPaymentDueDate(entry: Entry): string {
 
 type EntryItemProps = {
   entry: Entry;
+  /** Nome do cartão, quando o lançamento é fatura de cartão. */
+  cardName?: string;
   onTogglePaid: (id: string) => void;
   onEdit: (entry: Entry) => void;
   onDeleteRequest: (id: string) => void;
@@ -27,6 +29,7 @@ type EntryItemProps = {
 
 function EntryItemInner({
   entry,
+  cardName,
   onTogglePaid,
   onEdit,
   onDeleteRequest,
@@ -104,6 +107,12 @@ function EntryItemInner({
               Pago em {formatDate(entry.paidDate)}
             </span>
           )}
+          {entry.isCardInvoice && cardName && (
+            <span className="neu-chip-dark inline-flex items-center gap-1 whitespace-nowrap">
+              <CreditCard size={12} />
+              {cardName}
+            </span>
+          )}
           <span
             className={
               entry.isPaid ? 'neu-chip-success' : isOverdue ? 'neu-chip-danger' : 'neu-chip-pending'
@@ -117,7 +126,7 @@ function EntryItemInner({
               {entry.installmentNumber}/{entry.installmentsCount}
             </span>
           )}
-          {entry.tag && (
+          {entry.tag && entry.tag !== (entry.isCardInvoice ? cardName : undefined) && (
             <span
               className="text-xs text-slate-600 dark:text-slate-400 truncate inline-flex items-center gap-1 max-w-[120px] sm:max-w-[140px] lg:max-w-[180px]"
               title={entry.tag}

@@ -79,6 +79,8 @@ export interface LoanInstallment {
   /** Vencimento da parcela, ISO date */
   dueDate: string;
   paid: boolean;
+  /** Parcela cancelada: não conta como em aberto nem gera lançamento */
+  cancelled?: boolean;
   /** Data do pagamento, ISO date */
   paidDate?: string;
   /** id do lançamento de saída criado ao marcar a parcela como paga (permite desmarcar) */

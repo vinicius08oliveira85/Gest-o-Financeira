@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Check, RotateCcw, X } from 'lucide-react';
+import { Ban, Check, RotateCcw, X } from 'lucide-react';
 import type { Loan } from '../types';
 import { ModalShell } from './ModalShell';
 import { formatCurrency, formatDate } from '../lib/format';
@@ -14,6 +14,8 @@ type Props = {
   onTogglePaid: (loan: Loan, number: number, paid: boolean) => void;
   /** Ajusta o vencimento da parcela; se ela estiver paga, a saída muda de mês junto. */
   onChangeDueDate: (loan: Loan, number: number, dueDate: string) => void;
+  /** Cancela/reativa a parcela: cancelada não conta como em aberto. */
+  onToggleCancelled: (loan: Loan, number: number, cancelled: boolean) => void;
   onClose: () => void;
 };
 
@@ -22,6 +24,7 @@ export function LoanInstallmentsModal({
   loan,
   onTogglePaid,
   onChangeDueDate,
+  onToggleCancelled,
   onClose,
 }: Props) {
   useEffect(() => {
@@ -103,22 +106,52 @@ export function LoanInstallmentsModal({
                           Pago em {installment.paidDate ? formatDate(installment.paidDate) : '—'}
                         </p>
                       )}
+                      {installment.cancelled && <span className="neu-chip">Cancelada</span>}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onTogglePaid(loan, installment.number, !installment.paid)}
-                      className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 ${
-                        installment.paid ? 'neu-btn-secondary' : 'neu-btn-primary'
-                      }`}
-                      aria-label={
-                        installment.paid
-                          ? `Desmarcar pagamento da parcela ${installment.number}`
-                          : `Marcar parcela ${installment.number} como paga`
-                      }
-                    >
-                      {installment.paid ? <RotateCcw size={14} /> : <Check size={14} />}
-                      {installment.paid ? 'Desfazer' : 'Pagar'}
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {installment.cancelled ? (
+                        <button
+                          type="button"
+                          onClick={() => onToggleCancelled(loan, installment.number, false)}
+                          className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 neu-btn-secondary"
+                          aria-label={`Reativar parcela ${installment.number}`}
+                        >
+                          <RotateCcw size={14} />
+                          Reativar
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onTogglePaid(loan, installment.number, !installment.paid)
+                            }
+                            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 ${
+                              installment.paid ? 'neu-btn-secondary' : 'neu-btn-primary'
+                            }`}
+                            aria-label={
+                              installment.paid
+                                ? `Desmarcar pagamento da parcela ${installment.number}`
+                                : `Marcar parcela ${installment.number} como paga`
+                            }
+                          >
+                            {installment.paid ? <RotateCcw size={14} /> : <Check size={14} />}
+                            {installment.paid ? 'Desfazer' : 'Pagar'}
+                          </button>
+                          {!installment.paid && (
+                            <button
+                              type="button"
+                              onClick={() => onToggleCancelled(loan, installment.number, true)}
+                              className="neu-btn-secondary p-2 rounded-xl"
+                              aria-label={`Cancelar parcela ${installment.number}`}
+                              title="Cancelar parcela"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

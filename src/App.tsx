@@ -400,6 +400,36 @@ export default function App() {
   );
 
   /**
+   * Cancelar uma parcela tira o valor do que está em aberto (não vira
+   * lançamento); reativar devolve a parcela. Pagamento precisa ser desfeito antes.
+   */
+  const handleToggleLoanInstallmentCancelled = useCallback(
+    (loan: Loan, number: number, cancelled: boolean) => {
+      const installments = loan.installments ?? [];
+      const installment = installments.find((i) => i.number === number);
+      if (!installment || installment.cancelled === cancelled) return;
+      if (cancelled && installment.paid) return;
+
+      const nextInstallments = installments.map((i) =>
+        i.number === number ? { ...i, cancelled } : i
+      );
+      const nextLoan: Loan = {
+        ...loan,
+        installments: nextInstallments,
+        paid: nextInstallments.every((i) => i.paid),
+      };
+      upsertLoan(nextLoan);
+      setLoanInstallmentsLoan(nextLoan);
+      showToast(
+        cancelled
+          ? `Parcela ${number}/${installments.length} cancelada`
+          : `Parcela ${number}/${installments.length} reativada`
+      );
+    },
+    [upsertLoan, showToast]
+  );
+
+  /**
    * Mudar o vencimento de uma parcela paga move a saída vinculada para o mês
    * novo, para o abatimento continuar no mês certo.
    */
@@ -850,6 +880,7 @@ export default function App() {
           loan={loanInstallmentsLoan}
           onTogglePaid={handleToggleLoanInstallmentPaid}
           onChangeDueDate={handleChangeLoanInstallmentDueDate}
+          onToggleCancelled={handleToggleLoanInstallmentCancelled}
           onClose={() => setLoanInstallmentsLoan(null)}
         />
       </Suspense>

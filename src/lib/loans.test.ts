@@ -7,6 +7,7 @@ import {
   formatDiscountPeriod,
   getDiscountPeriod,
   getEndingDiscounts,
+  getLoanItemsForMonth,
   getLoanPaidAmount,
   getLoanTotals,
   getNextDueDate,
@@ -73,6 +74,67 @@ describe('período do desconto', () => {
     expect(formatDiscountPeriod(loan({ id: 's', discountStart: '2026-11' }))).toBe(
       'nov/2026 em diante'
     );
+  });
+});
+
+describe('parcelas canceladas', () => {
+  const base = loan({
+    id: 'canc',
+    amount: 900,
+    installmentsCount: 3,
+    installments: buildInstallments(900, 3, '2026-11-10').map((i) =>
+      i.number === 2 ? { ...i, cancelled: true } : i
+    ),
+  });
+
+  it('saem do valor em aberto e dos vencimentos próximos', () => {
+    expect(getLoanTotals([base], '2026-11-10')).toEqual({ open: 600, overdue: 0 });
+    expect(getNextDueDate(base)).toBe('2026-11-10');
+  });
+
+  it('continuam canceladas ao editar o empréstimo', () => {
+    const rebuilt = buildInstallments(900, 3, '2026-11-10', base.installments);
+    expect(rebuilt[1]).toMatchObject({ cancelled: true });
+  });
+});
+
+describe('getLoanItemsForMonth', () => {
+  const today = '2026-11-10';
+  const installmentLoan = loan({
+    id: 'parc',
+    name: 'Carro',
+    amount: 600,
+    installmentsCount: 3,
+    installments: [
+      { number: 1, amount: 200, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+      { number: 2, amount: 200, dueDate: '2026-11-20', paid: false },
+      { number: 3, amount: 200, dueDate: '2026-12-10', paid: false, cancelled: true },
+    ],
+  });
+
+  it('lista só os compromissos do mês ainda sem lançamento', () => {
+    const items = getLoanItemsForMonth([installmentLoan], 10, 2026, today);
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      label: 'Carro · parcela 2/3',
+      status: 'pending',
+      amount: 200,
+    });
+  });
+
+  it('marca atrasado, cancelado e empréstimo único em aberto', () => {
+    const overdue = getLoanItemsForMonth([installmentLoan], 10, 2026, '2026-11-25');
+    expect(overdue[0].status).toBe('overdue');
+
+    const cancelledItems = getLoanItemsForMonth([installmentLoan], 11, 2026, today);
+    expect(cancelledItems[0].status).toBe('cancelled');
+
+    const single = loan({ id: 'unico', name: 'Moto', amount: 500, dueDate: '2026-11-15' });
+    expect(getLoanItemsForMonth([single], 10, 2026, today)).toMatchObject([
+      { label: 'Moto', status: 'pending', amount: 500 },
+    ]);
+    expect(getLoanItemsForMonth([single], 9, 2026, today)).toHaveLength(0);
   });
 });
 

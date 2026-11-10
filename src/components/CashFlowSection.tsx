@@ -16,6 +16,7 @@ import { DashboardCards } from './DashboardCards';
 import { GoalsCard } from './GoalsCard';
 import { FilterBar } from './FilterBar';
 import { EntryList } from './EntryList';
+import { LoanMonthItems } from './LoanMonthItems';
 import { AlertsPanel } from './AlertsPanel';
 import { GuidedTooltip } from './GuidedTooltip';
 import { TabNav, type TabId } from './TabNav';
@@ -393,8 +394,17 @@ export function CashFlowSection({
                 </button>
               </div>
             </div>
+            {viewMode === 'list' && (
+              <LoanMonthItems
+                loans={loans}
+                month={currentMonth}
+                year={currentYear}
+                onOpenInstallments={onOpenLoanInstallments}
+              />
+            )}
             {viewMode === 'list' ? (
               <EntryList
+                cards={cards}
                 entries={filteredEntries}
                 onTogglePaid={onTogglePaid}
                 onEdit={onEdit}
