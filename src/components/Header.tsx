@@ -2,7 +2,6 @@
 import {
   Plus,
   Wallet,
-  Lock,
   Sun,
   Moon,
   MoreVertical,
@@ -20,7 +19,6 @@ type HeaderProps = {
   /** Exportar apenas lançamentos do mês atual */
   onExportCSVCurrentMonth?: () => void;
   onNewEntry: () => void;
-  onOpenChangePassword: () => void;
   /** Sem nuvem: backup no localStorage */
   onSaveEntriesLocal?: () => void;
   /** Grava alterações locais na tabela do Supabase */
@@ -35,7 +33,6 @@ export function Header({
   onExportCSV,
   onExportCSVCurrentMonth,
   onNewEntry,
-  onOpenChangePassword,
   onSaveEntriesLocal,
   onSaveEntriesToSupabase,
   onPullEntriesFromSupabase,
@@ -159,15 +156,6 @@ export function Header({
           )}
           <button
             type="button"
-            onClick={onOpenChangePassword}
-            className="neu-btn-toolbar"
-            title="Alterar senha"
-          >
-            <Lock size={16} />
-            <span className="hidden xl:inline">Alterar senha</span>
-          </button>
-          <button
-            type="button"
             onClick={onExportCSV}
             className="neu-btn-toolbar"
             title="Exportar todos os lançamentos em CSV"
@@ -269,17 +257,6 @@ export function Header({
                   Exportar mês
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenChangePassword();
-                  setMenuOpen(false);
-                }}
-                className="neu-list-menu-item"
-              >
-                <Lock size={16} />
-                Alterar senha
-              </button>
             </div>
           )}
         </div>

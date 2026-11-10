@@ -15,7 +15,6 @@ type MainLayoutProps = {
   onExportCSV: () => void;
   onExportCSVCurrentMonth?: () => void;
   onNewEntry: () => void;
-  onOpenChangePassword: () => void;
   /** Sem Supabase: backup no dispositivo */
   onSaveEntriesLocal?: () => void;
   /** Com Supabase: gravar alterações locais no servidor */
@@ -39,7 +38,6 @@ export function MainLayout({
   onExportCSV,
   onExportCSVCurrentMonth,
   onNewEntry,
-  onOpenChangePassword,
   onSaveEntriesLocal,
   onSaveEntriesToSupabase,
   onPullEntriesFromSupabase,
@@ -55,7 +53,6 @@ export function MainLayout({
             onExportCSV={onExportCSV}
             onExportCSVCurrentMonth={onExportCSVCurrentMonth}
             onNewEntry={onNewEntry}
-            onOpenChangePassword={onOpenChangePassword}
             onSaveEntriesLocal={onSaveEntriesLocal}
             onSaveEntriesToSupabase={onSaveEntriesToSupabase}
             onPullEntriesFromSupabase={onPullEntriesFromSupabase}
@@ -78,7 +75,7 @@ export function MainLayout({
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 pb-28 md:pb-0">
         {isLoading ? (
           <div className="app-container page-stack">
             <LoadingSkeleton />

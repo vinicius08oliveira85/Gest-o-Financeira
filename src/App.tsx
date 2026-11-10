@@ -4,6 +4,7 @@ import { useEntries } from './hooks/useEntries';
 import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
 import { useCreditCards } from './hooks/useCreditCards';
+import { useLoans } from './hooks/useLoans';
 import { useCardExpenses } from './hooks/useCardExpenses';
 import { useAlerts, type Alert } from './hooks/useAlerts';
 import { useOnboarding } from './hooks/useOnboarding';
@@ -12,22 +13,18 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { exportEntriesToCSV } from './lib/format';
 import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
-import { UNLOCK_KEY, DISMISSED_ALERTS_KEY } from './constants';
-import type { CardExpense, CreditCard, Entry, Goal } from './types';
+import { logError } from './lib/logger';
+import { DISMISSED_ALERTS_KEY } from './constants';
+import type { CardExpense, CreditCard, Entry, Goal, Loan } from './types';
 import type { TabId } from './components/TabNav';
 import { PeriodProvider } from './contexts/PeriodContext';
 import {
   MainLayout,
   CashFlowSection,
   FloatingActionButton,
-  PasswordGate,
   ErrorBoundary,
   Toast,
 } from './components';
-
-const ChangePasswordModal = lazy(() =>
-  import('./components/ChangePasswordModal').then((m) => ({ default: m.ChangePasswordModal }))
-);
 const ConfirmDeleteModal = lazy(() =>
   import('./components/ConfirmDeleteModal').then((m) => ({ default: m.ConfirmDeleteModal }))
 );
@@ -53,14 +50,16 @@ const CardExpenseModal = lazy(() =>
   import('./components/CardExpenseModal').then((m) => ({ default: m.CardExpenseModal }))
 );
 
+const LoanModal = lazy(() =>
+  import('./components/LoanModal').then((m) => ({ default: m.LoanModal }))
+);
+
 const ModalForm = lazy(() =>
   import('./components/ModalForm').then((m) => ({ default: m.ModalForm }))
 );
 
 export default function App() {
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(UNLOCK_KEY) === '1');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('resumo');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
@@ -79,6 +78,10 @@ export default function App() {
   const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
 
   const { cards, upsertCard, deleteCard } = useCreditCards();
+  const { loans, upsertLoan, deleteLoan } = useLoans();
+  const [loanModalOpen, setLoanModalOpen] = useState(false);
+  const [loanToEdit, setLoanToEdit] = useState<Loan | null>(null);
+  const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
   const {
     expenses: cardExpenses,
     addExpense,
@@ -103,6 +106,7 @@ export default function App() {
     goToPreviousMonth,
     goToNextMonth,
     goToCurrentMonth,
+    listEntries,
     filteredEntries,
     entriesDoMes,
     totalEntradasLancadasMes,
@@ -139,6 +143,9 @@ export default function App() {
   const { goals, upsertGoal, deleteGoal, isLoadingGoals } = useGoals();
   const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
+  const linkedGoalEntriesCount = goalToDelete
+    ? entries.filter((e) => e.goalId === goalToDelete.id).length
+    : 0;
   const { toastMessage, toastAction, showToast, dismissToast } = useToast();
   const { alerts } = useAlerts({
     entries,
@@ -183,8 +190,8 @@ export default function App() {
       next.add(id);
       try {
         localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify([...next]));
-      } catch {
-        // ignore
+      } catch (e) {
+        logError('Failed to save dismissed alerts', e);
       }
       return next;
     });
@@ -216,7 +223,7 @@ export default function App() {
     completeStep('stepNewEntry');
   }, [handleOpenForm, completeStep]);
 
-  // Keyboard shortcuts (only when unlocked and not in a modal)
+  // Keyboard shortcuts (only when not in a modal)
   useKeyboardShortcuts([
     {
       key: 'n',
@@ -258,11 +265,6 @@ export default function App() {
       });
     }
   }, [entryToDelete, deleteEntry, showToast, addOrUpdateEntry]);
-
-  const handleUnlock = useCallback(() => {
-    setUnlocked(true);
-    sessionStorage.setItem(UNLOCK_KEY, '1');
-  }, []);
 
   const handleSaveEntriesLocal = useCallback(() => {
     saveEntriesLocal();
@@ -319,10 +321,6 @@ export default function App() {
     [entries, addOrUpdateEntry, showToast]
   );
 
-  if (!unlocked) {
-    return <PasswordGate onUnlock={handleUnlock} />;
-  }
-
   return (
     <ErrorBoundary>
       <MotionConfig reducedMotion="user">
@@ -355,7 +353,6 @@ export default function App() {
               exportEntriesToCSV(entriesDoMes, { filenameSuffix: '_mes_atual' })
             }
             onNewEntry={handleNewEntryWithStep}
-            onOpenChangePassword={() => setShowChangePasswordModal(true)}
             onSaveEntriesLocal={handleSaveEntriesLocal}
             onSaveEntriesToSupabase={entriesSyncAvailable ? handleSaveEntriesToSupabase : undefined}
             onPullEntriesFromSupabase={
@@ -397,8 +394,9 @@ export default function App() {
               setSortOrder={setSortOrder}
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
+              listEntries={listEntries}
               filteredEntries={filteredEntries}
-              entriesCount={entriesDoMes.length}
+              entriesCount={entries.length}
               availableCategories={availableCategories}
               viewMode={viewMode}
               setViewMode={setViewMode}
@@ -438,6 +436,15 @@ export default function App() {
                 }
               }}
               onRegisterInvoice={handleRegisterInvoice}
+              loans={loans}
+              onNewLoan={() => {
+                setLoanToEdit(null);
+                setLoanModalOpen(true);
+              }}
+              onEditLoan={(loan) => {
+                setLoanToEdit(loan);
+                setLoanModalOpen(true);
+              }}
             />
           </MainLayout>
         </PeriodProvider>
@@ -481,11 +488,6 @@ export default function App() {
       <FloatingActionButton onClick={() => handleOpenForm()} />
 
       <Suspense fallback={null}>
-        <ChangePasswordModal
-          open={showChangePasswordModal}
-          onClose={() => setShowChangePasswordModal(false)}
-          onSuccess={() => setShowChangePasswordModal(false)}
-        />
         {entryToDelete &&
         entryToDelete.isRecurring === true &&
         !entryToDelete.recurrenceTemplateId ? (
@@ -600,16 +602,64 @@ export default function App() {
         <ConfirmDeleteModal
           open={goalToDelete !== null}
           title="Excluir meta"
-          message="Excluir esta meta? Esta ação não pode ser desfeita."
+          message={
+            linkedGoalEntriesCount > 0
+              ? `Esta meta tem ${linkedGoalEntriesCount} ${linkedGoalEntriesCount === 1 ? 'lançamento vinculado' : 'lançamentos vinculados'}, que também ${linkedGoalEntriesCount === 1 ? 'será excluído' : 'serão excluídos'}. Esta ação não pode ser desfeita.`
+              : 'Excluir esta meta? Esta ação não pode ser desfeita.'
+          }
           confirmLabel="Excluir"
-          onConfirm={() => {
+          onConfirm={async () => {
             if (goalToDelete) {
-              deleteGoal(goalToDelete.id);
+              // Depósitos vinculados são removidos junto com a meta, na mesma transação
+              // no banco; localmente só saem depois da confirmação.
+              const linkedIds = entries
+                .filter((e) => e.goalId === goalToDelete.id)
+                .map((e) => e.id);
+              const ok = await deleteGoal(goalToDelete.id);
               setGoalToDelete(null);
-              showToast('Meta excluída');
+              if (ok) {
+                linkedIds.forEach((id) => deleteEntry(id));
+                showToast('Meta excluída');
+              } else {
+                showToast('Não foi possível excluir a meta. Tente novamente.');
+              }
             }
           }}
           onClose={() => setGoalToDelete(null)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <LoanModal
+          open={loanModalOpen}
+          loan={loanToEdit}
+          onSave={(partial) => {
+            upsertLoan(partial);
+            showToast('Empréstimo salvo');
+          }}
+          onRequestDelete={(loan) => {
+            setLoanToDelete(loan);
+            setLoanModalOpen(false);
+            setLoanToEdit(null);
+          }}
+          onClose={() => {
+            setLoanModalOpen(false);
+            setLoanToEdit(null);
+          }}
+        />
+        <ConfirmDeleteModal
+          open={loanToDelete !== null}
+          title="Excluir empréstimo"
+          message="Excluir este empréstimo? Esta ação não pode ser desfeita."
+          confirmLabel="Excluir"
+          onConfirm={() => {
+            if (loanToDelete) {
+              deleteLoan(loanToDelete.id);
+              setLoanToDelete(null);
+              showToast('Empréstimo excluído');
+            }
+          }}
+          onClose={() => setLoanToDelete(null)}
         />
       </Suspense>
 

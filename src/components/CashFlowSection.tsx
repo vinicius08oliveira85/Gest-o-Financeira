@@ -1,9 +1,9 @@
 ﻿import { lazy, Suspense, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { CardExpense, CreditCard, Entry, FilterType, Goal } from '../types';
+import type { CardExpense, CreditCard, Entry, FilterType, Goal, Loan } from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
-import { parseDateLocal } from '../lib/format';
+import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
 import { DashboardCards } from './DashboardCards';
 import { GoalsCard } from './GoalsCard';
 import { FilterBar } from './FilterBar';
@@ -12,6 +12,8 @@ import { AlertsPanel } from './AlertsPanel';
 import { GuidedTooltip } from './GuidedTooltip';
 import { TabNav, type TabId } from './TabNav';
 import { CardsSection } from './CardsSection';
+import { LoansSection } from './LoansSection';
+import { getLoanTotals } from '../lib/loans';
 
 const CalendarView = lazy(() =>
   import('./CalendarView').then((m) => ({ default: m.CalendarView }))
@@ -47,6 +49,9 @@ type CashFlowSectionProps = {
   setSortOrder: (s: 'asc' | 'desc') => void;
   selectedCategory: string;
   setSelectedCategory: (c: string) => void;
+  /** Todos os lançamentos após filtros, de qualquer mês (aba Lançamentos). */
+  listEntries: Entry[];
+  /** Só o mês selecionado (calendário). */
   filteredEntries: Entry[];
   entriesCount: number;
   availableCategories: string[];
@@ -73,6 +78,9 @@ type CashFlowSectionProps = {
   onAddExpense: (card: CreditCard) => void;
   onEditExpense: (expense: CardExpense) => void;
   onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
+  loans: Loan[];
+  onNewLoan: () => void;
+  onEditLoan: (loan: Loan) => void;
 };
 
 export function CashFlowSection({
@@ -102,6 +110,7 @@ export function CashFlowSection({
   setSortOrder,
   selectedCategory,
   setSelectedCategory,
+  listEntries,
   filteredEntries,
   entriesCount,
   availableCategories,
@@ -128,6 +137,9 @@ export function CashFlowSection({
   onAddExpense,
   onEditExpense,
   onRegisterInvoice,
+  loans,
+  onNewLoan,
+  onEditLoan,
 }: CashFlowSectionProps) {
   const {
     currentMonth,
@@ -294,6 +306,26 @@ export function CashFlowSection({
               <span className="font-semibold">finalizados</span>. Entradas aumentam e saídas
               diminuem o saldo.
             </p>
+            {loans.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="neu-card p-4">
+                  <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Empréstimos em aberto
+                  </p>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {formatCurrency(getLoanTotals(loans, todayLocalISO()).open)}
+                  </p>
+                </div>
+                <div className="neu-card p-4">
+                  <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Empréstimos vencidos
+                  </p>
+                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                    {formatCurrency(getLoanTotals(loans, todayLocalISO()).overdue)}
+                  </p>
+                </div>
+              </div>
+            )}
             <AlertsPanel alerts={alerts} onDismiss={onDismissAlert} onAction={onAlertAction} />
             {showReportsHint && (
               <GuidedTooltip text="Use as abas para ver Lançamentos, Relatórios e Metas." />
@@ -307,7 +339,7 @@ export function CashFlowSection({
               <FilterBar
                 filter={filter}
                 onFilterChange={setFilter}
-                filteredCount={filteredEntries.length}
+                filteredCount={listEntries.length}
                 totalCount={entriesCount}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -346,16 +378,16 @@ export function CashFlowSection({
             </div>
             {viewMode === 'list' ? (
               <EntryList
-                entries={filteredEntries}
+                entries={listEntries}
                 onTogglePaid={onTogglePaid}
                 onEdit={onEdit}
                 onDeleteRequest={(id) => {
-                  const entry = filteredEntries.find((e) => e.id === id);
+                  const entry = listEntries.find((e) => e.id === id);
                   if (entry) onDeleteRequest(entry);
                 }}
                 compact
                 groupByDate
-                filtered={entriesCount > 0 && filteredEntries.length === 0}
+                filtered={entriesCount > 0 && listEntries.length === 0}
                 onClearFilters={() => {
                   setFilter('all');
                   setSearchQuery('');
@@ -440,6 +472,12 @@ export function CashFlowSection({
               onEditExpense={onEditExpense}
               onRegisterInvoice={onRegisterInvoice}
             />
+          </section>
+        )}
+
+        {activeTab === 'emprestimos' && (
+          <section>
+            <LoansSection loans={loans} onNewLoan={onNewLoan} onEditLoan={onEditLoan} />
           </section>
         )}
       </section>

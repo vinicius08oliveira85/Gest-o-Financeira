@@ -108,18 +108,26 @@ export function useGoals() {
     [goals, useSupabaseSync]
   );
 
+  /**
+   * Remove a meta e os lançamentos vinculados. No modo nuvem a remoção local só
+   * acontece depois que o banco confirma a transação única; se falhar, nada muda.
+   */
   const deleteGoal = useCallback(
-    (id: string) => {
-      const previous = goals;
-      setGoals((g) => g.filter((x) => x.id !== id));
-      if (useSupabaseSync) {
-        deleteGoalDb(id).catch((err) => {
-          logError('Failed to delete goal from Supabase', err);
-          setGoals(previous);
-        });
+    async (id: string): Promise<boolean> => {
+      if (!useSupabaseSync) {
+        setGoals((g) => g.filter((x) => x.id !== id));
+        return true;
+      }
+      try {
+        await deleteGoalDb(id);
+        setGoals((g) => g.filter((x) => x.id !== id));
+        return true;
+      } catch (err) {
+        logError('Failed to delete goal from Supabase', err);
+        return false;
       }
     },
-    [goals, useSupabaseSync]
+    [useSupabaseSync]
   );
 
   return {

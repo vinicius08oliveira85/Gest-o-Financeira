@@ -68,6 +68,24 @@ export interface CardExpense {
   createdAt: number;
 }
 
+/** De onde vem o dinheiro para pagar o empréstimo */
+export type LoanSourceType = 'pessoa_fisica' | 'trabalhador';
+
+export interface Loan {
+  id: string;
+  name: string;
+  /** Valor total do empréstimo */
+  amount: number;
+  sourceType: LoanSourceType;
+  /** Nome da pessoa ou da empresa que empresta (opcional) */
+  sourceName?: string;
+  /** Data prevista para o pagamento, ISO date */
+  dueDate: string;
+  /** Já foi pago */
+  paid: boolean;
+  createdAt: number;
+}
+
 export interface Goal {
   id: string;
   name: string;

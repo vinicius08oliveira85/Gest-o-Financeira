@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useGoals } from './useGoals';
 import type { Goal } from '../types';
 import { GOALS_STORAGE_KEY } from '../constants';
@@ -169,6 +169,65 @@ describe('useGoals', () => {
     );
 
     expect(fetchGoals).toHaveBeenCalled();
+    expect(result.current.goals).toHaveLength(1);
+  });
+
+  it('sem Supabase: deleteGoal remove a meta localmente', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { deleteGoal: deleteGoalDb } = await import('../lib/goalsDb');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(mockGoals));
+
+    const { result } = renderHook(() => useGoals());
+    await waitFor(() => expect(result.current.isLoadingGoals).toBe(false), { timeout: 2000 });
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.deleteGoal('g1');
+    });
+
+    expect(ok).toBe(true);
+    expect(deleteGoalDb).not.toHaveBeenCalled();
+    expect(result.current.goals).toHaveLength(0);
+  });
+
+  it('com Supabase: deleteGoal chama a exclusão atômica e remove a meta após confirmação', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { fetchGoals, deleteGoal: deleteGoalDb } = await import('../lib/goalsDb');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(fetchGoals).mockResolvedValue(mockGoals);
+    vi.mocked(deleteGoalDb).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useGoals());
+    await waitFor(() => expect(result.current.isLoadingGoals).toBe(false), { timeout: 2000 });
+    expect(result.current.goals).toHaveLength(1);
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.deleteGoal('g1');
+    });
+
+    expect(ok).toBe(true);
+    expect(deleteGoalDb).toHaveBeenCalledWith('g1');
+    expect(result.current.goals).toHaveLength(0);
+  });
+
+  it('com Supabase: deleteGoal mantém a meta na tela quando o banco falha', async () => {
+    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { fetchGoals, deleteGoal: deleteGoalDb } = await import('../lib/goalsDb');
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(fetchGoals).mockResolvedValue(mockGoals);
+    vi.mocked(deleteGoalDb).mockRejectedValue(new Error('network'));
+
+    const { result } = renderHook(() => useGoals());
+    await waitFor(() => expect(result.current.isLoadingGoals).toBe(false), { timeout: 2000 });
+
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.deleteGoal('g1');
+    });
+
+    expect(ok).toBe(false);
     expect(result.current.goals).toHaveLength(1);
   });
 });

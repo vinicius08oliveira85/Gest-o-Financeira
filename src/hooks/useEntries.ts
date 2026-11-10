@@ -36,8 +36,8 @@ function readSuppressedRecurringSlots(): Set<string> {
 function persistSuppressedRecurringSlots(slots: Set<string>) {
   try {
     localStorage.setItem(RECURRING_SUPPRESSED_SLOTS_KEY, JSON.stringify([...slots]));
-  } catch {
-    // quota / private mode
+  } catch (e) {
+    logError('Failed to save suppressed recurring slots', e);
   }
 }
 
@@ -437,57 +437,61 @@ export function useEntries() {
     setSelectedCategory('all');
   }, [currentMonth, currentYear]);
 
-  const filteredEntries = useMemo(() => {
-    const byPeriod = entries.filter((d) => {
-      const date = parseDateLocal(d.dueDate);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    });
+  const applyListFilters = useCallback(
+    (base: Entry[]): Entry[] => {
+      let result = base;
+      if (filter === 'pending') result = result.filter((d) => !d.isPaid);
+      else if (filter === 'paid') result = result.filter((d) => d.isPaid);
+      else if (filter === 'debt') result = result.filter((d) => d.type === 'debt');
+      else if (filter === 'cash') result = result.filter((d) => d.type === 'cash');
 
-    let result = byPeriod;
-    if (filter === 'pending') result = result.filter((d) => !d.isPaid);
-    else if (filter === 'paid') result = result.filter((d) => d.isPaid);
-    else if (filter === 'debt') result = result.filter((d) => d.type === 'debt');
-    else if (filter === 'cash') result = result.filter((d) => d.type === 'cash');
-
-    if (selectedCategory !== 'all') {
-      result = result.filter((d) => d.category === selectedCategory);
-    }
-
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      // Compara também no formato pt-BR: digitar "1.234,56" (ou "123456")
-      // encontra o lançamento de 1234.56. Normaliza ambos para dígitos puros.
-      const qDigits = q.replace(/\D/g, '');
-      result = result.filter(
-        (d) =>
-          d.name.toLowerCase().includes(q) ||
-          String(d.amount).includes(q) ||
-          (qDigits.length > 0 && d.amount.toFixed(2).replace(/\D/g, '').includes(qDigits))
-      );
-    }
-
-    const mult = sortOrder === 'asc' ? 1 : -1;
-    result = [...result].sort((a, b) => {
-      if (sortBy === 'dueDate') {
-        return mult * (parseDateLocal(a.dueDate).getTime() - parseDateLocal(b.dueDate).getTime());
+      if (selectedCategory !== 'all') {
+        result = result.filter((d) => d.category === selectedCategory);
       }
-      if (sortBy === 'amount') {
-        return mult * (a.amount - b.amount);
-      }
-      return mult * a.name.localeCompare(b.name, 'pt-BR');
-    });
 
-    return result;
-  }, [
-    entries,
-    filter,
-    selectedCategory,
-    searchQuery,
-    sortBy,
-    sortOrder,
-    currentMonth,
-    currentYear,
-  ]);
+      const q = searchQuery.trim().toLowerCase();
+      if (q) {
+        // Compara também no formato pt-BR: digitar "1.234,56" (ou "123456")
+        // encontra o lançamento de 1234.56. Normaliza ambos para dígitos puros.
+        const qDigits = q.replace(/\D/g, '');
+        result = result.filter(
+          (d) =>
+            d.name.toLowerCase().includes(q) ||
+            String(d.amount).includes(q) ||
+            (qDigits.length > 0 && d.amount.toFixed(2).replace(/\D/g, '').includes(qDigits))
+        );
+      }
+
+      const mult = sortOrder === 'asc' ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        if (sortBy === 'dueDate') {
+          return mult * (parseDateLocal(a.dueDate).getTime() - parseDateLocal(b.dueDate).getTime());
+        }
+        if (sortBy === 'amount') {
+          return mult * (a.amount - b.amount);
+        }
+        return mult * a.name.localeCompare(b.name, 'pt-BR');
+      });
+
+      return result;
+    },
+    [filter, selectedCategory, searchQuery, sortBy, sortOrder]
+  );
+
+  /** Todos os meses: alimenta a lista da aba Lançamentos. */
+  const listEntries = useMemo(() => applyListFilters(entries), [entries, applyListFilters]);
+
+  /** Só o mês selecionado: alimenta o calendário. */
+  const filteredEntries = useMemo(
+    () =>
+      applyListFilters(
+        entries.filter((d) => {
+          const date = parseDateLocal(d.dueDate);
+          return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+        })
+      ),
+    [entries, currentMonth, currentYear, applyListFilters]
+  );
 
   const entriesDoMes = useMemo(
     () =>
@@ -834,6 +838,7 @@ export function useEntries() {
     goToPreviousMonth,
     goToNextMonth,
     goToCurrentMonth,
+    listEntries,
     filteredEntries,
     entriesDoMes,
     totalEntradasLancadas,

@@ -89,36 +89,17 @@ vi.mock('./hooks/useToast', () => ({
   }),
 }));
 
-vi.mock('./components/PasswordGate', () => ({
-  PasswordGate: ({ onUnlock }: { onUnlock: () => void }) => (
-    <button type="button" onClick={onUnlock}>
-      Unlock
-    </button>
-  ),
-}));
-
 describe('App', () => {
   beforeEach(() => {
     sessionStorage.clear();
   });
 
-  it('com sessão desbloqueada exibe Fluxo de Caixa', async () => {
-    sessionStorage.setItem('gestao-financeira-unlocked', '1');
+  it('abre direto no Fluxo de Caixa, sem tela de senha', async () => {
     render(
       <ThemeProvider>
         <App />
       </ThemeProvider>
     );
     expect(await screen.findByText(/Fluxo de Caixa/i)).toBeInTheDocument();
-  });
-
-  it('sem sessão desbloqueada exibe PasswordGate', () => {
-    sessionStorage.removeItem('gestao-financeira-unlocked');
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
-    );
-    expect(screen.getByRole('button', { name: /unlock/i })).toBeInTheDocument();
   });
 });

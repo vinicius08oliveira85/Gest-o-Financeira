@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import { webcrypto } from 'node:crypto';
 
-// jsdom não implementa WebCrypto (crypto.subtle); usa o webcrypto do Node para os testes
-// de password.ts (PBKDF2/SHA-256) e geração de UUIDs.
+// jsdom não implementa WebCrypto (crypto.subtle); usa o webcrypto do Node para a
+// geração de UUIDs.
 if (typeof globalThis.crypto === 'undefined' || !globalThis.crypto.subtle) {
   Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 }

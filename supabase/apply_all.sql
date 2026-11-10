@@ -1695,6 +1695,74 @@ drop function if exists public.sync_entries_snapshot(jsonb);
 
 notify pgrst, 'reload schema';
 
+-- ===== 20260808000000_create_loans_table.sql =====
+-- Tabela public.loans para o módulo de empréstimos
+-- source_type: 'pessoa_fisica' | 'trabalhador' (de onde será pago)
+
+create table if not exists public.loans (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  amount numeric(12,2) not null default 0,
+  source_type text not null check (source_type in ('pessoa_fisica', 'trabalhador')),
+  source_name text,
+  due_date date not null,
+  paid boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_loans_due_date on public.loans(due_date);
+
+-- Para tabelas criadas antes do campo "paid"
+alter table public.loans add column if not exists paid boolean not null default false;
+
+alter table public.loans enable row level security;
+
+drop policy if exists "loans_anon_select" on public.loans;
+create policy "loans_anon_select"
+  on public.loans for select
+  to anon
+  using (true);
+
+drop policy if exists "loans_anon_insert" on public.loans;
+create policy "loans_anon_insert"
+  on public.loans for insert
+  to anon
+  with check (true);
+
+drop policy if exists "loans_anon_update" on public.loans;
+create policy "loans_anon_update"
+  on public.loans for update
+  to anon
+  using (true)
+  with check (true);
+
+drop policy if exists "loans_anon_delete" on public.loans;
+create policy "loans_anon_delete"
+  on public.loans for delete
+  to anon
+  using (true);
+
+notify pgrst, 'reload schema';
+
+-- ===== 20261108000000_delete_goal_with_entries_rpc.sql =====
+-- Exclusão atômica de meta: remove os lançamentos vinculados e a própria meta
+-- numa única transação. Se qualquer parte falhar, nada é removido.
+
+create or replace function public.delete_goal_with_entries(p_goal_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from public.entries where goal_id = p_goal_id::text;
+  delete from public.goals where id = p_goal_id;
+end;
+$$;
+
+grant execute on function public.delete_goal_with_entries(uuid) to anon;
+grant execute on function public.delete_goal_with_entries(uuid) to authenticated;
+
 -- ===== 20261110000000_goals_created_at.sql =====
 -- `goals.created_at`: a tabela foi criada sem esta coluna, mas o cliente ordena
 -- por ela em `fetchGoals` (`order('created_at')`). Sem a coluna, o PostgREST
@@ -1708,4 +1776,3 @@ alter table public.goals
 
 -- Atualiza o cache de schema do PostgREST para a coluna aparecer imediatamente.
 notify pgrst, 'reload schema';
-

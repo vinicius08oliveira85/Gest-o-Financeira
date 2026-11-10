@@ -1,5 +1,4 @@
 export { Banners } from './Banners';
-export { ChangePasswordModal } from './ChangePasswordModal';
 export { ConfirmDeleteModal } from './ConfirmDeleteModal';
 export { CashFlowSection } from './CashFlowSection';
 export { ErrorBoundary } from './ErrorBoundary';
@@ -15,7 +14,6 @@ export { Header } from './Header';
 export { LoadingSkeleton } from './LoadingSkeleton';
 export { EmptyState } from './EmptyState';
 export { ModalForm } from './ModalForm';
-export { PasswordGate } from './PasswordGate';
 export { CalendarView } from './CalendarView';
 export { Toast } from './Toast';
 export { TabNav, type TabId } from './TabNav';

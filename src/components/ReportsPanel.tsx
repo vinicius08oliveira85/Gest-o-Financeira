@@ -263,7 +263,12 @@ export function ReportsPanel({
             Categorias (saídas)
           </h3>
           {categorySaidasEntries.length === 0 ? (
-            <EmptyState variant="expenses" className="mb-2" />
+            <EmptyState
+              variant="expenses"
+              title="Nenhuma saída no mês"
+              description="Registre saídas para ver os gastos por categoria aqui."
+              className="mb-2"
+            />
           ) : (
             <div className="space-y-2">
               {categorySaidasEntries.map(([cat, value]) => (

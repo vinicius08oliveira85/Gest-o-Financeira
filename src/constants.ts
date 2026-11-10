@@ -1,8 +1,6 @@
-export const UNLOCK_KEY = 'gestao-financeira-unlocked';
 export const ENTRIES_STORAGE_KEY = 'personal-debts';
 export const GOALS_STORAGE_KEY = 'gestao-financeira-goals';
 export const ONBOARDING_STORAGE_KEY = 'gestao-financeira-onboarding';
-export const PASSWORD_STORAGE_KEY = 'gestao-financeira-pw';
 export const DISMISSED_ALERTS_KEY = 'gestao-financeira-dismissed-alerts';
 
 /** Meses de recorrência que o utilizador apagou manualmente (não voltar a gerar após sync). */
@@ -16,6 +14,8 @@ export const GOAL_DEADLINE_ALERT_DAYS = 7;
 
 export const CARDS_STORAGE_KEY = 'gestao-financeira-cards';
 export const CARD_EXPENSES_STORAGE_KEY = 'gestao-financeira-card-expenses';
+
+export const LOANS_STORAGE_KEY = 'gestao-financeira-loans';
 
 /** Janela de meses escolhida no gráfico de evolução mensal (3 | 6 | 12). */
 export const TREND_MONTHS_KEY = 'gestao-financeira-trend-months';
