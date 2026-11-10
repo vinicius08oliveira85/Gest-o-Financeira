@@ -30,9 +30,9 @@ const localCard: CreditCard = {
   dueDay: 25,
 };
 
-vi.mock('../lib/supabase', () => ({
-  isSupabaseConfigured: vi.fn(),
-  supabase: null,
+vi.mock('../lib/appwrite', () => ({
+  isCloudConfigured: vi.fn(),
+  appwrite: null,
 }));
 
 vi.mock('../lib/cardsDb', () => ({
@@ -58,9 +58,9 @@ describe('useCreditCards', () => {
     localStorage.clear();
   });
 
-  it('sem Supabase: carrega do armazenamento local', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+  it('sem Appwrite: carrega do armazenamento local', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     setStored(mockCards);
 
     const { result } = renderHook(() => useCreditCards());
@@ -71,10 +71,10 @@ describe('useCreditCards', () => {
     expect(result.current.cards[0].name).toBe('Cartão Principal');
   });
 
-  it('com Supabase: chama fetchCards e seta cards', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: chama fetchCards e seta cards', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchCards } = await import('../lib/cardsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchCards).mockResolvedValue(mockCards);
 
     const { result } = renderHook(() => useCreditCards());
@@ -86,9 +86,9 @@ describe('useCreditCards', () => {
   });
 
   it('não sobrescreve o backup local com [] durante o hydrate na nuvem', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchCards } = await import('../lib/cardsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchCards).mockResolvedValue(mockCards);
     setStored(mockCards);
 
@@ -101,10 +101,10 @@ describe('useCreditCards', () => {
     expect(JSON.parse(raw as string).data).toHaveLength(1);
   });
 
-  it('com Supabase: migra cartões locais ausentes da resposta da nuvem', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: migra cartões locais ausentes da resposta da nuvem', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchCards, upsertCard } = await import('../lib/cardsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchCards)
       .mockResolvedValueOnce([cloudCard])
       .mockResolvedValue([cloudCard, localCard]);
@@ -121,10 +121,10 @@ describe('useCreditCards', () => {
     );
   });
 
-  it('com Supabase: mantém cartão local visível quando o upsert falha', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: mantém cartão local visível quando o upsert falha', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchCards, upsertCard } = await import('../lib/cardsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchCards).mockResolvedValue([cloudCard]);
     vi.mocked(upsertCard).mockRejectedValue(new Error('offline'));
     setStored([cloudCard, localCard]);

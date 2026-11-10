@@ -24,9 +24,9 @@ const otherLoan: Loan = {
   createdAt: 2,
 };
 
-vi.mock('../lib/supabase', () => ({
-  isSupabaseConfigured: vi.fn(),
-  supabase: null,
+vi.mock('../lib/appwrite', () => ({
+  isCloudConfigured: vi.fn(),
+  appwrite: null,
 }));
 
 vi.mock('../lib/loansDb', () => ({
@@ -43,8 +43,8 @@ function setStored(data: Loan[]) {
 }
 
 async function renderLoaded(configured: boolean) {
-  const { isSupabaseConfigured } = await import('../lib/supabase');
-  vi.mocked(isSupabaseConfigured).mockReturnValue(configured);
+  const { isCloudConfigured } = await import('../lib/appwrite');
+  vi.mocked(isCloudConfigured).mockReturnValue(configured);
   const hook = renderHook(() => useLoans());
   await waitFor(() => expect(hook.result.current.isLoadingLoans).toBe(false), { timeout: 2000 });
   return hook;
@@ -60,7 +60,7 @@ describe('useLoans', () => {
     localStorage.clear();
   });
 
-  it('sem Supabase: cadastra, edita e exclui apenas localmente', async () => {
+  it('sem Appwrite: cadastra, edita e exclui apenas localmente', async () => {
     const { upsertLoan: upsertDb, deleteLoan: deleteDb } = await import('../lib/loansDb');
     const { result } = await renderLoaded(false);
 
@@ -98,7 +98,7 @@ describe('useLoans', () => {
     expect(deleteDb).not.toHaveBeenCalled();
   });
 
-  it('com Supabase: cadastro otimista é trocado pelo registro salvo', async () => {
+  it('com Appwrite: cadastro otimista é trocado pelo registro salvo', async () => {
     const { fetchLoans, upsertLoan: upsertDb } = await import('../lib/loansDb');
     vi.mocked(fetchLoans).mockResolvedValue([]);
     vi.mocked(upsertDb).mockImplementation(
@@ -126,7 +126,7 @@ describe('useLoans', () => {
     expect(result.current.loans).toHaveLength(1);
   });
 
-  it('com Supabase: edição e exclusão chamam o banco', async () => {
+  it('com Appwrite: edição e exclusão chamam o banco', async () => {
     const {
       fetchLoans,
       upsertLoan: upsertDb,
@@ -161,7 +161,7 @@ describe('useLoans', () => {
     expect(result.current.loans.find((l) => l.id === 'cloud')).toBeUndefined();
   });
 
-  it('com Supabase: falha ao cadastrar remove só o item novo, sem apagar outros', async () => {
+  it('com Appwrite: falha ao cadastrar remove só o item novo, sem apagar outros', async () => {
     const { fetchLoans, upsertLoan: upsertDb } = await import('../lib/loansDb');
     vi.mocked(fetchLoans).mockResolvedValue([cloudLoan]);
     const rejects: Array<(e: Error) => void> = [];
@@ -206,7 +206,7 @@ describe('useLoans', () => {
     expect(result.current.loans).toHaveLength(1);
   });
 
-  it('com Supabase: falha ao editar restaura só o item editado', async () => {
+  it('com Appwrite: falha ao editar restaura só o item editado', async () => {
     const { fetchLoans, upsertLoan: upsertDb } = await import('../lib/loansDb');
     vi.mocked(fetchLoans).mockResolvedValue([cloudLoan, otherLoan]);
     let rejectSave: (e: Error) => void = () => {};
@@ -240,7 +240,7 @@ describe('useLoans', () => {
     expect(result.current.loans.find((l) => l.id === 'other')).toEqual(otherLoan);
   });
 
-  it('com Supabase: falha ao excluir devolve o item e mantém as outras mudanças', async () => {
+  it('com Appwrite: falha ao excluir devolve o item e mantém as outras mudanças', async () => {
     const { fetchLoans, deleteLoan: deleteDb } = await import('../lib/loansDb');
     vi.mocked(fetchLoans).mockResolvedValue([cloudLoan, otherLoan]);
     let rejectDelete: (e: Error) => void = () => {};
@@ -266,7 +266,7 @@ describe('useLoans', () => {
     expect(result.current.loans).toHaveLength(2);
   });
 
-  it('com Supabase: nuvem fora do ar carrega o espelho local', async () => {
+  it('com Appwrite: nuvem fora do ar carrega o espelho local', async () => {
     const { fetchLoans } = await import('../lib/loansDb');
     vi.mocked(fetchLoans).mockRejectedValue(new Error('offline'));
     setStored([otherLoan]);

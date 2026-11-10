@@ -15,12 +15,12 @@ type MainLayoutProps = {
   onExportCSV: () => void;
   onExportCSVCurrentMonth?: () => void;
   onNewEntry: () => void;
-  /** Sem Supabase: backup no dispositivo */
+  /** Sem Appwrite: backup no dispositivo */
   onSaveEntriesLocal?: () => void;
-  /** Com Supabase: gravar alterações locais no servidor */
-  onSaveEntriesToSupabase?: () => void | Promise<void>;
-  /** Com Supabase: buscar estado do servidor (sem enviar delta) */
-  onPullEntriesFromSupabase?: () => void | Promise<void>;
+  /** Com Appwrite: gravar alterações locais no servidor */
+  onSaveEntriesToCloud?: () => void | Promise<void>;
+  /** Com Appwrite: buscar estado do servidor (sem enviar delta) */
+  onPullEntriesFromCloud?: () => void | Promise<void>;
   isSyncingEntries?: boolean;
   showEntriesCloudSync?: boolean;
   children: ReactNode;
@@ -39,8 +39,8 @@ export function MainLayout({
   onExportCSVCurrentMonth,
   onNewEntry,
   onSaveEntriesLocal,
-  onSaveEntriesToSupabase,
-  onPullEntriesFromSupabase,
+  onSaveEntriesToCloud,
+  onPullEntriesFromCloud,
   isSyncingEntries,
   showEntriesCloudSync,
   children,
@@ -54,8 +54,8 @@ export function MainLayout({
             onExportCSVCurrentMonth={onExportCSVCurrentMonth}
             onNewEntry={onNewEntry}
             onSaveEntriesLocal={onSaveEntriesLocal}
-            onSaveEntriesToSupabase={onSaveEntriesToSupabase}
-            onPullEntriesFromSupabase={onPullEntriesFromSupabase}
+            onSaveEntriesToCloud={onSaveEntriesToCloud}
+            onPullEntriesFromCloud={onPullEntriesFromCloud}
             isSyncingEntries={isSyncingEntries}
             showEntriesCloudSync={showEntriesCloudSync}
           />

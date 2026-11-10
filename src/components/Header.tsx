@@ -21,10 +21,10 @@ type HeaderProps = {
   onNewEntry: () => void;
   /** Sem nuvem: backup no localStorage */
   onSaveEntriesLocal?: () => void;
-  /** Grava alterações locais na tabela do Supabase */
-  onSaveEntriesToSupabase?: () => void | Promise<void>;
-  /** Atualiza a app com os dados do Supabase (somente leitura do servidor) */
-  onPullEntriesFromSupabase?: () => void | Promise<void>;
+  /** Grava alterações locais na tabela do Appwrite */
+  onSaveEntriesToCloud?: () => void | Promise<void>;
+  /** Atualiza a app com os dados do Appwrite (somente leitura do servidor) */
+  onPullEntriesFromCloud?: () => void | Promise<void>;
   isSyncingEntries?: boolean;
   showEntriesCloudSync?: boolean;
 };
@@ -34,8 +34,8 @@ export function Header({
   onExportCSVCurrentMonth,
   onNewEntry,
   onSaveEntriesLocal,
-  onSaveEntriesToSupabase,
-  onPullEntriesFromSupabase,
+  onSaveEntriesToCloud,
+  onPullEntriesFromCloud,
   isSyncingEntries = false,
   showEntriesCloudSync = false,
 }: HeaderProps) {
@@ -87,8 +87,8 @@ export function Header({
               className="neu-inset hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0"
               title={
                 isSyncingEntries
-                  ? 'Gravando alterações no Supabase…'
-                  : 'Dados salvos no Supabase e disponíveis em qualquer dispositivo'
+                  ? 'Gravando alterações no Appwrite…'
+                  : 'Dados salvos no Appwrite e disponíveis em qualquer dispositivo'
               }
               aria-live="polite"
             >
@@ -114,13 +114,13 @@ export function Header({
           {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
         </button>
         <div className="hidden md:flex items-center gap-1 flex-wrap justify-end">
-          {showEntriesCloudSync && onSaveEntriesToSupabase && (
+          {showEntriesCloudSync && onSaveEntriesToCloud && (
             <button
               type="button"
-              onClick={() => void onSaveEntriesToSupabase()}
+              onClick={() => void onSaveEntriesToCloud()}
               disabled={isSyncingEntries}
               className="neu-btn-toolbar disabled:opacity-50"
-              title="Gravar alterações locais no Supabase"
+              title="Gravar alterações locais no Appwrite"
             >
               <Save size={16} />
               Salvar
@@ -138,13 +138,13 @@ export function Header({
               Salvar
             </button>
           )}
-          {showEntriesCloudSync && onPullEntriesFromSupabase && (
+          {showEntriesCloudSync && onPullEntriesFromCloud && (
             <button
               type="button"
-              onClick={() => void onPullEntriesFromSupabase()}
+              onClick={() => void onPullEntriesFromCloud()}
               disabled={isSyncingEntries}
               className="neu-btn-toolbar disabled:opacity-50"
-              title="Atualizar a lista com os dados do Supabase"
+              title="Atualizar a lista com os dados do Appwrite"
             >
               {isSyncingEntries ? (
                 <Loader2 size={16} className="animate-spin shrink-0" aria-hidden />
@@ -187,12 +187,12 @@ export function Header({
           </button>
           {menuOpen && (
             <div className="neu-dropdown absolute right-0 top-full mt-0.5 py-0.5 w-44 rounded-xl z-50">
-              {showEntriesCloudSync && onSaveEntriesToSupabase && (
+              {showEntriesCloudSync && onSaveEntriesToCloud && (
                 <button
                   type="button"
                   disabled={isSyncingEntries}
                   onClick={() => {
-                    void onSaveEntriesToSupabase();
+                    void onSaveEntriesToCloud();
                     setMenuOpen(false);
                   }}
                   className="neu-list-menu-item disabled:opacity-50"
@@ -215,12 +215,12 @@ export function Header({
                   Salvar
                 </button>
               )}
-              {showEntriesCloudSync && onPullEntriesFromSupabase && (
+              {showEntriesCloudSync && onPullEntriesFromCloud && (
                 <button
                   type="button"
                   disabled={isSyncingEntries}
                   onClick={() => {
-                    void onPullEntriesFromSupabase();
+                    void onPullEntriesFromCloud();
                     setMenuOpen(false);
                   }}
                   className="neu-list-menu-item disabled:opacity-50"

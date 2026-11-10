@@ -1,4 +1,12 @@
-import { supabase } from './supabase';
+import { Query } from 'appwrite';
+import { COLLECTIONS } from './appwrite';
+import {
+  deleteDocumentById,
+  deleteDocumentsMatching,
+  listAllDocuments,
+  saveDocument,
+  updateDocumentFields,
+} from './appwriteDb';
 import type { CardExpense } from '../types';
 import { randomUUID } from './uuid';
 
@@ -55,34 +63,23 @@ export function expenseToRow(
 }
 
 export async function fetchExpensesByCard(cardId: string): Promise<CardExpense[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('card_expenses')
-    .select('*')
-    .eq('card_id', cardId)
-    .order('date', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((row) => rowToExpense(row as CardExpenseRow));
+  const rows = await listAllDocuments<CardExpenseRow>(COLLECTIONS.cardExpenses, [
+    Query.equal('card_id', cardId),
+    Query.orderDesc('date'),
+  ]);
+  return rows.map((row) => rowToExpense({ ...row, id: row.$id }));
 }
 
 export async function fetchAllExpenses(): Promise<CardExpense[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('card_expenses')
-    .select('*')
-    .order('date', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((row) => rowToExpense(row as CardExpenseRow));
+  const rows = await listAllDocuments<CardExpenseRow>(COLLECTIONS.cardExpenses, [
+    Query.orderDesc('date'),
+  ]);
+  return rows.map((row) => rowToExpense({ ...row, id: row.$id }));
 }
 
 export async function insertExpense(expense: Omit<CardExpense, 'id'>): Promise<CardExpense> {
-  if (!supabase) throw new Error('Supabase not configured');
   const id = randomUUID();
-  const row = expenseToRow(expense);
-  const payload = { id, ...row };
-  const { data, error } = await supabase.from('card_expenses').insert(payload).select('*').single();
-  if (error) throw error;
-  return rowToExpense(data as CardExpenseRow);
+  return upsertExpense({ ...expense, id });
 }
 
 /**
@@ -92,42 +89,28 @@ export async function insertExpense(expense: Omit<CardExpense, 'id'>): Promise<C
 export async function upsertExpense(
   expense: Omit<CardExpense, 'id'> & { id?: string }
 ): Promise<CardExpense> {
-  if (!supabase) throw new Error('Supabase not configured');
   const id = expense.id ?? randomUUID();
-  const row = expenseToRow({ ...(expense as Omit<CardExpense, 'id'>), id });
-  const payload = { id, ...row };
-  const { data, error } = await supabase
-    .from('card_expenses')
-    .upsert(payload, { onConflict: 'id' })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return rowToExpense(data as CardExpenseRow);
+  const doc = await saveDocument<CardExpenseRow>(COLLECTIONS.cardExpenses, id, {
+    ...expenseToRow(expense),
+    created_at: new Date(expense.createdAt ?? Date.now()).toISOString(),
+  });
+  return rowToExpense({ ...doc, id: doc.$id });
 }
 
 export async function updateExpense(expense: CardExpense): Promise<CardExpense> {
-  if (!supabase) throw new Error('Supabase not configured');
-  const { id, ...rest } = expense;
-  const row = expenseToRow({ id, ...rest });
-  const { data, error } = await supabase
-    .from('card_expenses')
-    .update(row)
-    .eq('id', id)
-    .select('*')
-    .single();
-  if (error) throw error;
-  return rowToExpense(data as CardExpenseRow);
+  const doc = await updateDocumentFields<CardExpenseRow>(
+    COLLECTIONS.cardExpenses,
+    expense.id,
+    expenseToRow(expense)
+  );
+  return rowToExpense({ ...doc, id: doc.$id });
 }
 
 export async function deleteExpense(id: string): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase.from('card_expenses').delete().eq('id', id);
-  if (error) throw error;
+  await deleteDocumentById(COLLECTIONS.cardExpenses, id);
 }
 
 /** Remove todos os gastos de um cartão (usado ao excluir o cartão). */
 export async function deleteExpensesByCard(cardId: string): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase.from('card_expenses').delete().eq('card_id', cardId);
-  if (error) throw error;
+  await deleteDocumentsMatching(COLLECTIONS.cardExpenses, [Query.equal('card_id', cardId)]);
 }

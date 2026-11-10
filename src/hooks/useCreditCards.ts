@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { CreditCard } from '../types';
 import { CARDS_STORAGE_KEY } from '../constants';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isCloudConfigured } from '../lib/appwrite';
 import { logError } from '../lib/logger';
 import { fetchCards, upsertCard as upsertCardDb, deleteCard as deleteCardDb } from '../lib/cardsDb';
 import { randomUUID } from '../lib/uuid';
@@ -10,13 +10,13 @@ import { mergeUnconfirmed } from '../lib/recovery';
 
 export function useCreditCards() {
   const [cards, setCards] = useState<CreditCard[]>([]);
-  const [useSupabaseSync, setUseSupabaseSync] = useState(false);
+  const [useCloudSync, setUseAppwriteSync] = useState(false);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (isSupabaseConfigured()) {
+      if (isCloudConfigured()) {
         try {
           const data = await fetchCards();
           // Lê o espelho local ANTES de sobrescrever o estado: quando a nuvem devolveva
@@ -26,7 +26,7 @@ export function useCreditCards() {
 
           if (!cancelled) {
             setCards(data);
-            setUseSupabaseSync(true);
+            setUseAppwriteSync(true);
           }
           if (localOnly.length > 0 && !cancelled) {
             for (const c of localOnly) {
@@ -43,8 +43,8 @@ export function useCreditCards() {
             }
           }
         } catch (e) {
-          logError('Failed to load cards from Supabase', e);
-          if (!cancelled) setUseSupabaseSync(false);
+          logError('Failed to load cards from Appwrite', e);
+          if (!cancelled) setUseAppwriteSync(false);
           const saved = await readStored<CreditCard>(CARDS_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) setCards(saved);
         } finally {
@@ -74,7 +74,7 @@ export function useCreditCards() {
 
   const upsertCard = useCallback(
     (card: Omit<CreditCard, 'id'> & { id?: string }) => {
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         const prev = cards;
         const optimisticId = card.id ?? randomUUID();
         const optimistic: CreditCard = { ...(card as Omit<CreditCard, 'id'>), id: optimisticId };
@@ -86,7 +86,7 @@ export function useCreditCards() {
             setCards((c) => c.map((x) => (x.id === optimisticId ? saved : x)));
           })
           .catch((err) => {
-            logError('Failed to save card to Supabase', err);
+            logError('Failed to save card to Appwrite', err);
             setCards(prev);
           });
       } else {
@@ -100,21 +100,21 @@ export function useCreditCards() {
         });
       }
     },
-    [cards, useSupabaseSync]
+    [cards, useCloudSync]
   );
 
   const deleteCard = useCallback(
     (id: string) => {
       const previous = cards;
       setCards((c) => c.filter((x) => x.id !== id));
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         deleteCardDb(id).catch((err) => {
-          logError('Failed to delete card from Supabase', err);
+          logError('Failed to delete card from Appwrite', err);
           setCards(previous);
         });
       }
     },
-    [cards, useSupabaseSync]
+    [cards, useCloudSync]
   );
 
   return {

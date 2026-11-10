@@ -1,4 +1,13 @@
-import { supabase } from './supabase';
+import { Query } from 'appwrite';
+import { COLLECTIONS } from './appwrite';
+import {
+  deleteDocumentById,
+  getDocumentOrNull,
+  listAllDocuments,
+  runInBatches,
+  saveDocument,
+  updateDocumentFields,
+} from './appwriteDb';
 import type { Entry, EntryType } from '../types';
 
 export type EntryRow = {
@@ -98,32 +107,16 @@ export function bumpEntryUpdatedAt(entry: Entry): Entry {
 }
 
 /**
- * Tamanho da página na leitura do Supabase.
- *
- * O PostgREST devolve no máximo `max-rows` (1000 por padrão) por requisição. Uma
- * única chamada `.select('*')` truncava a lista em silêncio a partir de 1000
- * lançamentos — o app mostrava "só alguns" registros. Paginamos até a última.
+ * Busca todos os lançamentos no Appwrite. A paginação por cursor fica em
+ * `listAllDocuments` (o Appwrite devolve no máximo 5000 por requisição).
  */
-const ENTRIES_PAGE_SIZE = 1000;
-
 export async function fetchEntries(): Promise<Entry[]> {
-  if (!supabase) return [];
-  const rows: EntryRow[] = [];
-  for (let from = 0; ; from += ENTRIES_PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from('entries')
-      .select('*')
-      // Ordem determinística: sem o desempate por `id` a paginação pode repetir
-      // ou pular linhas com o mesmo `created_at`.
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: true })
-      .range(from, from + ENTRIES_PAGE_SIZE - 1);
-    if (error) throw error;
-    const page = (data ?? []) as EntryRow[];
-    rows.push(...page);
-    if (page.length < ENTRIES_PAGE_SIZE) break;
-  }
-  return rows.map(rowToEntry);
+  const rows = await listAllDocuments<EntryRow>(COLLECTIONS.entries, [
+    // Mais recentes primeiro; o desempate por `$id` evita repetir/pular linhas
+    // com o mesmo `created_at`.
+    Query.orderDesc('created_at'),
+  ]);
+  return rows.map((row) => rowToEntry({ ...row, id: row.$id }));
 }
 
 function entryToBatchRow(entry: Entry): Record<string, unknown> {
@@ -136,10 +129,12 @@ function entryToBatchRow(entry: Entry): Record<string, unknown> {
 }
 
 export async function insertEntriesBatch(entries: Entry[]): Promise<void> {
-  if (!supabase || entries.length === 0) return;
-  const payload = entries.map(entryToBatchRow);
-  const { error } = await supabase.rpc('insert_entries_batch', { entries_json: payload });
-  if (error) throw error;
+  if (entries.length === 0) return;
+  await runInBatches(entries, async (entry) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...row } = entryToBatchRow(entry);
+    await saveDocument(COLLECTIONS.entries, entry.id, { ...row, revision: 1 });
+  });
 }
 
 /**
@@ -148,16 +143,33 @@ export async function insertEntriesBatch(entries: Entry[]): Promise<void> {
  * (evita "delete cego" de registros criados em outros dispositivos).
  */
 export async function syncEntriesDelta(
-  presentIds: string[],
+  _presentIds: string[],
   changedEntries: Entry[],
   deletedIds: string[] = []
 ): Promise<void> {
-  if (!supabase) return;
-  const changesPayload = changedEntries.map(entryToBatchRow);
-  const { error } = await supabase.rpc('sync_entries_delta', {
-    present_ids: presentIds,
-    changes_json: changesPayload,
-    deleted_ids: deletedIds,
+  // `presentIds` é ignorado de propósito: registros que existem no servidor mas
+  // não no snapshot local podem ter sido criados em outro dispositivo e não
+  // devem ser apagados. Só os ids enviados explicitamente saem da nuvem.
+  await runInBatches(deletedIds, (id) => deleteDocumentById(COLLECTIONS.entries, id));
+
+  await runInBatches(changedEntries, async (entry) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...row } = entryToBatchRow(entry);
+    const existing = await getDocumentOrNull<EntryRow & { $id: string }>(
+      COLLECTIONS.entries,
+      entry.id
+    );
+    if (!existing) {
+      await saveDocument(COLLECTIONS.entries, entry.id, { ...row, revision: 1 });
+      return;
+    }
+    const currentRevision = Number(existing.revision ?? 0);
+    // Controle otimista: se o servidor já avançou (outro dispositivo escreveu),
+    // a alteração é descartada aqui e o próximo refetch mostra a versão dele.
+    if ((entry.revision ?? 0) !== currentRevision) return;
+    await updateDocumentFields(COLLECTIONS.entries, entry.id, {
+      ...row,
+      revision: currentRevision + 1,
+    });
   });
-  if (error) throw error;
 }

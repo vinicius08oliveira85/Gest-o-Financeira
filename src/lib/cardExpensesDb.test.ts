@@ -1,48 +1,32 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+const deleteDocumentsMatching = vi.fn();
+
+vi.mock('./appwriteDb', () => ({
+  deleteDocumentsMatching: (...args: unknown[]) => deleteDocumentsMatching(...args),
+}));
+
 import { deleteExpensesByCard } from './cardExpensesDb';
-
-// Supabase mockável (null quando "não configurado") via live binding.
-const mockState = vi.hoisted(() => ({
-  from: vi.fn(),
-  del: vi.fn(),
-  eq: vi.fn(),
-  supabaseValue: null as unknown,
-}));
-
-vi.mock('../lib/supabase', () => ({
-  get supabase() {
-    return mockState.supabaseValue;
-  },
-}));
 
 describe('deleteExpensesByCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockState.from.mockReturnValue({ delete: mockState.del });
-    mockState.del.mockReturnValue({ eq: mockState.eq });
-    mockState.supabaseValue = { from: mockState.from };
   });
 
-  it('remove todos os gastos do cartão via delete em massa', async () => {
-    mockState.eq.mockResolvedValue({ error: null });
+  it('remove todos os gastos do cartão pela coleção card_expenses', async () => {
+    deleteDocumentsMatching.mockResolvedValue(undefined);
 
     await expect(deleteExpensesByCard('card-1')).resolves.toBeUndefined();
 
-    expect(mockState.from).toHaveBeenCalledWith('card_expenses');
-    expect(mockState.del).toHaveBeenCalled();
-    expect(mockState.eq).toHaveBeenCalledWith('card_id', 'card-1');
+    expect(deleteDocumentsMatching).toHaveBeenCalledTimes(1);
+    const [collectionId, queries] = deleteDocumentsMatching.mock.calls[0];
+    expect(collectionId).toBe('card_expenses');
+    expect(JSON.stringify(queries)).toContain('card-1');
   });
 
   it('propaga erro do servidor', async () => {
-    mockState.eq.mockResolvedValue({ error: new Error('db down') });
+    deleteDocumentsMatching.mockRejectedValue(new Error('db down'));
 
     await expect(deleteExpensesByCard('card-1')).rejects.toThrow('db down');
-  });
-
-  it('não faz nada quando o Supabase não está configurado', async () => {
-    mockState.supabaseValue = null;
-
-    await expect(deleteExpensesByCard('card-1')).resolves.toBeUndefined();
-    expect(mockState.from).not.toHaveBeenCalled();
   });
 });

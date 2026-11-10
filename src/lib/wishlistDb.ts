@@ -1,4 +1,6 @@
-import { supabase } from './supabase';
+import { Query } from 'appwrite';
+import { COLLECTIONS } from './appwrite';
+import { deleteDocumentById, listAllDocuments, saveDocument } from './appwriteDb';
 import type { WishlistItem } from '../types';
 import { randomUUID } from './uuid';
 
@@ -40,31 +42,23 @@ export function wishlistItemToRow(
 }
 
 export async function fetchWishlist(): Promise<WishlistItem[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('wishlist_items')
-    .select('*')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((row) => rowToWishlistItem(row as WishlistRow));
+  const rows = await listAllDocuments<WishlistRow>(COLLECTIONS.wishlistItems, [
+    Query.orderAsc('created_at'),
+  ]);
+  return rows.map((row) => rowToWishlistItem({ ...row, id: row.$id }));
 }
 
 export async function upsertWishlistItem(
-  item: Omit<WishlistItem, 'id' | 'createdAt'> & { id?: string }
+  item: Omit<WishlistItem, 'id' | 'createdAt'> & { id?: string; createdAt?: number }
 ): Promise<WishlistItem> {
-  if (!supabase) throw new Error('Supabase not configured');
   const id = item.id ?? randomUUID();
-  const { data, error } = await supabase
-    .from('wishlist_items')
-    .upsert({ id, ...wishlistItemToRow(item) }, { onConflict: 'id' })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return rowToWishlistItem(data as WishlistRow);
+  const doc = await saveDocument<WishlistRow>(COLLECTIONS.wishlistItems, id, {
+    ...wishlistItemToRow(item),
+    created_at: new Date(item.createdAt ?? Date.now()).toISOString(),
+  });
+  return rowToWishlistItem({ ...doc, id: doc.$id });
 }
 
 export async function deleteWishlistItem(id: string): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase.from('wishlist_items').delete().eq('id', id);
-  if (error) throw error;
+  await deleteDocumentById(COLLECTIONS.wishlistItems, id);
 }

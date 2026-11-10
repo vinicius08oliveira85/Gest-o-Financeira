@@ -1,30 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const rpc = vi.fn();
+const deleteDocumentsMatching = vi.fn();
+const deleteDocumentById = vi.fn();
 
-vi.mock('./supabase', () => ({
-  supabase: { rpc: (...args: unknown[]) => rpc(...args) },
+vi.mock('./appwriteDb', () => ({
+  deleteDocumentsMatching: (...args: unknown[]) => deleteDocumentsMatching(...args),
+  deleteDocumentById: (...args: unknown[]) => deleteDocumentById(...args),
+  listAllDocuments: vi.fn(),
+  saveDocument: vi.fn(),
 }));
 
 import { deleteGoal } from './goalsDb';
 
 describe('deleteGoal (goalsDb)', () => {
   beforeEach(() => {
-    rpc.mockReset();
+    vi.clearAllMocks();
   });
 
-  it('chama a RPC delete_goal_with_entries com o id da meta', async () => {
-    rpc.mockResolvedValue({ data: null, error: null });
+  it('remove os lançamentos da meta e depois a meta', async () => {
+    deleteDocumentsMatching.mockResolvedValue(undefined);
+    deleteDocumentById.mockResolvedValue(undefined);
 
     await deleteGoal('goal-1');
 
-    expect(rpc).toHaveBeenCalledTimes(1);
-    expect(rpc).toHaveBeenCalledWith('delete_goal_with_entries', { p_goal_id: 'goal-1' });
+    const [entriesCollection, queries] = deleteDocumentsMatching.mock.calls[0];
+    expect(entriesCollection).toBe('entries');
+    expect(JSON.stringify(queries)).toContain('goal-1');
+    expect(deleteDocumentById).toHaveBeenCalledWith('goals', 'goal-1');
   });
 
   it('propaga o erro do banco para que a tela não remova a meta', async () => {
-    rpc.mockResolvedValue({ data: null, error: new Error('permission denied') });
+    deleteDocumentsMatching.mockRejectedValue(new Error('permission denied'));
 
     await expect(deleteGoal('goal-1')).rejects.toThrow('permission denied');
+    expect(deleteDocumentById).not.toHaveBeenCalled();
   });
 });

@@ -59,7 +59,7 @@ export function buildMonthlyTrend(
         if (!card.createdAt) return true;
         const created = new Date(card.createdAt);
         if (Number.isNaN(created.getTime())) return true;
-        // `createdAt` é ISO em UTC (Supabase). Comparar com getMonth()/getFullYear()
+        // `createdAt` é ISO em UTC (Appwrite). Comparar com getMonth()/getFullYear()
         // deslocaria o mês de criação conforme o fuso de quem visualiza — em BRT,
         // um cartão criado em 2025-02-01T00:00:00Z cairia em janeiro. Usamos as
         // partes UTC para que o mês do limite seja o mesmo em qualquer fuso.

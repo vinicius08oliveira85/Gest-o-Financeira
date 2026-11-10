@@ -1,4 +1,11 @@
-import { supabase } from './supabase';
+import { Query } from 'appwrite';
+import { COLLECTIONS } from './appwrite';
+import {
+  deleteDocumentById,
+  deleteDocumentsMatching,
+  listAllDocuments,
+  saveDocument,
+} from './appwriteDb';
 import type { Goal } from '../types';
 import { randomUUID } from './uuid';
 
@@ -38,32 +45,20 @@ export function goalToRow(goal: Omit<Goal, 'id'> & { id?: string }): Omit<GoalRo
 }
 
 export async function fetchGoals(): Promise<Goal[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('goals')
-    .select('*')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((row) => rowToGoal(row as GoalRow));
+  const rows = await listAllDocuments<GoalRow>(COLLECTIONS.goals, [Query.orderAsc('created_at')]);
+  return rows.map((row) => rowToGoal({ ...row, id: row.$id }));
 }
 
 export async function upsertGoal(goal: Omit<Goal, 'id'> & { id?: string }): Promise<Goal> {
-  if (!supabase) throw new Error('Supabase not configured');
   const id = goal.id ?? randomUUID();
-  const row = goalToRow(goal);
-  const payload = { id, ...row };
-  const { data, error } = await supabase
-    .from('goals')
-    .upsert(payload, { onConflict: 'id' })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return rowToGoal(data as GoalRow);
+  const doc = await saveDocument<GoalRow>(COLLECTIONS.goals, id, {
+    ...goalToRow(goal),
+  });
+  return rowToGoal({ ...doc, id: doc.$id });
 }
 
-/** Remove a meta e os lançamentos vinculados numa única transação no banco. */
+/** Remove a meta e os lançamentos vinculados a ela (movimentos de depósito/saque). */
 export async function deleteGoal(id: string): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase.rpc('delete_goal_with_entries', { p_goal_id: id });
-  if (error) throw error;
+  await deleteDocumentsMatching(COLLECTIONS.entries, [Query.equal('goal_id', id)]);
+  await deleteDocumentById(COLLECTIONS.goals, id);
 }

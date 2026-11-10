@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Entry, FilterType } from '../types';
 import { ENTRIES_STORAGE_KEY, RECURRING_SUPPRESSED_SLOTS_KEY } from '../constants';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isCloudConfigured } from '../lib/appwrite';
 import { logError } from '../lib/logger';
 import { parseDateLocal, todayLocalISO } from '../lib/format';
 import {
@@ -19,7 +19,7 @@ import { propagateEntryInstallmentUpdate } from '../lib/installments';
 import { readStored, writeStored } from '../lib/storage';
 import { mergeUnconfirmed } from '../lib/recovery';
 
-/** Espera após a última alteração antes de gravar automaticamente no Supabase. */
+/** Espera após a última alteração antes de gravar automaticamente no Appwrite. */
 const AUTO_SYNC_DEBOUNCE_MS = 1500;
 
 function readSuppressedRecurringSlots(): Set<string> {
@@ -145,7 +145,7 @@ export function useEntries() {
         setIsLoading(false);
       }
 
-      if (isSupabaseConfigured()) {
+      if (isCloudConfigured()) {
         try {
           const data = await fetchEntries();
           const localOnly = saved.filter((e) => !data.some((d) => d.id === e.id));
@@ -192,7 +192,7 @@ export function useEntries() {
             }
           }
         } catch (e) {
-          logError('Failed to load entries from Supabase', e);
+          logError('Failed to load entries from Appwrite', e);
           if (!cancelled) {
             setShowOfflineBanner(true);
             setIsCloudUnavailable(true);
@@ -226,7 +226,7 @@ export function useEntries() {
   }, []);
 
   const refetchEntries = useCallback(async () => {
-    if (!isSupabaseConfigured() || syncInFlightRef.current) return;
+    if (!isCloudConfigured() || syncInFlightRef.current) return;
     syncInFlightRef.current = true;
     try {
       const data = await fetchMergedWithRecurringRespectSuppressed(
@@ -258,7 +258,7 @@ export function useEntries() {
   /**
    * Espelho local sempre ativo — inclusive em modo nuvem.
    *
-   * Antes o autosave ficava desativado com Supabase configurado, então alterações
+   * Antes o autosave ficava desativado com Appwrite configurado, então alterações
    * ficam só em memória até clicar em Salvar: um reload (ou queda) antes do push
    * descartava tudo. O guard de `isLoading` impede a gravação do `[]` inicial, que
    * zerava o backup antes do hydrate.
@@ -268,9 +268,9 @@ export function useEntries() {
     writeStored(ENTRIES_STORAGE_KEY, entries);
   }, [entries, isLoading]);
 
-  /** Envia alterações locais (delta) ao Supabase e atualiza o estado com o retorno do servidor. */
-  const pushEntriesToSupabase = useCallback(async () => {
-    if (!isSupabaseConfigured() || syncInFlightRef.current) return;
+  /** Envia alterações locais (delta) ao Appwrite e atualiza o estado com o retorno do servidor. */
+  const pushEntriesToCloud = useCallback(async () => {
+    if (!isCloudConfigured() || syncInFlightRef.current) return;
 
     const localSnapshot = entriesRef.current;
     const dirty = dirtyEntryIdsRef.current;
@@ -333,8 +333,8 @@ export function useEntries() {
       setShowOfflineBanner(false);
       setIsCloudUnavailable(false);
     } catch (e) {
-      logError('Falha ao gravar no Supabase', e);
-      setSaveError('Falha ao salvar no Supabase. Tente de novo.');
+      logError('Falha ao gravar no Appwrite', e);
+      setSaveError('Falha ao salvar no Appwrite. Tente de novo.');
       setShowOfflineBanner(true);
       setIsCloudUnavailable(true);
       throw e;
@@ -344,11 +344,11 @@ export function useEntries() {
     }
   }, [clearDirtyEntry, commitEntries]);
 
-  /** Busca lançamentos do Supabase; se houver alterações pendentes, envia antes de baixar. */
-  const pullEntriesFromSupabase = useCallback(async () => {
-    if (!isSupabaseConfigured() || syncInFlightRef.current) return;
+  /** Busca lançamentos do Appwrite; se houver alterações pendentes, envia antes de baixar. */
+  const pullEntriesFromCloud = useCallback(async () => {
+    if (!isCloudConfigured() || syncInFlightRef.current) return;
     if (dirtyEntryIdsRef.current.size > 0 || deletedEntryIdsRef.current.size > 0) {
-      await pushEntriesToSupabase();
+      await pushEntriesToCloud();
       return;
     }
     syncInFlightRef.current = true;
@@ -364,7 +364,7 @@ export function useEntries() {
       setShowOfflineBanner(false);
       setIsCloudUnavailable(false);
     } catch (e) {
-      logError('Falha ao buscar lançamentos do Supabase', e);
+      logError('Falha ao buscar lançamentos do Appwrite', e);
       setSaveError('Falha ao atualizar do servidor. Tente de novo.');
       setShowOfflineBanner(true);
       setIsCloudUnavailable(true);
@@ -373,30 +373,30 @@ export function useEntries() {
       syncInFlightRef.current = false;
       setIsSyncing(false);
     }
-  }, [commitEntries, pushEntriesToSupabase]);
+  }, [commitEntries, pushEntriesToCloud]);
 
   /** Reconexão/retry: envia o que está pendente ou, se não há nada, busca o servidor. */
   const syncEntriesNow = useCallback(async () => {
-    if (!isSupabaseConfigured() || syncInFlightRef.current) return;
+    if (!isCloudConfigured() || syncInFlightRef.current) return;
     if (dirtyEntryIdsRef.current.size > 0 || deletedEntryIdsRef.current.size > 0) {
-      await pushEntriesToSupabase();
+      await pushEntriesToCloud();
     } else {
       await refetchEntries();
     }
-  }, [pushEntriesToSupabase, refetchEntries]);
+  }, [pushEntriesToCloud, refetchEntries]);
 
   /**
-   * Autosave remoto. Sem isto os lançamentos só chegavam ao Supabase ao clicar
+   * Autosave remoto. Sem isto os lançamentos só chegavam ao Appwrite ao clicar
    * em "Salvar"; um reload antes do clique deixava o outro dispositivo sem eles.
    */
   useEffect(() => {
-    if (!isSupabaseConfigured() || isLoading || isMigrating) return;
+    if (!isCloudConfigured() || isLoading || isMigrating) return;
     if (dirtyEntryIdsRef.current.size === 0 && deletedEntryIdsRef.current.size === 0) return;
 
     if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current);
     autoSyncTimerRef.current = setTimeout(() => {
       autoSyncTimerRef.current = null;
-      void pushEntriesToSupabase().catch(() => {
+      void pushEntriesToCloud().catch(() => {
         // O banner/saveError já informa a falha; a próxima alteração tenta de novo.
       });
     }, AUTO_SYNC_DEBOUNCE_MS);
@@ -407,11 +407,11 @@ export function useEntries() {
         autoSyncTimerRef.current = null;
       }
     };
-  }, [entries, isLoading, isMigrating, pushEntriesToSupabase]);
+  }, [entries, isLoading, isMigrating, pushEntriesToCloud]);
 
   /** Ao voltar para o app (foco/visibilidade/rede), grava pendências ou busca o que mudou noutro dispositivo. */
   useEffect(() => {
-    if (!isSupabaseConfigured() || isLoading) return;
+    if (!isCloudConfigured() || isLoading) return;
 
     const syncOnResume = () => {
       if (document.visibilityState === 'hidden' || syncInFlightRef.current) return;
@@ -869,9 +869,9 @@ export function useEntries() {
     getSaldoForMonth,
     getMetaBalanceForGoal,
     saveEntriesLocal,
-    pushEntriesToSupabase,
-    pullEntriesFromSupabase,
+    pushEntriesToCloud,
+    pullEntriesFromCloud,
     isSyncing,
-    entriesSyncAvailable: isSupabaseConfigured(),
+    entriesSyncAvailable: isCloudConfigured(),
   };
 }

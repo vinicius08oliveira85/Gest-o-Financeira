@@ -1,4 +1,6 @@
-import { supabase } from './supabase';
+import { Query } from 'appwrite';
+import { COLLECTIONS } from './appwrite';
+import { deleteDocumentById, listAllDocuments, saveDocument } from './appwriteDb';
 import type { CreditCard } from '../types';
 import { randomUUID } from './uuid';
 
@@ -26,44 +28,32 @@ export function rowToCard(row: CreditCardRow): CreditCard {
 
 export function cardToRow(
   card: Omit<CreditCard, 'id'> & { id?: string }
-): Omit<CreditCardRow, 'id' | 'created_at'> {
+): Omit<CreditCardRow, 'id'> {
   return {
     name: card.name,
     limit_amount: card.limitAmount,
     closing_day: card.closingDay,
     due_day: card.dueDay,
     color: card.color ?? null,
+    created_at: card.createdAt ?? new Date().toISOString(),
   };
 }
 
 export async function fetchCards(): Promise<CreditCard[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('credit_cards')
-    .select('*')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((row) => rowToCard(row as CreditCardRow));
+  const rows = await listAllDocuments<CreditCardRow>(COLLECTIONS.creditCards, [
+    Query.orderAsc('created_at'),
+  ]);
+  return rows.map((row) => rowToCard({ ...row, id: row.$id }));
 }
 
 export async function upsertCard(
   card: Omit<CreditCard, 'id'> & { id?: string }
 ): Promise<CreditCard> {
-  if (!supabase) throw new Error('Supabase not configured');
   const id = card.id ?? randomUUID();
-  const row = cardToRow(card);
-  const payload = { id, ...row };
-  const { data, error } = await supabase
-    .from('credit_cards')
-    .upsert(payload, { onConflict: 'id' })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return rowToCard(data as CreditCardRow);
+  const doc = await saveDocument<CreditCardRow>(COLLECTIONS.creditCards, id, cardToRow(card));
+  return rowToCard({ ...doc, id: doc.$id });
 }
 
 export async function deleteCard(id: string): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase.from('credit_cards').delete().eq('id', id);
-  if (error) throw error;
+  await deleteDocumentById(COLLECTIONS.creditCards, id);
 }

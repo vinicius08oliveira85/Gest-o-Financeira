@@ -4,13 +4,13 @@
 
 # Gestão Financeira
 
-App de controle de fluxo de caixa: lançamentos de entradas e saídas por mês, metas, alertas e exportação em CSV. Proteção por senha local e sincronização automática com Supabase; quando o Supabase não está configurado, os dados ficam apenas no dispositivo (localStorage). Disponível como PWA para instalação no celular.
+App de controle de fluxo de caixa: lançamentos de entradas e saídas por mês, metas, alertas e exportação em CSV. Proteção por senha local e sincronização automática com Appwrite; quando o Appwrite não está configurado, os dados ficam apenas no dispositivo (localStorage). Disponível como PWA para instalação no celular.
 
-**Funcionalidades:** entradas e saídas com categorias e tags; filtros por mês e categoria; metas por mês; alertas (concentração de gastos, vencimentos próximos); parcelamento de lançamentos; visualização em lista ou calendário; export CSV; proteção por senha; sincronização automática com Supabase.
+**Funcionalidades:** entradas e saídas com categorias e tags; filtros por mês e categoria; metas por mês; alertas (concentração de gastos, vencimentos próximos); parcelamento de lançamentos; visualização em lista ou calendário; export CSV; proteção por senha; sincronização automática com Appwrite.
 
 ---
 
-Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Supabase (opcional).
+Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Appwrite (opcional).
 
 ## Run Locally
 
@@ -18,70 +18,67 @@ Stack: React 19, Vite, Tailwind CSS 4, TypeScript, Supabase (opcional).
 
 1. Install dependencies:
    `npm install`
-2. (Opcional) Para sincronizar dados com Supabase, execute as migrações em `supabase/migrations/` **em ordem cronológica** (todas são idempotentes — rodá-las de novo é seguro). A forma mais simples é usar o CLI: `supabase db push`. Manualmente (SQL Editor), rode nesta ordem:
-   - `20250306000000_create_entries_table.sql` — cria a tabela `entries`
-   - `20250309000000_entries_rls_policies.sql` — políticas RLS para `entries`
-   - `20250316000000_create_goals_table.sql` — cria a tabela `goals`
-   - `20250316000001_goals_rls_policies.sql` — políticas RLS para `goals`
-   - `20250316000002_insert_entries_batch_rpc.sql` — RPC `insert_entries_batch`
-   - `20250316000003_entries_optional_columns_snake.sql` — colunas opcionais em `entries` (category, tag, parcelas)
-   - `20250317000000_goals_target_date.sql` — coluna `target_date` em metas
-   - `20250317000001_entries_recurring.sql` — colunas de recorrência em `entries`
-   - `20250317000002_insert_entries_batch_recurring.sql` — RPC atualizado com recorrência
-   - `20250318000000_entries_goal_id.sql` / `20250318000001_insert_entries_batch_goal_id.sql` — vínculo lançamento ↔ meta
-   - `20250319000000_create_credit_cards_table.sql` / `20250319000001_credit_cards_rls_policies.sql` — tabelas e RLS de cartões e gastos
-   - Migrações `2026042*` — sincronização (snapshot, coluna `updated_at`, `sync_entries_delta`, coluna `revision`, `insert_entries_batch` robusto, coluna `invoice_payment_due_date`)
-   - `20260807000000_sync_entries_delta_safe_merge.sql` — sync seguro (sem "delete cego"; deleção explícita via `deleted_ids`)
-   - `20260807000001_drop_unsafe_sync_entries_delta_2args.sql` — remove a sobrecarga antiga de 2 argumentos, que ainda apagava registros de outros dispositivos
-   - `20260807000002_drop_unsafe_sync_entries_snapshot.sql` — remove o RPC antigo de snapshot, que podia apagar a tabela inteira com uma chamada
+2. (Opcional) Sincronização com Appwrite:
+   1. Crie um projeto no [Appwrite Console](https://cloud.appwrite.io) e copie o **Endpoint** e o **Project ID** (Overview > Settings).
+   2. Crie uma **API key** em Overview > Integrations > API keys com os escopos de `databases`, `collections`, `attributes`, `indexes` e `documents`.
+   3. Rode o provisionamento do banco (cria o banco `gestao_financeira`, as coleções `entries`, `goals`, `credit_cards`, `card_expenses`, `loans`, `wishlist_items`, seus atributos e índices). O script é **idempotente**:
 
-   > **Atenção:** ignore `add_missing_fields.sql` — é legado (cria colunas camelCase que o app não usa); use `20250316000003_entries_optional_columns_snake.sql`.
+      ```bash
+      APPWRITE_API_KEY=<sua-chave> npm run setup:appwrite
+      ```
 
-   Se preferir aplicar tudo de uma vez pelo SQL Editor, use [`supabase/apply_all.sql`](supabase/apply_all.sql): ele contém todas as migrações na ordem correta e é idempotente.
+      O endpoint e o projeto vêm de `APPWRITE_ENDPOINT`/`APPWRITE_PROJECT_ID` ou, se ausentes, das variáveis `VITE_APPWRITE_*` do `.env.local`. A API key é usada só nesse comando e nunca é gravada no projeto.
 
-   No Dashboard do Supabase, ative **Realtime** para a tabela `entries` (Database > Replication); opcionalmente, ative também para `goals`. Defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em `.env.local`. As variáveis estão listadas em [.env.example](.env.example).
+   4. Defina `VITE_APPWRITE_ENDPOINT`, `VITE_APPWRITE_PROJECT_ID` e (opcional) `VITE_APPWRITE_DATABASE_ID` em `.env.local` — veja [.env.example](.env.example).
 
-   Com as variáveis configuradas, o app grava cada alteração automaticamente no Supabase (cerca de 1,5 s após a última edição) e mantém um espelho local para funcionar offline. Ao voltar para o app, ele envia o que estiver pendente e busca o que mudou em outros dispositivos. O botão **Salvar** continua disponível para forçar o envio imediato; **Sincronizar** baixa o estado atual do servidor.
+   Com as variáveis configuradas, o app grava cada alteração automaticamente no Appwrite (cerca de 1,5 s após a última edição) e mantém um espelho local para funcionar offline. Ao voltar para o app, ele envia o que estiver pendente e busca o que mudou em outros dispositivos. O botão **Salvar** continua disponível para forçar o envio imediato; **Sincronizar** baixa o estado atual do servidor.
 
 3. Run the app:
    `npm run dev`
 
 ## Scripts
 
-| Script                 | Descrição                                               |
-| ---------------------- | ------------------------------------------------------- |
-| `npm run dev`          | Sobe o servidor de desenvolvimento (porta 3001).        |
-| `npm run build`        | Gera o build de produção.                               |
-| `npm run preview`      | Pré-visualiza o build.                                  |
-| `npm run lint`         | Verifica tipos TypeScript (`tsc --noEmit`).             |
-| `npm run test`         | Roda os testes em modo watch.                           |
-| `npm run test:run`     | Roda os testes unitários uma vez.                       |
-| `npm run test:e2e`     | Roda os testes E2E (Playwright).                        |
-| `npm run test:e2e:ui`  | Abre a UI do Playwright para rodar E2E.                 |
-| `npm run check`        | Executa `lint` e `test:run` (útil antes de commit).     |
-| `npm run format`       | Formata o código com Prettier.                          |
-| `npm run format:check` | Verifica formatação sem alterar (útil antes de commit). |
+| Script                   | Descrição                                               |
+| ------------------------ | ------------------------------------------------------- |
+| `npm run dev`            | Sobe o servidor de desenvolvimento (porta 3001).        |
+| `npm run build`          | Gera o build de produção.                               |
+| `npm run preview`        | Pré-visualiza o build.                                  |
+| `npm run setup:appwrite` | Cria/atualiza banco, coleções, atributos e índices.     |
+| `npm run lint`           | Verifica tipos TypeScript (`tsc --noEmit`).             |
+| `npm run test`           | Roda os testes em modo watch.                           |
+| `npm run test:run`       | Roda os testes unitários uma vez.                       |
+| `npm run test:e2e`       | Roda os testes E2E (Playwright).                        |
+| `npm run test:e2e:ui`    | Abre a UI do Playwright para rodar E2E.                 |
+| `npm run check`          | Executa `lint` e `test:run` (útil antes de commit).     |
+| `npm run format`         | Formata o código com Prettier.                          |
+| `npm run format:check`   | Verifica formatação sem alterar (útil antes de commit). |
 
 ## Deploy na Vercel
 
-Para o app persistir dados no Supabase em produção, configure as variáveis de ambiente no projeto Vercel:
+Para o app persistir dados no Appwrite em produção, configure as variáveis de ambiente no projeto Vercel:
 
 1. Vercel Dashboard → seu projeto → **Settings** → **Environment Variables**.
-2. Adicione `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` com os mesmos valores do Supabase (Project Settings > API Keys; use a chave **publishable** ou a **anon public**). Atribua a Production (e Preview, se quiser).
+2. Adicione `VITE_APPWRITE_ENDPOINT`, `VITE_APPWRITE_PROJECT_ID` e `VITE_APPWRITE_DATABASE_ID`.
 3. Após alterar variáveis, faça um **redeploy** para o build incorporar os novos valores.
 
 Sem essas variáveis, o app em produção usará apenas `localStorage` (dados só no dispositivo).
 
-> **Segurança:** a sincronização usa a chave pública e as políticas RLS atuais liberam o papel `anon`. A senha do app é local (não é enviada ao Supabase), então ela não protege os dados na nuvem: quem tiver a URL do site e a chave pública consegue ler e gravar. Para dados financeiros sensíveis em produção, o próximo passo é usar **Supabase Auth + RLS por usuário**.
+> **Segurança:** as coleções são criadas com permissões para o papel `any` (qualquer pessoa com o endpoint e o Project ID consegue ler e gravar), porque o app não tem login — a senha é local e não protege a nuvem. Para dados financeiros sensíveis em produção, o próximo passo é usar **Appwrite Auth** (e-mail/senha ou anonymous session) com permissões por usuário nas coleções.
 
-## Solução de problemas (Supabase)
+## Modelo de dados (Appwrite)
 
-Se o app em produção exibir **"Failed to load entries from Supabase"** e no console aparecer **net::ERR_NAME_NOT_RESOLVED** ao acessar `*.supabase.co`:
+Banco `gestao_financeira` (id configurável por `VITE_APPWRITE_DATABASE_ID`):
 
-- **Causa:** o hostname do projeto Supabase não está resolvendo. No plano gratuito, projetos são **pausados** após inatividade e o subdomínio deixa de responder.
-- **Correção:**
-  1. Acesse o [Supabase Dashboard](https://supabase.com/dashboard), localize o projeto e, se estiver pausado, use **Restore project**.
-  2. Ou crie/use outro projeto ativo, atualize `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` nas variáveis de ambiente da Vercel e faça **redeploy**.
+| Coleção          | Conteúdo                                                          |
+| ---------------- | ----------------------------------------------------------------- |
+| `entries`        | lançamentos (entradas/saídas), com recorrência, parcelas e fatura |
+| `goals`          | metas e valores acumulados                                        |
+| `credit_cards`   | cartões (limite, dia de fechamento/vencimento)                    |
+| `card_expenses`  | compras dos cartões e a fatura a que pertencem                    |
+| `loans`          | empréstimos, parcelas e quitação (JSON nos atributos de texto)    |
+| `wishlist_items` | lista de desejos                                                  |
+
+Os documentos usam o mesmo `id` do app (UUID), então o espelho local continua sendo a fonte de recuperação. O merge de sincronização é feito no cliente: cada lançamento tem `revision` (controle otimista) e `updated_at`; só são apagados na nuvem os ids removidos explicitamente pelo usuário.
 
 ## Instalar no celular (PWA)
 

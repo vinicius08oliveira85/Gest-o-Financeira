@@ -14,8 +14,8 @@ const mockGoals: Goal[] = [
   },
 ];
 
-vi.mock('../lib/supabase', () => ({
-  isSupabaseConfigured: vi.fn(),
+vi.mock('../lib/appwrite', () => ({
+  isCloudConfigured: vi.fn(),
 }));
 
 vi.mock('../lib/goalsDb', () => ({
@@ -34,9 +34,9 @@ describe('useGoals', () => {
     localStorage.clear();
   });
 
-  it('sem Supabase: carrega do localStorage e retorna goals', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+  it('sem Appwrite: carrega do localStorage e retorna goals', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(mockGoals));
 
     const { result } = renderHook(() => useGoals());
@@ -52,10 +52,10 @@ describe('useGoals', () => {
     expect(result.current.goals[0].name).toBe('Reserva de emergência');
   });
 
-  it('com Supabase: chama fetchGoals e seta goals', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: chama fetchGoals e seta goals', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchGoals } = await import('../lib/goalsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchGoals).mockResolvedValue(mockGoals);
 
     const { result } = renderHook(() => useGoals());
@@ -72,9 +72,9 @@ describe('useGoals', () => {
   });
 
   it('não sobrescreve o backup local com [] durante o hydrate na nuvem', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchGoals } = await import('../lib/goalsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchGoals).mockResolvedValue(mockGoals);
     localStorage.setItem(
       GOALS_STORAGE_KEY,
@@ -92,10 +92,10 @@ describe('useGoals', () => {
     expect(JSON.parse(raw as string).data).toHaveLength(1);
   });
 
-  it('com Supabase: migra metas locais ausentes da resposta da nuvem', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: migra metas locais ausentes da resposta da nuvem', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchGoals, upsertGoal } = await import('../lib/goalsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     const cloudGoal: Goal = {
       id: 'cloud',
       name: 'Meta na nuvem',
@@ -122,10 +122,10 @@ describe('useGoals', () => {
     );
   });
 
-  it('com Supabase: mantém meta local visível quando o upsert falha', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: mantém meta local visível quando o upsert falha', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchGoals, upsertGoal } = await import('../lib/goalsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     const cloudGoal: Goal = {
       id: 'cloud',
       name: 'Meta na nuvem',
@@ -151,10 +151,10 @@ describe('useGoals', () => {
     expect(JSON.parse(raw as string).data).toHaveLength(2);
   });
 
-  it('com Supabase e localStorage com dados: carrega e chama fetchGoals', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite e localStorage com dados: carrega e chama fetchGoals', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchGoals } = await import('../lib/goalsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchGoals).mockResolvedValue(mockGoals);
 
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(mockGoals));
@@ -172,10 +172,10 @@ describe('useGoals', () => {
     expect(result.current.goals).toHaveLength(1);
   });
 
-  it('sem Supabase: deleteGoal remove a meta localmente', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('sem Appwrite: deleteGoal remove a meta localmente', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { deleteGoal: deleteGoalDb } = await import('../lib/goalsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(mockGoals));
 
     const { result } = renderHook(() => useGoals());
@@ -191,10 +191,10 @@ describe('useGoals', () => {
     expect(result.current.goals).toHaveLength(0);
   });
 
-  it('com Supabase: deleteGoal chama a exclusão atômica e remove a meta após confirmação', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: deleteGoal chama a exclusão atômica e remove a meta após confirmação', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchGoals, deleteGoal: deleteGoalDb } = await import('../lib/goalsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchGoals).mockResolvedValue(mockGoals);
     vi.mocked(deleteGoalDb).mockResolvedValue(undefined);
 
@@ -212,10 +212,10 @@ describe('useGoals', () => {
     expect(result.current.goals).toHaveLength(0);
   });
 
-  it('com Supabase: deleteGoal mantém a meta na tela quando o banco falha', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: deleteGoal mantém a meta na tela quando o banco falha', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchGoals, deleteGoal: deleteGoalDb } = await import('../lib/goalsDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchGoals).mockResolvedValue(mockGoals);
     vi.mocked(deleteGoalDb).mockRejectedValue(new Error('network'));
 

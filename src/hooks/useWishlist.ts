@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { WishlistItem } from '../types';
 import { WISHLIST_STORAGE_KEY } from '../constants';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isCloudConfigured } from '../lib/appwrite';
 import { logError } from '../lib/logger';
 import {
   fetchWishlist,
@@ -14,13 +14,13 @@ import { mergeUnconfirmed } from '../lib/recovery';
 
 export function useWishlist() {
   const [items, setItems] = useState<WishlistItem[]>([]);
-  const [useSupabaseSync, setUseSupabaseSync] = useState(false);
+  const [useCloudSync, setUseAppwriteSync] = useState(false);
   const [isLoadingWishlist, setIsLoadingWishlist] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (isSupabaseConfigured()) {
+      if (isCloudConfigured()) {
         try {
           const data = await fetchWishlist();
           // Lê o espelho local ANTES de sobrescrever, para não perder itens que
@@ -30,7 +30,7 @@ export function useWishlist() {
 
           if (!cancelled) {
             setItems(data);
-            setUseSupabaseSync(true);
+            setUseAppwriteSync(true);
           }
           if (localOnly.length > 0 && !cancelled) {
             for (const item of localOnly) {
@@ -44,8 +44,8 @@ export function useWishlist() {
             if (!cancelled) setItems(mergeUnconfirmed(refetched, localOnly));
           }
         } catch (e) {
-          logError('Failed to load wishlist from Supabase', e);
-          if (!cancelled) setUseSupabaseSync(false);
+          logError('Failed to load wishlist from Appwrite', e);
+          if (!cancelled) setUseAppwriteSync(false);
           const saved = await readStored<WishlistItem>(WISHLIST_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) setItems(saved);
         } finally {
@@ -70,7 +70,7 @@ export function useWishlist() {
 
   const upsertItem = useCallback(
     (item: Omit<WishlistItem, 'id' | 'createdAt'> & { id?: string }) => {
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         const optimisticId = item.id ?? randomUUID();
         const previousItem = items.find((i) => i.id === optimisticId);
         const optimistic: WishlistItem = {
@@ -88,7 +88,7 @@ export function useWishlist() {
             setItems((list) => list.map((x) => (x.id === optimisticId ? saved : x)));
           })
           .catch((err) => {
-            logError('Failed to save wishlist item to Supabase', err);
+            logError('Failed to save wishlist item to Appwrite', err);
             // Reverte só este item, sem apagar outras alterações feitas enquanto salvava.
             setItems((list) =>
               previousItem
@@ -107,22 +107,22 @@ export function useWishlist() {
         });
       }
     },
-    [items, useSupabaseSync]
+    [items, useCloudSync]
   );
 
   const deleteItem = useCallback(
     (id: string) => {
       const removed = items.find((x) => x.id === id);
       setItems((list) => list.filter((x) => x.id !== id));
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         deleteWishlistItemDb(id).catch((err) => {
-          logError('Failed to delete wishlist item from Supabase', err);
+          logError('Failed to delete wishlist item from Appwrite', err);
           // Devolve só o item removido, sem sobrescrever outras mudanças.
           if (removed) setItems((list) => [...list, removed]);
         });
       }
     },
-    [items, useSupabaseSync]
+    [items, useCloudSync]
   );
 
   return {

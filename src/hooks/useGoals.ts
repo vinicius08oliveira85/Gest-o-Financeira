@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { Goal } from '../types';
 import { GOALS_STORAGE_KEY } from '../constants';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isCloudConfigured } from '../lib/appwrite';
 import { logError } from '../lib/logger';
 import { fetchGoals, upsertGoal as upsertGoalDb, deleteGoal as deleteGoalDb } from '../lib/goalsDb';
 import { randomUUID } from '../lib/uuid';
@@ -10,13 +10,13 @@ import { mergeUnconfirmed } from '../lib/recovery';
 
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [useSupabaseSync, setUseSupabaseSync] = useState(false);
+  const [useCloudSync, setUseAppwriteSync] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (isSupabaseConfigured()) {
+      if (isCloudConfigured()) {
         try {
           const data = await fetchGoals();
           // Lê o espelho local ANTES de sobrescrever o estado: quando a nuvem devolveva
@@ -26,7 +26,7 @@ export function useGoals() {
 
           if (!cancelled) {
             setGoals(data);
-            setUseSupabaseSync(true);
+            setUseAppwriteSync(true);
           }
           if (localOnly.length > 0 && !cancelled) {
             for (const g of localOnly) {
@@ -44,8 +44,8 @@ export function useGoals() {
             }
           }
         } catch (e) {
-          logError('Failed to load goals from Supabase', e);
-          if (!cancelled) setUseSupabaseSync(false);
+          logError('Failed to load goals from Appwrite', e);
+          if (!cancelled) setUseAppwriteSync(false);
           const saved = await readStored<Goal>(GOALS_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) setGoals(saved);
         } finally {
@@ -79,7 +79,7 @@ export function useGoals() {
 
   const upsertGoal = useCallback(
     (goal: Omit<Goal, 'id'> & { id?: string }) => {
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         const prev = goals;
         const optimisticId = goal.id ?? randomUUID();
         const optimistic: Goal = { ...(goal as Omit<Goal, 'id'>), id: optimisticId };
@@ -91,7 +91,7 @@ export function useGoals() {
             setGoals((g) => g.map((x) => (x.id === optimisticId ? saved : x)));
           })
           .catch((err) => {
-            logError('Failed to save goal to Supabase', err);
+            logError('Failed to save goal to Appwrite', err);
             setGoals(prev);
           });
       } else {
@@ -105,7 +105,7 @@ export function useGoals() {
         });
       }
     },
-    [goals, useSupabaseSync]
+    [goals, useCloudSync]
   );
 
   /**
@@ -114,7 +114,7 @@ export function useGoals() {
    */
   const deleteGoal = useCallback(
     async (id: string): Promise<boolean> => {
-      if (!useSupabaseSync) {
+      if (!useCloudSync) {
         setGoals((g) => g.filter((x) => x.id !== id));
         return true;
       }
@@ -123,11 +123,11 @@ export function useGoals() {
         setGoals((g) => g.filter((x) => x.id !== id));
         return true;
       } catch (err) {
-        logError('Failed to delete goal from Supabase', err);
+        logError('Failed to delete goal from Appwrite', err);
         return false;
       }
     },
-    [useSupabaseSync]
+    [useCloudSync]
   );
 
   return {

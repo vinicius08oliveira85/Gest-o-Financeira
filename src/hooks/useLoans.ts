@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { Loan } from '../types';
 import { LOANS_STORAGE_KEY } from '../constants';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isCloudConfigured } from '../lib/appwrite';
 import { logError } from '../lib/logger';
 import { fetchLoans, upsertLoan as upsertLoanDb, deleteLoan as deleteLoanDb } from '../lib/loansDb';
 import { randomUUID } from '../lib/uuid';
@@ -10,13 +10,13 @@ import { mergeUnconfirmed } from '../lib/recovery';
 
 export function useLoans() {
   const [loans, setLoans] = useState<Loan[]>([]);
-  const [useSupabaseSync, setUseSupabaseSync] = useState(false);
+  const [useCloudSync, setUseAppwriteSync] = useState(false);
   const [isLoadingLoans, setIsLoadingLoans] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (isSupabaseConfigured()) {
+      if (isCloudConfigured()) {
         try {
           const data = await fetchLoans();
           // Lê o espelho local ANTES de sobrescrever o estado, para não perder
@@ -26,7 +26,7 @@ export function useLoans() {
 
           if (!cancelled) {
             setLoans(data);
-            setUseSupabaseSync(true);
+            setUseAppwriteSync(true);
           }
           if (localOnly.length > 0 && !cancelled) {
             for (const l of localOnly) {
@@ -42,8 +42,8 @@ export function useLoans() {
             }
           }
         } catch (e) {
-          logError('Failed to load loans from Supabase', e);
-          if (!cancelled) setUseSupabaseSync(false);
+          logError('Failed to load loans from Appwrite', e);
+          if (!cancelled) setUseAppwriteSync(false);
           const saved = await readStored<Loan>(LOANS_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) setLoans(saved);
         } finally {
@@ -68,7 +68,7 @@ export function useLoans() {
 
   const upsertLoan = useCallback(
     (loan: Omit<Loan, 'id' | 'createdAt'> & { id?: string }) => {
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         const optimisticId = loan.id ?? randomUUID();
         const previousItem = loans.find((l) => l.id === optimisticId);
         const optimistic = {
@@ -86,7 +86,7 @@ export function useLoans() {
             setLoans((ls) => ls.map((x) => (x.id === optimisticId ? saved : x)));
           })
           .catch((err) => {
-            logError('Failed to save loan to Supabase', err);
+            logError('Failed to save loan to Appwrite', err);
             // Reverte só este empréstimo, sem apagar outras alterações feitas enquanto salvava.
             setLoans((ls) =>
               previousItem
@@ -105,22 +105,22 @@ export function useLoans() {
         });
       }
     },
-    [loans, useSupabaseSync]
+    [loans, useCloudSync]
   );
 
   const deleteLoan = useCallback(
     (id: string) => {
       const removed = loans.find((x) => x.id === id);
       setLoans((ls) => ls.filter((x) => x.id !== id));
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         deleteLoanDb(id).catch((err) => {
-          logError('Failed to delete loan from Supabase', err);
+          logError('Failed to delete loan from Appwrite', err);
           // Devolve só o item removido, sem sobrescrever outras mudanças.
           if (removed) setLoans((ls) => [...ls, removed]);
         });
       }
     },
-    [loans, useSupabaseSync]
+    [loans, useCloudSync]
   );
 
   return { loans, upsertLoan, deleteLoan, isLoadingLoans };

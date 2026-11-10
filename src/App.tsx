@@ -157,8 +157,8 @@ export default function App() {
     syncEntriesNow,
     getMetaBalanceForGoal,
     saveEntriesLocal,
-    pushEntriesToSupabase,
-    pullEntriesFromSupabase,
+    pushEntriesToCloud,
+    pullEntriesFromCloud,
     isSyncing,
     entriesSyncAvailable,
   } = useEntries();
@@ -301,25 +301,25 @@ export default function App() {
   // Última ação de sync que falhou, para o "Tentar novamente" do banner refazê-la.
   const lastSyncAttemptRef = useRef<'push' | 'pull' | null>(null);
 
-  const handleSaveEntriesToSupabase = useCallback(async () => {
+  const handleSaveEntriesToCloud = useCallback(async () => {
     lastSyncAttemptRef.current = 'push';
     try {
-      await pushEntriesToSupabase();
-      showToast('Dados gravados no Supabase');
+      await pushEntriesToCloud();
+      showToast('Dados gravados no Appwrite');
     } catch {
       // Erro também aparece em saveError / banner
     }
-  }, [pushEntriesToSupabase, showToast]);
+  }, [pushEntriesToCloud, showToast]);
 
-  const handlePullEntriesFromSupabase = useCallback(async () => {
+  const handlePullEntriesFromCloud = useCallback(async () => {
     lastSyncAttemptRef.current = 'pull';
     try {
-      await pullEntriesFromSupabase();
-      showToast('Dados atualizados do Supabase');
+      await pullEntriesFromCloud();
+      showToast('Dados atualizados do Appwrite');
     } catch {
       // Erro também aparece em saveError / banner
     }
-  }, [pullEntriesFromSupabase, showToast]);
+  }, [pullEntriesFromCloud, showToast]);
 
   const handleRegisterInvoice = useCallback(
     (card: CreditCard, month: number, year: number, total: number) => {
@@ -333,7 +333,7 @@ export default function App() {
       );
       const entry = buildInvoiceEntry(card, month, year, total, existing?.id);
       // Re-registrar a fatura não pode zerar o status de pagamento já registrado
-      // nem reescrever a data de criação (usada na ordenação/paginação do Supabase).
+      // nem reescrever a data de criação (usada na ordenação/paginação do Appwrite).
       addOrUpdateEntry(
         {
           ...entry,
@@ -618,9 +618,9 @@ export default function App() {
             onRetryOffline={syncEntriesNow}
             onRetrySaveError={() => {
               if (lastSyncAttemptRef.current === 'push') {
-                void handleSaveEntriesToSupabase();
+                void handleSaveEntriesToCloud();
               } else if (lastSyncAttemptRef.current === 'pull') {
-                void handlePullEntriesFromSupabase();
+                void handlePullEntriesFromCloud();
               } else {
                 setSaveError(null);
               }
@@ -631,10 +631,8 @@ export default function App() {
             }
             onNewEntry={handleNewEntryWithStep}
             onSaveEntriesLocal={handleSaveEntriesLocal}
-            onSaveEntriesToSupabase={entriesSyncAvailable ? handleSaveEntriesToSupabase : undefined}
-            onPullEntriesFromSupabase={
-              entriesSyncAvailable ? handlePullEntriesFromSupabase : undefined
-            }
+            onSaveEntriesToCloud={entriesSyncAvailable ? handleSaveEntriesToCloud : undefined}
+            onPullEntriesFromCloud={entriesSyncAvailable ? handlePullEntriesFromCloud : undefined}
             isSyncingEntries={isSyncing}
             // Com nuvem configurada mas fora do ar (falha real), o app fica no modo
             // local: badge "Local" + botão "Salvar" no dispositivo. Dispensar o banner

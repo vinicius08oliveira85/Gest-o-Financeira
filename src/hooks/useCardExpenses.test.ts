@@ -29,9 +29,9 @@ const localExpense: CardExpense = {
   createdAt: 2,
 };
 
-vi.mock('../lib/supabase', () => ({
-  isSupabaseConfigured: vi.fn(),
-  supabase: null,
+vi.mock('../lib/appwrite', () => ({
+  isCloudConfigured: vi.fn(),
+  appwrite: null,
 }));
 
 vi.mock('../lib/cardExpensesDb', () => ({
@@ -60,9 +60,9 @@ describe('useCardExpenses', () => {
     localStorage.clear();
   });
 
-  it('sem Supabase: carrega do armazenamento local', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+  it('sem Appwrite: carrega do armazenamento local', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     setStored(mockExpenses);
 
     const { result } = renderHook(() => useCardExpenses());
@@ -73,10 +73,10 @@ describe('useCardExpenses', () => {
     expect(result.current.expenses[0].name).toBe('Mercado');
   });
 
-  it('com Supabase: chama fetchAllExpenses e seta expenses', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: chama fetchAllExpenses e seta expenses', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchAllExpenses } = await import('../lib/cardExpensesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchAllExpenses).mockResolvedValue(mockExpenses);
 
     const { result } = renderHook(() => useCardExpenses());
@@ -88,9 +88,9 @@ describe('useCardExpenses', () => {
   });
 
   it('não sobrescreve o backup local com [] durante o hydrate na nuvem', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchAllExpenses } = await import('../lib/cardExpensesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchAllExpenses).mockResolvedValue(mockExpenses);
     setStored(mockExpenses);
 
@@ -103,10 +103,10 @@ describe('useCardExpenses', () => {
     expect(JSON.parse(raw as string).data).toHaveLength(1);
   });
 
-  it('com Supabase: reenvia gastos locais quando a nuvem volta vazia', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: reenvia gastos locais quando a nuvem volta vazia', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchAllExpenses, upsertExpense } = await import('../lib/cardExpensesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchAllExpenses).mockResolvedValueOnce([]).mockResolvedValue([localExpense]);
     vi.mocked(upsertExpense).mockImplementation(async (e) => ({ ...e, id: e.id as string }));
     setStored([localExpense]);
@@ -121,10 +121,10 @@ describe('useCardExpenses', () => {
     expect(result.current.expenses[0].id).toBe('local');
   });
 
-  it('com Supabase: migra gastos locais ausentes de uma resposta não vazia', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: migra gastos locais ausentes de uma resposta não vazia', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchAllExpenses, upsertExpense } = await import('../lib/cardExpensesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchAllExpenses)
       .mockResolvedValueOnce([cloudExpense])
       .mockResolvedValue([cloudExpense, localExpense]);
@@ -141,10 +141,10 @@ describe('useCardExpenses', () => {
     );
   });
 
-  it('com Supabase: mantém gasto local visível quando o upsert falha', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: mantém gasto local visível quando o upsert falha', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchAllExpenses, upsertExpense } = await import('../lib/cardExpensesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchAllExpenses).mockResolvedValue([cloudExpense]);
     vi.mocked(upsertExpense).mockRejectedValue(new Error('offline'));
     setStored([cloudExpense, localExpense]);

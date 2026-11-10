@@ -27,9 +27,9 @@ const mockEntries: Entry[] = [
   },
 ];
 
-vi.mock('../lib/supabase', () => ({
-  isSupabaseConfigured: vi.fn(() => false),
-  supabase: null,
+vi.mock('../lib/appwrite', () => ({
+  isCloudConfigured: vi.fn(() => false),
+  appwrite: null,
 }));
 
 vi.mock('../lib/entriesDb', () => ({
@@ -41,8 +41,8 @@ vi.mock('../lib/entriesDb', () => ({
 
 describe('useEntries', () => {
   it('mostra todos os lançamentos do mês, com e sem filtros', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     const many: Entry[] = Array.from({ length: 60 }, (_, i) => ({
       id: `m${i}`,
       name: `Lançamento ${i}`,
@@ -79,8 +79,8 @@ describe('useEntries', () => {
   });
 
   it('a lista da aba Lançamentos mostra apenas o mês selecionado', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     const multi: Entry[] = [
       {
         id: 'a',
@@ -131,16 +131,16 @@ describe('useEntries', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    // Don't clear mocks - supabase mock needs to stay configured
+    // Don't clear mocks - appwrite mock needs to stay configured
   });
 
   afterEach(() => {
     localStorage.clear();
   });
 
-  it('sem Supabase: carrega do localStorage e retorna', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+  it('sem Appwrite: carrega do localStorage e retorna', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(mockEntries));
 
     const { result } = renderHook(() => useEntries());
@@ -156,10 +156,10 @@ describe('useEntries', () => {
     expect(result.current.entries[0].name).toBe('Entrada 1');
   });
 
-  it('com Supabase: chama fetchEntries e seta entries', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: chama fetchEntries e seta entries', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchEntries } = await import('../lib/entriesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchEntries).mockResolvedValue(mockEntries);
 
     const { result } = renderHook(() => useEntries());
@@ -175,10 +175,10 @@ describe('useEntries', () => {
     expect(result.current.entries).toHaveLength(2);
   });
 
-  it('com Supabase: grava automaticamente no servidor após uma alteração, sem clicar em Salvar', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: grava automaticamente no servidor após uma alteração, sem clicar em Salvar', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchEntries, syncEntriesDelta } = await import('../lib/entriesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchEntries).mockResolvedValue([]);
     vi.mocked(syncEntriesDelta).mockResolvedValue(undefined as unknown as void);
 
@@ -207,10 +207,10 @@ describe('useEntries', () => {
     ).toContain('auto-sync');
   }, 10000);
 
-  it('com Supabase: reenvia e mantém entries locais exclusivas quando a nuvem vem não vazia', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: reenvia e mantém entries locais exclusivas quando a nuvem vem não vazia', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchEntries, insertEntriesBatch } = await import('../lib/entriesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     const cloudOnly: Entry = { ...mockEntries[0], id: 'cloud', name: 'Somente na nuvem' };
     const localOnly: Entry = { ...mockEntries[1], id: 'local', name: 'Somente local' };
     vi.mocked(fetchEntries)
@@ -234,10 +234,10 @@ describe('useEntries', () => {
     expect(JSON.parse(raw as string).data).toHaveLength(2);
   });
 
-  it('com Supabase: mantém entry local no estado quando o reenvio falha', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: mantém entry local no estado quando o reenvio falha', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchEntries, insertEntriesBatch } = await import('../lib/entriesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     const cloudOnly: Entry = { ...mockEntries[0], id: 'cloud', name: 'Somente na nuvem' };
     const localOnly: Entry = { ...mockEntries[1], id: 'local', name: 'Somente local' };
     vi.mocked(fetchEntries).mockResolvedValue([cloudOnly]);
@@ -258,10 +258,10 @@ describe('useEntries', () => {
     expect(JSON.parse(raw as string).data).toHaveLength(2);
   });
 
-  it('com Supabase: não sobrescreve o backup local com [] durante o hydrate', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: não sobrescreve o backup local com [] durante o hydrate', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchEntries } = await import('../lib/entriesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     vi.mocked(fetchEntries).mockResolvedValue(mockEntries);
     localStorage.setItem(
       ENTRIES_STORAGE_KEY,
@@ -278,8 +278,8 @@ describe('useEntries', () => {
   });
 
   it('filtros (filter, selectedCategory) refletidos em filteredEntries', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     const march = new Date().getMonth();
     const year = new Date().getFullYear();
     const inPeriod = mockEntries.map((e) => ({
@@ -311,8 +311,8 @@ describe('useEntries', () => {
   });
 
   it('totais globais aplicam inversão de metas (depósito = saída, saque = entrada)', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     const month = new Date().getMonth();
     const year = new Date().getFullYear();
     const dueDate = `${year}-${String(month + 1).padStart(2, '0')}-10`;
@@ -376,8 +376,8 @@ describe('useEntries', () => {
   });
 
   it('editar uma parcela propaga nome/valor/tipo às irmãs preservando vencimento/nº', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     const month = new Date().getMonth();
     const year = new Date().getFullYear();
     const due = (d: number) =>
@@ -448,10 +448,10 @@ describe('useEntries', () => {
     });
   });
 
-  it('com Supabase: mostra o espelho local antes da nuvem responder', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
+  it('com Appwrite: mostra o espelho local antes da nuvem responder', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
     const { fetchEntries } = await import('../lib/entriesDb');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
     // Nuvem lenta: a lista não pode esperar por ela para aparecer.
     vi.mocked(fetchEntries).mockImplementation(() => new Promise<Entry[]>(() => {}));
     localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(mockEntries));
@@ -472,8 +472,8 @@ describe('useEntries', () => {
   });
 
   it('lançamentos do mês: filteredEntries/entriesDoMes ignoram outros meses', async () => {
-    const { isSupabaseConfigured } = await import('../lib/supabase');
-    vi.mocked(isSupabaseConfigured).mockReturnValue(false);
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();

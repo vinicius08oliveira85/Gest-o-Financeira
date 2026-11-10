@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import type { CardExpense } from '../types';
 import { CARD_EXPENSES_STORAGE_KEY } from '../constants';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isCloudConfigured } from '../lib/appwrite';
 import { logError } from '../lib/logger';
 import {
   fetchAllExpenses,
@@ -18,13 +18,13 @@ import { mergeUnconfirmed } from '../lib/recovery';
 
 export function useCardExpenses() {
   const [expenses, setExpenses] = useState<CardExpense[]>([]);
-  const [useSupabaseSync, setUseSupabaseSync] = useState(false);
+  const [useCloudSync, setUseAppwriteSync] = useState(false);
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (isSupabaseConfigured()) {
+      if (isCloudConfigured()) {
         try {
           const data = await fetchAllExpenses();
           // Lê o espelho local ANTES de sobrescrever o estado: quando a nuvem devolveva
@@ -34,7 +34,7 @@ export function useCardExpenses() {
 
           if (!cancelled) {
             setExpenses(data);
-            setUseSupabaseSync(true);
+            setUseAppwriteSync(true);
           }
           if (localOnly.length > 0 && !cancelled) {
             // `upsertExpense` preserva o id; `insertExpense` geraria um id novo e
@@ -53,8 +53,8 @@ export function useCardExpenses() {
             }
           }
         } catch (e) {
-          logError('Failed to load card expenses from Supabase', e);
-          if (!cancelled) setUseSupabaseSync(false);
+          logError('Failed to load card expenses from Appwrite', e);
+          if (!cancelled) setUseAppwriteSync(false);
           const saved = await readStored<CardExpense>(CARD_EXPENSES_STORAGE_KEY);
           if (saved.length > 0 && !cancelled) setExpenses(saved);
         } finally {
@@ -89,7 +89,7 @@ export function useCardExpenses() {
         id: randomUUID(),
         createdAt: Date.now(),
       };
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         const prev = expenses;
         setExpenses((e) => [newExpense, ...e]);
         try {
@@ -105,7 +105,7 @@ export function useCardExpenses() {
       }
       return newExpense;
     },
-    [expenses, useSupabaseSync]
+    [expenses, useCloudSync]
   );
 
   /**
@@ -119,7 +119,7 @@ export function useCardExpenses() {
       const applyChange = (list: CardExpense[]): CardExpense[] =>
         propagateInstallmentUpdate(list, expense);
 
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         const prev = expenses;
         const optimistic = applyChange(expenses);
         setExpenses(optimistic);
@@ -139,21 +139,21 @@ export function useCardExpenses() {
         setExpenses((prev) => applyChange(prev));
       }
     },
-    [expenses, useSupabaseSync]
+    [expenses, useCloudSync]
   );
 
   const deleteExpense = useCallback(
     (id: string) => {
       const previous = expenses;
       setExpenses((e) => e.filter((x) => x.id !== id));
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         deleteExpenseDb(id).catch((err) => {
           logError('Failed to delete card expense', err);
           setExpenses(previous);
         });
       }
     },
-    [expenses, useSupabaseSync]
+    [expenses, useCloudSync]
   );
 
   /** Remove todos os gastos de um cartão (ao excluir o cartão), local e servidor. */
@@ -161,14 +161,14 @@ export function useCardExpenses() {
     (cardId: string) => {
       const previous = expenses;
       setExpenses((e) => e.filter((x) => x.cardId !== cardId));
-      if (useSupabaseSync) {
+      if (useCloudSync) {
         deleteExpensesByCardDb(cardId).catch((err) => {
           logError('Failed to delete card expenses', err);
           setExpenses(previous);
         });
       }
     },
-    [expenses, useSupabaseSync]
+    [expenses, useCloudSync]
   );
 
   const getExpensesByCard = useCallback(

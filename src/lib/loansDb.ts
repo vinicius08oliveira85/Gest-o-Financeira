@@ -1,7 +1,14 @@
-import { supabase } from './supabase';
+import { Query } from 'appwrite';
+import { COLLECTIONS } from './appwrite';
+import { deleteDocumentById, listAllDocuments, saveDocument } from './appwriteDb';
 import type { Loan, LoanInstallment } from '../types';
 import { randomUUID } from './uuid';
 
+/**
+ * Linha do empréstimo no Appwrite. Arrays/objetos (parcelas e quitação) são
+ * guardados como JSON em atributos de texto — o Appwrite não tem atributo JSON
+ * livre como o `jsonb` do Postgres.
+ */
 export type LoanRow = {
   id: string;
   name: string;
@@ -13,12 +20,25 @@ export type LoanRow = {
   discount_start?: string | null;
   discount_end?: string | null;
   installments_count?: number | null;
-  installments?: LoanInstallment[] | null;
-  settlement?: Loan['settlement'] | null;
+  /** Parcelas serializadas em JSON */
+  installments?: string | null;
+  /** Quitação serializada em JSON */
+  settlement?: string | null;
   created_at?: string | null;
 };
 
+function parseJson<T>(value: unknown): T | undefined {
+  if (typeof value !== 'string' || !value) return undefined;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return undefined;
+  }
+}
+
 export function rowToLoan(row: LoanRow): Loan {
+  const installments = parseJson<LoanInstallment[]>(row.installments);
+  const settlement = parseJson<NonNullable<Loan['settlement']>>(row.settlement);
   return {
     id: row.id,
     name: row.name,
@@ -31,12 +51,10 @@ export function rowToLoan(row: LoanRow): Loan {
     discountStart: row.discount_start ?? undefined,
     discountEnd: row.discount_end ?? undefined,
     installmentsCount: row.installments_count ?? undefined,
-    installments: Array.isArray(row.installments)
-      ? row.installments.map((i) => ({ ...i, amount: Number(i.amount) }))
+    installments: Array.isArray(installments)
+      ? installments.map((i) => ({ ...i, amount: Number(i.amount) }))
       : undefined,
-    settlement: row.settlement
-      ? { ...row.settlement, amount: Number(row.settlement.amount) }
-      : undefined,
+    settlement: settlement ? { ...settlement, amount: Number(settlement.amount) } : undefined,
   };
 }
 
@@ -53,37 +71,27 @@ export function loanToRow(
     discount_start: loan.discountStart ?? null,
     discount_end: loan.discountEnd ?? null,
     installments_count: loan.installmentsCount ?? null,
-    installments: loan.installments ?? null,
-    settlement: loan.settlement ?? null,
+    installments: loan.installments ? JSON.stringify(loan.installments) : null,
+    settlement: loan.settlement ? JSON.stringify(loan.settlement) : null,
   };
 }
 
 export async function fetchLoans(): Promise<Loan[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('loans')
-    .select('*')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((row) => rowToLoan(row as LoanRow));
+  const rows = await listAllDocuments<LoanRow>(COLLECTIONS.loans, [Query.orderAsc('created_at')]);
+  return rows.map((row) => rowToLoan({ ...row, id: row.$id }));
 }
 
 export async function upsertLoan(
-  loan: Omit<Loan, 'id' | 'createdAt'> & { id?: string }
+  loan: Omit<Loan, 'id' | 'createdAt'> & { id?: string; createdAt?: number }
 ): Promise<Loan> {
-  if (!supabase) throw new Error('Supabase not configured');
   const id = loan.id ?? randomUUID();
-  const { data, error } = await supabase
-    .from('loans')
-    .upsert({ id, ...loanToRow(loan) }, { onConflict: 'id' })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return rowToLoan(data as LoanRow);
+  const doc = await saveDocument<LoanRow>(COLLECTIONS.loans, id, {
+    ...loanToRow(loan),
+    created_at: new Date(loan.createdAt ?? Date.now()).toISOString(),
+  });
+  return rowToLoan({ ...doc, id: doc.$id });
 }
 
 export async function deleteLoan(id: string): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase.from('loans').delete().eq('id', id);
-  if (error) throw error;
+  await deleteDocumentById(COLLECTIONS.loans, id);
 }
