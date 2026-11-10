@@ -50,7 +50,7 @@ export default defineConfig(() => {
           // Separa vendor em chunks cacheados (reduz o bundle inicial ~600 kB).
           manualChunks(id: string) {
             if (!id.includes('node_modules')) return undefined;
-            if (id.includes('@supabase')) return 'supabase';
+            if (id.includes('node_modules/appwrite')) return 'appwrite';
             if (
               id.includes('/react/') ||
               id.includes('/react-dom/') ||
