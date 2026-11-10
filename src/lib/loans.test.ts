@@ -6,6 +6,7 @@ import {
   dateInMonth,
   formatDiscountPeriod,
   getDiscountPeriod,
+  getEndingDiscounts,
   getLoanPaidAmount,
   getLoanTotals,
   getNextDueDate,
@@ -72,6 +73,41 @@ describe('período do desconto', () => {
     expect(formatDiscountPeriod(loan({ id: 's', discountStart: '2026-11' }))).toBe(
       'nov/2026 em diante'
     );
+  });
+});
+
+describe('getEndingDiscounts', () => {
+  const today = '2026-11-10';
+
+  it('lista só descontos com saldo que terminam nos próximos 2 meses', () => {
+    const endingNow = loan({ id: 'agora', discountStart: '2026-11', discountEnd: '2026-11' });
+    const nextMonth = loan({ id: 'proximo', discountStart: '2026-12', discountEnd: '2026-12' });
+    const later = loan({ id: 'longe', discountStart: '2026-11', discountEnd: '2027-06' });
+    const finished = loan({
+      id: 'quitado',
+      paid: true,
+      discountStart: '2026-11',
+      discountEnd: '2026-12',
+    });
+    const noPeriod = loan({ id: 'sem' });
+
+    expect(
+      getEndingDiscounts([endingNow, nextMonth, later, finished, noPeriod], today).map(
+        (d) => d.loan.id
+      )
+    ).toEqual(['agora', 'proximo']);
+  });
+
+  it('considera o último mês das parcelas quando não há período registrado', () => {
+    const legacy = loan({
+      id: 'legado',
+      installmentsCount: 2,
+      installments: buildInstallments(200, 2, '2026-11-05'),
+    });
+    const discounts = getEndingDiscounts([legacy], today);
+
+    expect(discounts).toHaveLength(1);
+    expect(discounts[0].end).toBe('2026-12');
   });
 });
 

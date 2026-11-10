@@ -1,28 +1,23 @@
-import { Plus, Pencil, ListOrdered } from 'lucide-react';
+import { Plus, Pencil, ListOrdered, BellRing } from 'lucide-react';
 import type { Loan, LoanSourceType } from '../types';
 import { EmptyState } from './EmptyState';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
 import {
   formatDiscountPeriod,
+  formatMonthLabel,
+  getEndingDiscounts,
   getLoanPaidAmount,
   getLoanTotals,
   getNextDueDate,
-  getOpenInstallments,
+  getOpenAmount,
   isInstallmentLoan,
+  monthKey,
 } from '../lib/loans';
 
 const SOURCE_LABELS: Record<LoanSourceType, string> = {
   pessoa_fisica: 'Pessoa física',
   trabalhador: 'Empréstimo do trabalhador',
 };
-
-/** Quanto ainda falta pagar deste empréstimo (parcelas em aberto ou o valor único). */
-function openAmount(loan: Loan): number {
-  if (isInstallmentLoan(loan)) {
-    return getOpenInstallments(loan).reduce((sum, i) => sum + i.amount, 0);
-  }
-  return loan.paid ? 0 : loan.amount;
-}
 
 type Props = {
   loans: Loan[];
@@ -35,16 +30,17 @@ type Props = {
 export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments }: Props) {
   const today = todayLocalISO();
   const totalOpen = getLoanTotals(loans, today).open;
+  const endingDiscounts = getEndingDiscounts(loans, today, 2);
   const totalPaid = loans.reduce((sum, loan) => sum + getLoanPaidAmount(loan), 0);
   const openBySource = (source: LoanSourceType) =>
     loans
       .filter((loan) => loan.sourceType === source)
-      .reduce((sum, loan) => sum + openAmount(loan), 0);
+      .reduce((sum, loan) => sum + getOpenAmount(loan), 0);
 
   const sorted = [...loans].sort((a, b) => getNextDueDate(a).localeCompare(getNextDueDate(b)));
-  const isOverdue = (loan: Loan) => openAmount(loan) > 0 && getNextDueDate(loan) < today;
+  const isOverdue = (loan: Loan) => getOpenAmount(loan) > 0 && getNextDueDate(loan) < today;
   const upcoming = sorted
-    .filter((l) => openAmount(l) > 0 && getNextDueDate(l) >= today)
+    .filter((l) => getOpenAmount(l) > 0 && getNextDueDate(l) >= today)
     .slice(0, 3);
 
   return (
@@ -101,6 +97,30 @@ export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments 
             ))}
           </div>
 
+          {endingDiscounts.length > 0 && (
+            <div className="neu-card p-4 ring-1 ring-amber-300/70 dark:ring-amber-500/40">
+              <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+                <BellRing size={14} />
+                Desconto terminando
+              </p>
+              <ul className="flex flex-col gap-1">
+                {endingDiscounts.slice(0, 3).map(({ loan, end }) => (
+                  <li key={loan.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate text-slate-900 dark:text-slate-100">
+                      {loan.name} ·{' '}
+                      {end === monthKey(today)
+                        ? 'último desconto agora'
+                        : `termina em ${formatMonthLabel(end)}`}
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100 shrink-0">
+                      {formatCurrency(getOpenAmount(loan))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {upcoming.length > 0 && (
             <div className="neu-card p-4">
               <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
@@ -113,7 +133,7 @@ export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments 
                       {formatDate(getNextDueDate(loan))} · {loan.name}
                     </span>
                     <span className="font-semibold text-slate-900 dark:text-slate-100 shrink-0">
-                      {formatCurrency(openAmount(loan))}
+                      {formatCurrency(getOpenAmount(loan))}
                     </span>
                   </li>
                 ))}
@@ -157,7 +177,7 @@ export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments 
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <span className="font-semibold text-slate-900 dark:text-slate-100">
-                      {formatCurrency(isInstallmentLoan(loan) ? openAmount(loan) : loan.amount)}
+                      {formatCurrency(isInstallmentLoan(loan) ? getOpenAmount(loan) : loan.amount)}
                     </span>
                     <div className="flex items-center gap-2">
                       {isInstallmentLoan(loan) && (

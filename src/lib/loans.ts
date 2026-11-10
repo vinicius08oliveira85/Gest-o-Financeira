@@ -49,6 +49,35 @@ export function getLoanTotals(loans: Loan[], today: string): LoanTotals {
   return { open, overdue };
 }
 
+/** Quanto ainda falta pagar do empréstimo (parcelas em aberto ou o valor único). */
+export function getOpenAmount(loan: Loan): number {
+  if (isInstallmentLoan(loan)) {
+    return getOpenInstallments(loan).reduce((sum, i) => sum + i.amount, 0);
+  }
+  return loan.paid ? 0 : loan.amount;
+}
+
+/**
+ * Empréstimos com saldo em aberto cujo desconto termina em até `months` meses
+ * (contando o mês atual), do que termina antes para o que termina depois.
+ */
+export function getEndingDiscounts(
+  loans: Loan[],
+  today: string,
+  months = 2
+): { loan: Loan; end: string }[] {
+  const todayMonth = monthKey(today);
+  const limit = addMonthsToMonth(todayMonth, Math.max(1, months) - 1);
+
+  return loans
+    .map((loan) => ({ loan, end: getDiscountPeriod(loan)?.end }))
+    .filter(
+      (item): item is { loan: Loan; end: string } =>
+        !!item.end && item.end >= todayMonth && item.end <= limit && getOpenAmount(item.loan) > 0
+    )
+    .sort((a, b) => a.end.localeCompare(b.end));
+}
+
 /** Próximo vencimento em aberto (parcela ou empréstimo único). */
 export function getNextDueDate(loan: Loan): string {
   if (isInstallmentLoan(loan)) {
