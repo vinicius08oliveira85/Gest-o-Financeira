@@ -1,9 +1,14 @@
 import { useEffect } from 'react';
-import { Ban, Check, RotateCcw, X } from 'lucide-react';
+import { Ban, Check, HandCoins, RotateCcw, X } from 'lucide-react';
 import type { Loan } from '../types';
 import { ModalShell } from './ModalShell';
 import { formatCurrency, formatDate } from '../lib/format';
-import { formatDiscountPeriod, getLoanPaidAmount, isInstallmentLoan } from '../lib/loans';
+import {
+  formatDiscountPeriod,
+  getLoanPaidAmount,
+  getOpenAmount,
+  isInstallmentLoan,
+} from '../lib/loans';
 
 const MODAL_TITLE_ID = 'loan-installments-title';
 
@@ -16,6 +21,8 @@ type Props = {
   onChangeDueDate: (loan: Loan, number: number, dueDate: string) => void;
   /** Cancela/reativa a parcela: cancelada não conta como em aberto. */
   onToggleCancelled: (loan: Loan, number: number, cancelled: boolean) => void;
+  /** Abre a quitação antecipada do empréstimo. */
+  onSettleLoan: (loan: Loan) => void;
   onClose: () => void;
 };
 
@@ -25,6 +32,7 @@ export function LoanInstallmentsModal({
   onTogglePaid,
   onChangeDueDate,
   onToggleCancelled,
+  onSettleLoan,
   onClose,
 }: Props) {
   useEffect(() => {
@@ -67,6 +75,23 @@ export function LoanInstallmentsModal({
               </p>
               {discount && (
                 <p className="text-xs text-slate-500 dark:text-slate-400">Desconto: {discount}</p>
+              )}
+              {loan.settlement ? (
+                <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                  Quitado em {formatDate(loan.settlement.date)} ·{' '}
+                  {formatCurrency(loan.settlement.amount)} — parcelas em aberto foram canceladas
+                </p>
+              ) : (
+                getOpenAmount(loan) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onSettleLoan(loan)}
+                    className="neu-btn-secondary px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 mt-2"
+                  >
+                    <HandCoins size={14} />
+                    Quitar empréstimo
+                  </button>
+                )
               )}
             </div>
 

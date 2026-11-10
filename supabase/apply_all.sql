@@ -1849,3 +1849,12 @@ alter table public.loans
   add column if not exists discount_end text;
 
 notify pgrst, 'reload schema';
+
+-- ===== 20261110000005_loans_settlement.sql =====
+-- Quitação antecipada: valor pago à vista, data, lançamento gerado e parcelas
+-- canceladas pela quitação (permite desfazer).
+
+alter table public.loans
+  add column if not exists settlement jsonb;
+
+notify pgrst, 'reload schema';

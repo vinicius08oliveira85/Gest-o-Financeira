@@ -1,4 +1,4 @@
-import { Plus, Pencil, ListOrdered, BellRing } from 'lucide-react';
+import { Plus, Pencil, ListOrdered, BellRing, HandCoins, Undo2 } from 'lucide-react';
 import type { Loan, LoanSourceType } from '../types';
 import { EmptyState } from './EmptyState';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
@@ -25,9 +25,20 @@ type Props = {
   onEditLoan: (loan: Loan) => void;
   /** Abre a lista de parcelas (empréstimo parcelado). */
   onOpenInstallments: (loan: Loan) => void;
+  /** Abre a quitação antecipada (paga o saldo de uma vez). */
+  onSettleLoan: (loan: Loan) => void;
+  /** Desfaz uma quitação, devolvendo as parcelas canceladas. */
+  onUndoSettlement: (loan: Loan) => void;
 };
 
-export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments }: Props) {
+export function LoansSection({
+  loans,
+  onNewLoan,
+  onEditLoan,
+  onOpenInstallments,
+  onSettleLoan,
+  onUndoSettlement,
+}: Props) {
   const today = todayLocalISO();
   const totalOpen = getLoanTotals(loans, today).open;
   const endingDiscounts = getEndingDiscounts(loans, today, 2);
@@ -165,13 +176,21 @@ export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments 
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       {SOURCE_LABELS[loan.sourceType]}
                       {loan.sourceName ? ` · ${loan.sourceName}` : ''} ·{' '}
-                      {isInstallmentLoan(loan)
-                        ? `${paidCount}/${count} parcelas pagas`
-                        : `Pagar em ${formatDate(loan.dueDate)}`}
+                      {loan.settlement
+                        ? `Quitado · ${paidCount}/${count} parcelas pagas`
+                        : isInstallmentLoan(loan)
+                          ? `${paidCount}/${count} parcelas pagas`
+                          : `Pagar em ${formatDate(loan.dueDate)}`}
                     </p>
                     {discount && (
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         Desconto: {discount}
+                      </p>
+                    )}
+                    {loan.settlement && (
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                        Quitado em {formatDate(loan.settlement.date)} ·{' '}
+                        {formatCurrency(loan.settlement.amount)}
                       </p>
                     )}
                   </div>
@@ -179,7 +198,29 @@ export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments 
                     <span className="font-semibold text-slate-900 dark:text-slate-100">
                       {formatCurrency(isInstallmentLoan(loan) ? getOpenAmount(loan) : loan.amount)}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {getOpenAmount(loan) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => onSettleLoan(loan)}
+                          className="neu-btn-secondary px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                          aria-label={`Quitar ${loan.name}`}
+                        >
+                          <HandCoins size={14} />
+                          Quitar
+                        </button>
+                      )}
+                      {loan.settlement && (
+                        <button
+                          type="button"
+                          onClick={() => onUndoSettlement(loan)}
+                          className="neu-btn-secondary px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                          aria-label={`Desfazer quitação de ${loan.name}`}
+                        >
+                          <Undo2 size={14} />
+                          Desfazer
+                        </button>
+                      )}
                       {isInstallmentLoan(loan) && (
                         <button
                           type="button"

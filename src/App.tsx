@@ -14,7 +14,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { exportEntriesToCSV, formatCurrency, todayLocalISO } from './lib/format';
 import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
-import { monthKey } from './lib/loans';
+import { getInstallmentsToCancel, monthKey } from './lib/loans';
 import { logError } from './lib/logger';
 import { DISMISSED_ALERTS_KEY, WISHLIST_CATEGORY } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal, Loan, WishlistItem } from './types';
@@ -54,6 +54,10 @@ const CardExpenseModal = lazy(() =>
 
 const LoanModal = lazy(() =>
   import('./components/LoanModal').then((m) => ({ default: m.LoanModal }))
+);
+
+const LoanSettleModal = lazy(() =>
+  import('./components/LoanSettleModal').then((m) => ({ default: m.LoanSettleModal }))
 );
 
 const LoanInstallmentsModal = lazy(() =>
@@ -96,6 +100,7 @@ export default function App() {
   const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
 
   const [loanInstallmentsLoan, setLoanInstallmentsLoan] = useState<Loan | null>(null);
+  const [loanToSettle, setLoanToSettle] = useState<Loan | null>(null);
 
   const { wishlistItems, upsertWishlistItem, deleteWishlistItem } = useWishlist();
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
@@ -365,6 +370,8 @@ export default function App() {
           type: 'debt',
           createdAt: Date.now(),
           category: 'Empréstimos',
+          installmentsCount: installments.length,
+          installmentNumber: number,
         };
         void addOrUpdateEntry(entry, false);
         entryId = entry.id;
@@ -409,6 +416,11 @@ export default function App() {
       const installment = installments.find((i) => i.number === number);
       if (!installment || installment.cancelled === cancelled) return;
       if (cancelled && installment.paid) return;
+      // Depois da quitação as parcelas só voltam se a quitação for desfeita.
+      if (!cancelled && loan.settlement) {
+        showToast('Desfaça a quitação para reativar parcelas');
+        return;
+      }
 
       const nextInstallments = installments.map((i) =>
         i.number === number ? { ...i, cancelled } : i
@@ -427,6 +439,70 @@ export default function App() {
       );
     },
     [upsertLoan, showToast]
+  );
+
+  /**
+   * Quitar: paga o saldo de uma vez com o valor informado, lança a saída única
+   * na data do pagamento (abatendo o mês em Lançamentos) e cancela as parcelas
+   * que ainda estavam em aberto — o empréstimo fica sem saldo no Resumo.
+   */
+  const handleSettleLoan = useCallback(
+    (loan: Loan, amount: number, date: string) => {
+      const cancelledNumbers = getInstallmentsToCancel(loan).map((i) => i.number);
+      const entry: Entry = {
+        id: randomUUID(),
+        name: `${loan.name} — quitação`,
+        amount,
+        dueDate: date,
+        isPaid: true,
+        paidDate: date,
+        type: 'debt',
+        createdAt: Date.now(),
+        category: 'Empréstimos',
+      };
+      void addOrUpdateEntry(entry, false);
+
+      const nextLoan: Loan = {
+        ...loan,
+        paid: true,
+        installments: loan.installments?.map((i) =>
+          i.paid || i.cancelled ? i : { ...i, cancelled: true }
+        ),
+        settlement: { amount, date, entryId: entry.id, cancelledNumbers },
+      };
+      upsertLoan(nextLoan);
+      setLoanInstallmentsLoan(
+        loanInstallmentsLoan?.id === loan.id ? nextLoan : loanInstallmentsLoan
+      );
+      showToast(`Empréstimo quitado — ${formatCurrency(amount)} abatido do mês`);
+    },
+    [addOrUpdateEntry, upsertLoan, showToast, loanInstallmentsLoan]
+  );
+
+  /** Desfaz a quitação: remove a saída, devolve as parcelas canceladas e o saldo. */
+  const handleUndoSettlement = useCallback(
+    (loan: Loan) => {
+      const settlement = loan.settlement;
+      if (!settlement) return;
+      if (settlement.entryId) deleteEntry(settlement.entryId);
+
+      const restored = settlement.cancelledNumbers ?? [];
+      const nextInstallments = loan.installments?.map((i) =>
+        restored.includes(i.number) ? { ...i, cancelled: false } : i
+      );
+      const nextLoan: Loan = {
+        ...loan,
+        settlement: undefined,
+        installments: nextInstallments,
+        paid: nextInstallments ? nextInstallments.every((i) => i.paid) : false,
+      };
+      upsertLoan(nextLoan);
+      setLoanInstallmentsLoan(
+        loanInstallmentsLoan?.id === loan.id ? nextLoan : loanInstallmentsLoan
+      );
+      showToast('Quitação desfeita — empréstimo voltou a ficar em aberto');
+    },
+    [deleteEntry, upsertLoan, showToast, loanInstallmentsLoan]
   );
 
   /**
@@ -646,6 +722,8 @@ export default function App() {
                 setLoanModalOpen(true);
               }}
               onOpenLoanInstallments={(loan) => setLoanInstallmentsLoan(loan)}
+              onSettleLoan={(loan) => setLoanToSettle(loan)}
+              onUndoSettlement={handleUndoSettlement}
               wishlistItems={wishlistItems}
               onNewWishlistItem={() => {
                 setWishlistToEdit(null);
@@ -881,7 +959,17 @@ export default function App() {
           onTogglePaid={handleToggleLoanInstallmentPaid}
           onChangeDueDate={handleChangeLoanInstallmentDueDate}
           onToggleCancelled={handleToggleLoanInstallmentCancelled}
+          onSettleLoan={(loan) => setLoanToSettle(loan)}
           onClose={() => setLoanInstallmentsLoan(null)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <LoanSettleModal
+          open={loanToSettle !== null}
+          loan={loanToSettle}
+          onSettle={handleSettleLoan}
+          onClose={() => setLoanToSettle(null)}
         />
       </Suspense>
 

@@ -48,7 +48,14 @@ function card(label: string) {
 describe('LoansSection', () => {
   it('mostra o total em aberto e o total já pago', () => {
     render(
-      <LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} onOpenInstallments={noop} />
+      <LoansSection
+        loans={loans}
+        onNewLoan={noop}
+        onEditLoan={noop}
+        onOpenInstallments={noop}
+        onSettleLoan={noop}
+        onUndoSettlement={noop}
+      />
     );
 
     // Em aberto: 100 + 200 + 300 + 400 + 500 = 1500. Já pago: 1000.
@@ -58,7 +65,14 @@ describe('LoansSection', () => {
 
   it('soma por origem apenas o que está em aberto', () => {
     render(
-      <LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} onOpenInstallments={noop} />
+      <LoansSection
+        loans={loans}
+        onNewLoan={noop}
+        onEditLoan={noop}
+        onOpenInstallments={noop}
+        onSettleLoan={noop}
+        onUndoSettlement={noop}
+      />
     );
 
     // Pessoa física em aberto: 100+200+300+400+500 = 1500.
@@ -69,7 +83,14 @@ describe('LoansSection', () => {
 
   it('lista até 3 próximos vencimentos, em ordem, sem pagos nem vencidos', () => {
     render(
-      <LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} onOpenInstallments={noop} />
+      <LoansSection
+        loans={loans}
+        onNewLoan={noop}
+        onEditLoan={noop}
+        onOpenInstallments={noop}
+        onSettleLoan={noop}
+        onUndoSettlement={noop}
+      />
     );
 
     const heading = screen.getByText('Próximos vencimentos');
@@ -90,7 +111,14 @@ describe('LoansSection', () => {
 
   it('marca como vencido só o que não foi pago e tem data passada', () => {
     render(
-      <LoansSection loans={loans} onNewLoan={noop} onEditLoan={noop} onOpenInstallments={noop} />
+      <LoansSection
+        loans={loans}
+        onNewLoan={noop}
+        onEditLoan={noop}
+        onOpenInstallments={noop}
+        onSettleLoan={noop}
+        onUndoSettlement={noop}
+      />
     );
 
     const overdueItem = screen.getByText('Vencido').closest('li') as HTMLElement;
@@ -114,6 +142,8 @@ describe('LoansSection', () => {
         onNewLoan={noop}
         onEditLoan={noop}
         onOpenInstallments={noop}
+        onSettleLoan={noop}
+        onUndoSettlement={noop}
       />
     );
 

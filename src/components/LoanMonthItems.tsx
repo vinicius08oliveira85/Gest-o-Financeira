@@ -1,7 +1,7 @@
 import { ListOrdered } from 'lucide-react';
 import type { Loan } from '../types';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
-import { getLoanItemsForMonth } from '../lib/loans';
+import { getLoanItemsForMonth, getLoanMonthTotal } from '../lib/loans';
 
 const STATUS_LABELS = {
   pending: 'Pendente',
@@ -29,12 +29,18 @@ type Props = {
 export function LoanMonthItems({ loans, month, year, onOpenInstallments }: Props) {
   const items = getLoanItemsForMonth(loans, month, year, todayLocalISO());
   if (items.length === 0) return null;
+  const monthTotal = getLoanMonthTotal(items);
 
   return (
     <div className="section-stack">
-      <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-        Empréstimos do mês
-      </h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+          Empréstimos do mês
+        </h3>
+        <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+          -{formatCurrency(monthTotal)}
+        </span>
+      </div>
       <ul className="flex flex-col gap-2">
         {items.map((item) => (
           <li

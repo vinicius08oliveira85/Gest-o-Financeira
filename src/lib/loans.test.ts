@@ -7,10 +7,13 @@ import {
   formatDiscountPeriod,
   getDiscountPeriod,
   getEndingDiscounts,
+  getInstallmentsToCancel,
   getLoanItemsForMonth,
+  getLoanMonthTotal,
   getLoanPaidAmount,
   getLoanTotals,
   getNextDueDate,
+  getOpenAmount,
   isInstallmentLoan,
   monthsBetweenMonths,
 } from './loans';
@@ -135,6 +138,63 @@ describe('getLoanItemsForMonth', () => {
       { label: 'Moto', status: 'pending', amount: 500 },
     ]);
     expect(getLoanItemsForMonth([single], 9, 2026, today)).toHaveLength(0);
+  });
+});
+
+describe('quitação', () => {
+  const today = '2026-11-10';
+  const settled = loan({
+    id: 'quit',
+    name: 'Carro',
+    amount: 900,
+    installmentsCount: 3,
+    paid: true,
+    installments: [
+      { number: 1, amount: 300, dueDate: '2026-10-10', paid: true, entryId: 'e1' },
+      { number: 2, amount: 300, dueDate: '2026-11-10', paid: false, cancelled: true },
+      { number: 3, amount: 300, dueDate: '2026-12-10', paid: false, cancelled: true },
+    ],
+    settlement: { amount: 550, date: '2026-11-10', entryId: 'e2', cancelledNumbers: [2, 3] },
+  });
+
+  it('zera o saldo em aberto e registra o valor pago à vista', () => {
+    expect(getOpenAmount(settled)).toBe(0);
+    expect(getLoanTotals([settled], today)).toEqual({ open: 0, overdue: 0 });
+    // Já pago = parcela paga (300) + valor da quitação (550).
+    expect(getLoanPaidAmount(settled)).toBe(850);
+  });
+
+  it('não lista as parcelas canceladas pela quitação em Lançamentos', () => {
+    expect(getLoanItemsForMonth([settled], 10, 2026, today)).toHaveLength(0);
+    expect(getLoanItemsForMonth([settled], 11, 2026, today)).toHaveLength(0);
+  });
+
+  it('cancela só as parcelas em aberto', () => {
+    const open = loan({
+      id: 'aberto',
+      amount: 900,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 300, dueDate: '2026-10-10', paid: true },
+        { number: 2, amount: 300, dueDate: '2026-11-10', paid: false },
+        { number: 3, amount: 300, dueDate: '2026-12-10', paid: false, cancelled: true },
+      ],
+    });
+    expect(getInstallmentsToCancel(open).map((i) => i.number)).toEqual([2]);
+  });
+
+  it('soma o total do mês sem contar canceladas', () => {
+    const items = getLoanItemsForMonth(
+      [
+        loan({ id: 'a', name: 'A', amount: 100, dueDate: '2026-11-05' }),
+        loan({ id: 'b', name: 'B', amount: 250, dueDate: '2026-11-20' }),
+      ],
+      10,
+      2026,
+      today
+    );
+    expect(getLoanMonthTotal(items)).toBe(350);
+    expect(getLoanMonthTotal(items.filter((i) => i.status === 'overdue'))).toBe(100);
   });
 });
 

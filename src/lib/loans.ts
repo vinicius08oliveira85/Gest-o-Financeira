@@ -15,11 +15,16 @@ export function getOpenInstallments(loan: Loan): LoanInstallment[] {
   return isInstallmentLoan(loan) ? loan.installments!.filter((i) => !i.paid && !i.cancelled) : [];
 }
 
-/** Valor já pago do empréstimo (parcelas pagas ou o valor total, se quitado). */
+/**
+ * Valor já pago do empréstimo: parcelas pagas + valor da quitação (o que saiu do
+ * caixa de fato) ou, no pagamento único, o valor total quando pago.
+ */
 export function getLoanPaidAmount(loan: Loan): number {
-  if (isInstallmentLoan(loan)) {
-    return loan.installments!.filter((i) => i.paid).reduce((sum, i) => sum + i.amount, 0);
-  }
+  const paidInstallments = isInstallmentLoan(loan)
+    ? loan.installments!.filter((i) => i.paid).reduce((sum, i) => sum + i.amount, 0)
+    : 0;
+  if (loan.settlement) return paidInstallments + loan.settlement.amount;
+  if (isInstallmentLoan(loan)) return paidInstallments;
   return loan.paid ? loan.amount : 0;
 }
 
@@ -34,6 +39,8 @@ export function getLoanTotals(loans: Loan[], today: string): LoanTotals {
   let open = 0;
   let overdue = 0;
   for (const loan of loans) {
+    // Empréstimo quitado não tem saldo, independente das parcelas canceladas.
+    if (loan.settlement) continue;
     if (isInstallmentLoan(loan)) {
       for (const installment of loan.installments!) {
         if (installment.paid || installment.cancelled) continue;
@@ -51,6 +58,7 @@ export function getLoanTotals(loans: Loan[], today: string): LoanTotals {
 
 /** Quanto ainda falta pagar do empréstimo (parcelas em aberto ou o valor único). */
 export function getOpenAmount(loan: Loan): number {
+  if (loan.settlement) return 0;
   if (isInstallmentLoan(loan)) {
     return getOpenInstallments(loan).reduce((sum, i) => sum + i.amount, 0);
   }
@@ -104,8 +112,11 @@ export function getLoanItemsForMonth(
   for (const loan of loans) {
     if (isInstallmentLoan(loan)) {
       const count = loan.installments!.length;
+      const settledNumbers = loan.settlement?.cancelledNumbers ?? [];
       for (const installment of loan.installments!) {
         if (installment.paid || monthKey(installment.dueDate) !== prefix) continue;
+        // Parcelas canceladas pela quitação não são mais compromisso do mês.
+        if (settledNumbers.includes(installment.number)) continue;
         items.push({
           id: `${loan.id}-${installment.number}`,
           loan,
@@ -133,6 +144,21 @@ export function getLoanItemsForMonth(
   }
 
   return items.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+/**
+ * Soma do que ainda vai sair do caixa no mês (parcelas canceladas não contam):
+ * é o valor que aparece no total dos empréstimos do mês em Lançamentos.
+ */
+export function getLoanMonthTotal(items: LoanMonthItem[]): number {
+  return items
+    .filter((item) => item.status !== 'cancelled')
+    .reduce((sum, item) => sum + item.amount, 0);
+}
+
+/** Parcelas em aberto que a quitação cancela (as pagas continuam como estão). */
+export function getInstallmentsToCancel(loan: Loan): LoanInstallment[] {
+  return isInstallmentLoan(loan) ? loan.installments!.filter((i) => !i.paid && !i.cancelled) : [];
 }
 
 /** Próximo vencimento em aberto (parcela ou empréstimo único). */

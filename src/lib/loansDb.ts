@@ -14,6 +14,7 @@ export type LoanRow = {
   discount_end?: string | null;
   installments_count?: number | null;
   installments?: LoanInstallment[] | null;
+  settlement?: Loan['settlement'] | null;
   created_at?: string | null;
 };
 
@@ -33,6 +34,9 @@ export function rowToLoan(row: LoanRow): Loan {
     installments: Array.isArray(row.installments)
       ? row.installments.map((i) => ({ ...i, amount: Number(i.amount) }))
       : undefined,
+    settlement: row.settlement
+      ? { ...row.settlement, amount: Number(row.settlement.amount) }
+      : undefined,
   };
 }
 
@@ -50,6 +54,7 @@ export function loanToRow(
     discount_end: loan.discountEnd ?? null,
     installments_count: loan.installmentsCount ?? null,
     installments: loan.installments ?? null,
+    settlement: loan.settlement ?? null,
   };
 }
 

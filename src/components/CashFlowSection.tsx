@@ -91,6 +91,10 @@ type CashFlowSectionProps = {
   onNewLoan: () => void;
   onEditLoan: (loan: Loan) => void;
   onOpenLoanInstallments: (loan: Loan) => void;
+  /** Abre a quitação antecipada do empréstimo. */
+  onSettleLoan: (loan: Loan) => void;
+  /** Desfaz uma quitação já registrada. */
+  onUndoSettlement: (loan: Loan) => void;
   wishlistItems: WishlistItem[];
   onNewWishlistItem: () => void;
   onEditWishlistItem: (item: WishlistItem) => void;
@@ -154,6 +158,8 @@ export function CashFlowSection({
   onNewLoan,
   onEditLoan,
   onOpenLoanInstallments,
+  onSettleLoan,
+  onUndoSettlement,
   wishlistItems,
   onNewWishlistItem,
   onEditWishlistItem,
@@ -509,6 +515,8 @@ export function CashFlowSection({
               onNewLoan={onNewLoan}
               onEditLoan={onEditLoan}
               onOpenInstallments={onOpenLoanInstallments}
+              onSettleLoan={onSettleLoan}
+              onUndoSettlement={onUndoSettlement}
             />
           </section>
         )}

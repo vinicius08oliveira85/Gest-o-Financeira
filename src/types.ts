@@ -87,6 +87,18 @@ export interface LoanInstallment {
   entryId?: string;
 }
 
+/** Quitação antecipada: paga o saldo de uma vez e cancela as parcelas seguintes. */
+export interface LoanSettlement {
+  /** Valor efetivamente pago à vista */
+  amount: number;
+  /** Data do pagamento, ISO date */
+  date: string;
+  /** id do lançamento de saída criado na quitação */
+  entryId?: string;
+  /** Parcelas canceladas pela quitação (permite desfazer) */
+  cancelledNumbers?: number[];
+}
+
 export interface Loan {
   id: string;
   name: string;
@@ -108,6 +120,8 @@ export interface Loan {
   installmentsCount?: number;
   /** Parcelas geradas quando `installmentsCount` > 1 */
   installments?: LoanInstallment[];
+  /** Preenchido quando o empréstimo foi quitado antecipadamente */
+  settlement?: LoanSettlement;
 }
 
 /** Item da lista de desejos (o que se pretende comprar) */
