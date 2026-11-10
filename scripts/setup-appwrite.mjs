@@ -57,21 +57,37 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function api(method, path, body) {
-  const res = await fetch(`${endpoint}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const text = await res.text();
-  const json = text ? JSON.parse(text) : null;
-  if (!res.ok) {
-    const error = new Error(`${method} ${path} → ${res.status} ${json?.message ?? res.statusText}`);
+  for (let attempt = 1; ; attempt += 1) {
+    const res = await fetch(`${endpoint}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await res.text();
+    let json = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+    if (res.ok) return json;
+
+    // O Appwrite/Cloudflare devolve HTML em 429/5xx; vale a pena tentar de novo.
+    if ((res.status === 429 || res.status >= 500) && attempt <= 5) {
+      await sleep(600 * attempt);
+      continue;
+    }
+
+    const detail =
+      json?.message || text.slice(0, 160).replace(/\s+/g, ' ').trim() || res.statusText;
+    const error = new Error(`${method} ${path} → ${res.status} ${detail}`);
     error.status = res.status;
     error.type = json?.type;
     throw error;
   }
-  return json;
 }
 
 /** Ignora "já existe" para o script poder rodar quantas vezes quiser. */
@@ -252,6 +268,68 @@ async function ensureDatabase() {
   );
 }
 
+async function waitForAttribute(collectionId, key, timeoutMs = 60000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const attribute = await api(
+      'GET',
+      `/databases/${databaseId}/collections/${collectionId}/attributes/${key}`
+    );
+    if (attribute?.status === 'available') return;
+    if (attribute?.status === 'failed') {
+      throw new Error(
+        `Atributo ${collectionId}.${key} falhou: ${attribute.error || 'erro desconhecido'}`
+      );
+    }
+    await sleep(400);
+  }
+  throw new Error(`Atributo ${collectionId}.${key} não ficou disponível a tempo.`);
+}
+
+/** Cria o atributo se ainda não existir e espera ele ficar disponível. */
+async function ensureAttribute(collectionId, attribute) {
+  const { type, required = false, default: def = null, ...rest } = attribute;
+  // O Appwrite expõe o atributo double na rota /attributes/float.
+  const route = type === 'double' ? 'float' : type;
+  // O Appwrite recusa default em atributo obrigatório; nos obrigatórios o app
+  // sempre envia o valor, então o default só faz sentido nos opcionais.
+  const body = required ? { ...rest, required } : { ...rest, required, default: def };
+  const label = `atributo ${collectionId}.${attribute.key} (${type})`;
+  try {
+    await api(
+      'GET',
+      `/databases/${databaseId}/collections/${collectionId}/attributes/${attribute.key}`
+    );
+    console.log(`  = ${label} (já existe)`);
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    await createOrIgnore(label, () =>
+      api('POST', `/databases/${databaseId}/collections/${collectionId}/attributes/${route}`, body)
+    );
+  }
+  await waitForAttribute(collectionId, attribute.key);
+}
+
+/** Cria o índice se ainda não existir. */
+async function ensureIndex(collectionId, index) {
+  const label = `índice ${collectionId}.${index.key}`;
+  try {
+    await api('GET', `/databases/${databaseId}/collections/${collectionId}/indexes/${index.key}`);
+    console.log(`  = ${label} (já existe)`);
+    return;
+  } catch (error) {
+    if (error.status !== 404) throw error;
+  }
+  await createOrIgnore(label, () =>
+    api('POST', `/databases/${databaseId}/collections/${collectionId}/indexes`, {
+      key: index.key,
+      type: 'key',
+      attributes: index.attributes,
+      orders: index.orders,
+    })
+  );
+}
+
 async function ensureCollection(collection) {
   console.log(`Coleção "${collection.id}"`);
   await createOrIgnore(`collection ${collection.id}`, () =>
@@ -265,21 +343,11 @@ async function ensureCollection(collection) {
   );
 
   for (const attribute of collection.attributes) {
-    const { type, ...body } = attribute;
-    await createOrIgnore(`atributo ${collection.id}.${attribute.key} (${type})`, () =>
-      api('POST', `/databases/${databaseId}/collections/${collection.id}/attributes/${type}`, body)
-    );
+    await ensureAttribute(collection.id, attribute);
   }
 
   for (const index of collection.indexes) {
-    await createOrIgnore(`índice ${collection.id}.${index.key}`, () =>
-      api('POST', `/databases/${databaseId}/collections/${collection.id}/indexes`, {
-        key: index.key,
-        type: 'key',
-        attributes: index.attributes,
-        orders: index.orders,
-      })
-    );
+    await ensureIndex(collection.id, index);
   }
 }
 
