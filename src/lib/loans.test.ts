@@ -2,10 +2,15 @@ import { describe, it, expect } from 'vitest';
 import {
   addMonthsISO,
   buildInstallments,
+  buildInstallmentsForPeriod,
+  dateInMonth,
+  formatDiscountPeriod,
+  getDiscountPeriod,
   getLoanPaidAmount,
   getLoanTotals,
   getNextDueDate,
   isInstallmentLoan,
+  monthsBetweenMonths,
 } from './loans';
 import type { Loan } from '../types';
 
@@ -28,6 +33,45 @@ describe('addMonthsISO', () => {
 
   it('ajusta para o último dia do mês quando o dia não existe', () => {
     expect(addMonthsISO('2026-01-31', 1)).toBe('2026-02-28');
+  });
+});
+
+describe('período do desconto', () => {
+  it('conta os meses incluindo início e fim', () => {
+    expect(monthsBetweenMonths('2026-11', '2027-01')).toBe(3);
+    expect(monthsBetweenMonths('2026-11', '2027-11')).toBe(13);
+    expect(monthsBetweenMonths('2027-01', '2026-12')).toBe(0);
+  });
+
+  it('ajusta o dia ao último dia do mês', () => {
+    expect(dateInMonth('2026-02', 31)).toBe('2026-02-28');
+    expect(dateInMonth('2026-11', 10)).toBe('2026-11-10');
+  });
+
+  it('gera uma parcela por mês do período de desconto', () => {
+    const installments = buildInstallmentsForPeriod(1000, '2026-11', '2027-01', 10);
+
+    expect(installments).toHaveLength(3);
+    expect(installments.map((i) => i.dueDate)).toEqual(['2026-11-10', '2026-12-10', '2027-01-10']);
+    expect(installments.reduce((sum, i) => sum + i.amount, 0)).toBeCloseTo(1000, 2);
+  });
+
+  it('mostra o período registrado e deduz o das parcelas antigas', () => {
+    const withPeriod = loan({ id: 'p', discountStart: '2026-11', discountEnd: '2027-01' });
+    expect(getDiscountPeriod(withPeriod)).toEqual({ start: '2026-11', end: '2027-01' });
+    expect(formatDiscountPeriod(withPeriod)).toBe('nov/2026 até jan/2027');
+
+    const legacy = loan({
+      id: 'l',
+      installmentsCount: 2,
+      installments: buildInstallments(100, 2, '2026-12-05'),
+    });
+    expect(formatDiscountPeriod(legacy)).toBe('dez/2026 até jan/2027');
+
+    expect(formatDiscountPeriod(loan({ id: 'n' }))).toBeNull();
+    expect(formatDiscountPeriod(loan({ id: 's', discountStart: '2026-11' }))).toBe(
+      'nov/2026 em diante'
+    );
   });
 });
 

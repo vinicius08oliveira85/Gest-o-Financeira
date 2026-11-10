@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import type { Loan, LoanSourceType } from '../types';
+import type { Loan, LoanInstallment, LoanSourceType } from '../types';
 import { ModalShell } from './ModalShell';
 import {
   formatCurrencyForInput,
@@ -8,7 +8,13 @@ import {
   parseCurrencyInput,
 } from '../lib/currencyInput';
 import { formatCurrency, todayLocalISO } from '../lib/format';
-import { buildInstallments } from '../lib/loans';
+import {
+  addMonthsToMonth,
+  buildInstallmentsForPeriod,
+  formatMonthLabel,
+  monthKey,
+  monthsBetweenMonths,
+} from '../lib/loans';
 
 const MODAL_TITLE_ID = 'loan-modal-title';
 
@@ -33,19 +39,32 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
   const [dueDate, setDueDate] = React.useState('');
   const [paid, setPaid] = React.useState(false);
   const [isInstallment, setIsInstallment] = React.useState(false);
-  const [installmentsCount, setInstallmentsCount] = React.useState('12');
+  const [discountStart, setDiscountStart] = React.useState('');
+  const [discountEnd, setDiscountEnd] = React.useState('');
+  const [dueDay, setDueDay] = React.useState('10');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   useEffect(() => {
+    const today = todayLocalISO();
     setName(loan?.name ?? '');
     setAmount(loan ? formatCurrencyForInput(loan.amount) : '');
     setSourceType(loan?.sourceType ?? 'pessoa_fisica');
     setSourceName(loan?.sourceName ?? '');
-    setDueDate(loan?.dueDate ?? todayLocalISO());
+    setDueDate(loan?.dueDate ?? today);
     setPaid(loan?.paid ?? false);
     const count = loan?.installmentsCount ?? 1;
     setIsInstallment(count > 1);
-    setInstallmentsCount(String(count > 1 ? count : 12));
+
+    // Período do desconto: o registrado ou, na falta dele, o das parcelas.
+    const dates = (loan?.installments ?? []).map((i) => i.dueDate).sort();
+    const fallbackDue = dates[0] ?? loan?.dueDate ?? today;
+    const start = loan?.discountStart ?? monthKey(fallbackDue);
+    const end =
+      loan?.discountEnd ??
+      (dates.length > 0 ? monthKey(dates[dates.length - 1]) : addMonthsToMonth(start, 11));
+    setDiscountStart(start);
+    setDiscountEnd(end);
+    setDueDay(String(Number(fallbackDue.slice(8, 10))));
     setErrors({});
   }, [loan, open]);
 
@@ -63,12 +82,17 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     if (!name.trim()) errs.name = 'Nome obrigatório';
     const value = parseCurrencyInput(amount);
     if (value === null || value <= 0) errs.amount = 'Informe um valor válido';
-    if (!dueDate) errs.dueDate = 'Informe a data';
+    if (!isInstallment && !dueDate) errs.dueDate = 'Informe a data';
     if (isInstallment) {
-      const count = Number(installmentsCount);
-      if (!Number.isInteger(count) || count < 2 || count > 120) {
-        errs.installmentsCount = 'Informe de 2 a 120 parcelas';
+      if (!discountStart) errs.discountStart = 'Informe o início';
+      if (!discountEnd) errs.discountEnd = 'Informe o fim';
+      if (discountStart && discountEnd) {
+        const months = monthsBetweenMonths(discountStart, discountEnd);
+        if (months < 2) errs.discountEnd = 'O fim precisa ser depois do início';
+        else if (months > 120) errs.discountEnd = 'No máximo 120 parcelas';
       }
+      const day = Number(dueDay);
+      if (!Number.isInteger(day) || day < 1 || day > 31) errs.dueDay = 'Dia de 1 a 31';
     }
     return errs;
   }
@@ -81,10 +105,18 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
       return;
     }
     const total = parseCurrencyInput(amount) ?? 0;
-    const count = isInstallment ? Number(installmentsCount) : 1;
-    // Parcelas já pagas são preservadas por `buildInstallments`.
-    const installments =
-      count > 1 ? buildInstallments(total, count, dueDate, loan?.installments ?? []) : undefined;
+    // No parcelado o período do desconto define as parcelas (uma por mês).
+    // Parcelas já pagas são preservadas por `buildInstallmentsForPeriod`.
+    const installments: LoanInstallment[] | undefined = isInstallment
+      ? buildInstallmentsForPeriod(
+          total,
+          discountStart,
+          discountEnd,
+          Number(dueDay),
+          loan?.installments ?? []
+        )
+      : undefined;
+    const count = installments?.length ?? 1;
 
     onSave({
       id: loan?.id,
@@ -92,9 +124,11 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
       amount: total,
       sourceType,
       sourceName: sourceName.trim() || undefined,
-      dueDate,
+      dueDate: installments ? installments[0].dueDate : dueDate,
       // Num parcelado, "pago" significa todas as parcelas pagas.
       paid: installments ? installments.every((i) => i.paid) : paid,
+      discountStart: discountStart || undefined,
+      discountEnd: discountEnd || undefined,
       installmentsCount: count > 1 ? count : undefined,
       installments,
     });
@@ -102,7 +136,9 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
   }
 
   const previewTotal = parseCurrencyInput(amount);
-  const previewCount = Number(installmentsCount);
+  const previewMonths =
+    discountStart && discountEnd ? monthsBetweenMonths(discountStart, discountEnd) : 0;
+  const previewValid = previewMonths >= 2 && previewMonths <= 120;
 
   const inputClass =
     'w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 transition-all';
@@ -216,48 +252,88 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
           </div>
         </div>
 
-        {isInstallment && (
+        <div>
+          <span className={labelClass}>Período do desconto</span>
+          <div className="grid grid-cols-2 gap-2 mt-1">
+            <div>
+              <label
+                htmlFor="loan-discount-start"
+                className="block text-[0.7rem] text-slate-500 dark:text-slate-400 mb-1"
+              >
+                Início
+              </label>
+              <input
+                id="loan-discount-start"
+                type="month"
+                value={discountStart}
+                onChange={(e) => setDiscountStart(e.target.value)}
+                className={inputClass + (errors.discountStart ? ' border-red-400' : '')}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="loan-discount-end"
+                className="block text-[0.7rem] text-slate-500 dark:text-slate-400 mb-1"
+              >
+                Fim
+              </label>
+              <input
+                id="loan-discount-end"
+                type="month"
+                value={discountEnd}
+                onChange={(e) => setDiscountEnd(e.target.value)}
+                className={inputClass + (errors.discountEnd ? ' border-red-400' : '')}
+              />
+            </div>
+          </div>
+          {(errors.discountStart || errors.discountEnd) && (
+            <p className={errorClass}>{errors.discountStart ?? errors.discountEnd}</p>
+          )}
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {isInstallment
+              ? 'As parcelas caem uma por mês, do início ao fim do desconto.'
+              : 'Opcional: quando o valor começa e termina de ser descontado (ex.: empréstimo do trabalhador).'}
+          </p>
+        </div>
+
+        {isInstallment ? (
           <div>
-            <label htmlFor="loan-installments" className={labelClass}>
-              Número de parcelas
+            <label htmlFor="loan-installment-day" className={labelClass}>
+              Dia do vencimento
             </label>
             <input
-              id="loan-installments"
+              id="loan-installment-day"
               type="number"
-              min={2}
-              max={120}
+              min={1}
+              max={31}
               inputMode="numeric"
-              value={installmentsCount}
-              onChange={(e) => setInstallmentsCount(e.target.value)}
-              className={inputClass + (errors.installmentsCount ? ' border-red-400' : '')}
+              value={dueDay}
+              onChange={(e) => setDueDay(e.target.value)}
+              className={inputClass + (errors.dueDay ? ' border-red-400' : '')}
             />
-            {errors.installmentsCount && <p className={errorClass}>{errors.installmentsCount}</p>}
-            {previewTotal !== null && previewCount >= 2 && (
+            {errors.dueDay && <p className={errorClass}>{errors.dueDay}</p>}
+            {previewTotal !== null && previewValid && (
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {previewCount}x de aproximadamente {formatCurrency(previewTotal / previewCount)}
+                {previewMonths}x de aproximadamente {formatCurrency(previewTotal / previewMonths)} ·
+                desconto de {formatMonthLabel(discountStart)} até {formatMonthLabel(discountEnd)}
               </p>
             )}
           </div>
+        ) : (
+          <div>
+            <label htmlFor="loan-due" className={labelClass}>
+              Data prevista de pagamento
+            </label>
+            <input
+              id="loan-due"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className={inputClass + (errors.dueDate ? ' border-red-400' : '')}
+            />
+            {errors.dueDate && <p className={errorClass}>{errors.dueDate}</p>}
+          </div>
         )}
-
-        <div>
-          <label htmlFor="loan-due" className={labelClass}>
-            {isInstallment ? 'Vencimento da 1ª parcela' : 'Data prevista de pagamento'}
-          </label>
-          <input
-            id="loan-due"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className={inputClass + (errors.dueDate ? ' border-red-400' : '')}
-          />
-          {errors.dueDate && <p className={errorClass}>{errors.dueDate}</p>}
-          {isInstallment && (
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              As demais parcelas vencem mês a mês a partir desta data.
-            </p>
-          )}
-        </div>
 
         {!isInstallment && (
           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">

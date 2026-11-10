@@ -14,6 +14,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { exportEntriesToCSV, formatCurrency, todayLocalISO } from './lib/format';
 import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
+import { monthKey } from './lib/loans';
 import { logError } from './lib/logger';
 import { DISMISSED_ALERTS_KEY, WISHLIST_CATEGORY } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal, Loan, WishlistItem } from './types';
@@ -410,9 +411,16 @@ export default function App() {
         if (entry) void addOrUpdateEntry({ ...entry, dueDate }, true);
       }
 
+      const nextInstallments = installments.map((i) =>
+        i.number === number ? { ...i, dueDate } : i
+      );
+      // O período do desconto acompanha a primeira e a última parcela.
+      const dates = nextInstallments.map((i) => i.dueDate).sort();
       const nextLoan: Loan = {
         ...loan,
-        installments: installments.map((i) => (i.number === number ? { ...i, dueDate } : i)),
+        installments: nextInstallments,
+        discountStart: monthKey(dates[0]),
+        discountEnd: monthKey(dates[dates.length - 1]),
       };
       upsertLoan(nextLoan);
       setLoanInstallmentsLoan(nextLoan);

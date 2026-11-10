@@ -70,6 +70,94 @@ export function addMonthsISO(isoDate: string, months: number): string {
   ).padStart(2, '0')}`;
 }
 
+const MONTH_LABELS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+/** Mês (YYYY-MM) de uma data ISO. */
+export function monthKey(isoDate: string): string {
+  return isoDate.slice(0, 7);
+}
+
+/** Soma meses a um mês YYYY-MM. */
+export function addMonthsToMonth(month: string, months: number): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const base = new Date(year, monthNumber - 1 + months, 1);
+  return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Meses do período contando o início e o fim (nov/2026 a jan/2027 = 3). */
+export function monthsBetweenMonths(startMonth: string, endMonth: string): number {
+  const [startYear, startMonthNumber] = startMonth.split('-').map(Number);
+  const [endYear, endMonthNumber] = endMonth.split('-').map(Number);
+  return (endYear - startYear) * 12 + (endMonthNumber - startMonthNumber) + 1;
+}
+
+/** 'nov/2026' a partir de 'YYYY-MM'. */
+export function formatMonthLabel(month: string): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+  return `${MONTH_LABELS[monthNumber - 1]}/${year}`;
+}
+
+/** Data ISO do dia informado dentro do mês, ajustada ao último dia do mês. */
+export function dateInMonth(month: string, day: number): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const lastDay = new Date(year, monthNumber, 0).getDate();
+  const safeDay = Math.max(1, Math.min(Math.trunc(day) || 1, lastDay));
+  return `${month}-${String(safeDay).padStart(2, '0')}`;
+}
+
+/**
+ * Gera as parcelas a partir do período do desconto: uma parcela por mês, do mês
+ * de início ao mês de fim, todas vencendo no dia informado (ajustado em meses
+ * mais curtos).
+ */
+export function buildInstallmentsForPeriod(
+  total: number,
+  startMonth: string,
+  endMonth: string,
+  day: number,
+  previous: LoanInstallment[] = []
+): LoanInstallment[] {
+  const count = Math.max(1, monthsBetweenMonths(startMonth, endMonth));
+  return buildInstallments(total, count, dateInMonth(startMonth, day), previous);
+}
+
+/**
+ * Período do desconto do empréstimo: usa o registrado e, se não houver, deduz
+ * das parcelas (do primeiro ao último vencimento).
+ */
+export function getDiscountPeriod(loan: Loan): { start: string; end?: string } | null {
+  if (loan.discountStart) return { start: loan.discountStart, end: loan.discountEnd };
+  if (isInstallmentLoan(loan)) {
+    const dates = loan.installments!.map((i) => i.dueDate).sort();
+    if (dates.length === 0) return null;
+    return { start: monthKey(dates[0]), end: monthKey(dates[dates.length - 1]) };
+  }
+  return null;
+}
+
+/** Texto do período do desconto (ex.: 'nov/2026 até jan/2027'). */
+export function formatDiscountPeriod(loan: Loan): string | null {
+  const period = getDiscountPeriod(loan);
+  if (!period) return null;
+  if (!period.end || period.end === period.start) {
+    return `${formatMonthLabel(period.start)} em diante`;
+  }
+  return `${formatMonthLabel(period.start)} até ${formatMonthLabel(period.end)}`;
+}
+
 /**
  * Gera as parcelas de um empréstimo: divide o total em centavos (a sobra vai para
  * as primeiras parcelas, então a soma fecha exatamente com o valor total) e

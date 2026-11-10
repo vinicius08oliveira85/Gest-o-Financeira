@@ -1837,3 +1837,15 @@ alter table public.loans
   add column if not exists installments jsonb;
 
 notify pgrst, 'reload schema';
+
+-- ===== 20261110000004_loans_discount_period.sql =====
+-- Período do desconto (início e fim, YYYY-MM): no parcelado define as parcelas;
+-- no empréstimo do trabalhador registra de quando até quando há desconto.
+
+alter table public.loans
+  add column if not exists discount_start text;
+
+alter table public.loans
+  add column if not exists discount_end text;
+
+notify pgrst, 'reload schema';

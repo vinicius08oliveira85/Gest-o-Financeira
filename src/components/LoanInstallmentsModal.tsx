@@ -3,7 +3,7 @@ import { Check, RotateCcw, X } from 'lucide-react';
 import type { Loan } from '../types';
 import { ModalShell } from './ModalShell';
 import { formatCurrency, formatDate } from '../lib/format';
-import { getLoanPaidAmount, isInstallmentLoan } from '../lib/loans';
+import { formatDiscountPeriod, getLoanPaidAmount, isInstallmentLoan } from '../lib/loans';
 
 const MODAL_TITLE_ID = 'loan-installments-title';
 
@@ -35,6 +35,7 @@ export function LoanInstallmentsModal({
 
   const installments = loan?.installments ?? [];
   const paidCount = installments.filter((i) => i.paid).length;
+  const discount = loan ? formatDiscountPeriod(loan) : null;
 
   const inputClass = 'neu-input rounded-lg px-2 py-1 text-xs text-slate-900 dark:text-slate-100';
 
@@ -61,6 +62,9 @@ export function LoanInstallmentsModal({
                 {formatCurrency(loan.amount)} · {paidCount}/{installments.length} parcelas pagas ·{' '}
                 {formatCurrency(getLoanPaidAmount(loan))} pago
               </p>
+              {discount && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">Desconto: {discount}</p>
+              )}
             </div>
 
             <p className="info-bar">

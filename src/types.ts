@@ -98,6 +98,10 @@ export interface Loan {
   /** Já foi pago (num parcelado: todas as parcelas pagas) */
   paid: boolean;
   createdAt: number;
+  /** Mês em que o desconto começa, YYYY-MM */
+  discountStart?: string;
+  /** Mês em que o desconto termina, YYYY-MM (ausente = segue até quitar) */
+  discountEnd?: string;
   /** Número de parcelas; ausente ou 1 = pagamento único */
   installmentsCount?: number;
   /** Parcelas geradas quando `installmentsCount` > 1 */

@@ -3,6 +3,7 @@ import type { Loan, LoanSourceType } from '../types';
 import { EmptyState } from './EmptyState';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
 import {
+  formatDiscountPeriod,
   getLoanPaidAmount,
   getLoanTotals,
   getNextDueDate,
@@ -124,6 +125,7 @@ export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments 
             {sorted.map((loan) => {
               const paidCount = loan.installments?.filter((i) => i.paid).length ?? 0;
               const count = loan.installments?.length ?? 1;
+              const discount = formatDiscountPeriod(loan);
               return (
                 <li
                   key={loan.id}
@@ -147,6 +149,11 @@ export function LoansSection({ loans, onNewLoan, onEditLoan, onOpenInstallments 
                         ? `${paidCount}/${count} parcelas pagas`
                         : `Pagar em ${formatDate(loan.dueDate)}`}
                     </p>
+                    {discount && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Desconto: {discount}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <span className="font-semibold text-slate-900 dark:text-slate-100">
