@@ -478,10 +478,7 @@ export function useEntries() {
     [filter, selectedCategory, searchQuery, sortBy, sortOrder]
   );
 
-  /** Todos os meses: alimenta a lista da aba Lançamentos. */
-  const listEntries = useMemo(() => applyListFilters(entries), [entries, applyListFilters]);
-
-  /** Só o mês selecionado: alimenta o calendário. */
+  /** Só o mês selecionado: alimenta a lista e o calendário da aba Lançamentos. */
   const filteredEntries = useMemo(
     () =>
       applyListFilters(
@@ -838,7 +835,6 @@ export function useEntries() {
     goToPreviousMonth,
     goToNextMonth,
     goToCurrentMonth,
-    listEntries,
     filteredEntries,
     entriesDoMes,
     totalEntradasLancadas,

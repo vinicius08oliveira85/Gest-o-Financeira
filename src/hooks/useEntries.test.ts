@@ -78,7 +78,7 @@ describe('useEntries', () => {
     expect(result.current.filteredEntries).toHaveLength(60);
   });
 
-  it('a lista da aba Lançamentos mostra lançamentos de todos os meses', async () => {
+  it('a lista da aba Lançamentos mostra apenas o mês selecionado', async () => {
     const { isSupabaseConfigured } = await import('../lib/supabase');
     vi.mocked(isSupabaseConfigured).mockReturnValue(false);
     const multi: Entry[] = [
@@ -120,13 +120,13 @@ describe('useEntries', () => {
       act(() => (steps > 0 ? result.current.goToNextMonth() : result.current.goToPreviousMonth()));
     }
 
-    // Calendário: só fevereiro/março de 2025 (mês selecionado = março → 1 item).
+    // Lista e calendário: só março de 2025 (1 item); janeiro e julho ficam fora.
     expect(result.current.filteredEntries.map((e) => e.id)).toEqual(['b']);
-    // Lista: todos, independente do mês.
-    expect(result.current.listEntries).toHaveLength(3);
+    expect(result.current.entriesDoMes.map((e) => e.id)).toEqual(['b']);
 
+    // O filtro de status não pode trazer de volta meses não selecionados.
     act(() => result.current.setFilter('paid'));
-    expect(result.current.listEntries.map((e) => e.id)).toEqual(['c']);
+    expect(result.current.filteredEntries).toHaveLength(0);
   });
 
   beforeEach(() => {

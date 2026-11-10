@@ -106,7 +106,6 @@ export default function App() {
     goToPreviousMonth,
     goToNextMonth,
     goToCurrentMonth,
-    listEntries,
     filteredEntries,
     entriesDoMes,
     totalEntradasLancadasMes,
@@ -394,9 +393,8 @@ export default function App() {
               setSortOrder={setSortOrder}
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
-              listEntries={listEntries}
               filteredEntries={filteredEntries}
-              entriesCount={entries.length}
+              entriesCount={entriesDoMes.length}
               availableCategories={availableCategories}
               viewMode={viewMode}
               setViewMode={setViewMode}

@@ -49,10 +49,9 @@ type CashFlowSectionProps = {
   setSortOrder: (s: 'asc' | 'desc') => void;
   selectedCategory: string;
   setSelectedCategory: (c: string) => void;
-  /** Todos os lançamentos após filtros, de qualquer mês (aba Lançamentos). */
-  listEntries: Entry[];
-  /** Só o mês selecionado (calendário). */
+  /** Só o mês selecionado, após busca/filtros (aba Lançamentos e calendário). */
   filteredEntries: Entry[];
+  /** Total de lançamentos do mês selecionado, antes dos filtros. */
   entriesCount: number;
   availableCategories: string[];
   viewMode: 'list' | 'calendar';
@@ -110,7 +109,6 @@ export function CashFlowSection({
   setSortOrder,
   selectedCategory,
   setSelectedCategory,
-  listEntries,
   filteredEntries,
   entriesCount,
   availableCategories,
@@ -339,7 +337,7 @@ export function CashFlowSection({
               <FilterBar
                 filter={filter}
                 onFilterChange={setFilter}
-                filteredCount={listEntries.length}
+                filteredCount={filteredEntries.length}
                 totalCount={entriesCount}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -378,16 +376,16 @@ export function CashFlowSection({
             </div>
             {viewMode === 'list' ? (
               <EntryList
-                entries={listEntries}
+                entries={filteredEntries}
                 onTogglePaid={onTogglePaid}
                 onEdit={onEdit}
                 onDeleteRequest={(id) => {
-                  const entry = listEntries.find((e) => e.id === id);
+                  const entry = filteredEntries.find((e) => e.id === id);
                   if (entry) onDeleteRequest(entry);
                 }}
                 compact
                 groupByDate
-                filtered={entriesCount > 0 && listEntries.length === 0}
+                filtered={entriesCount > 0 && filteredEntries.length === 0}
                 onClearFilters={() => {
                   setFilter('all');
                   setSearchQuery('');
