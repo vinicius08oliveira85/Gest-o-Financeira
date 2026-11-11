@@ -134,6 +134,100 @@ export function buildInvoiceEntry(
   };
 }
 
+/**
+ * Ao regravar uma fatura do mesmo ciclo (o total mudou), preserva o que já foi
+ * registrado: status de pagamento, data do pagamento e data de criação — usada
+ * na ordenação e na paginação do Appwrite. Sem fatura anterior, devolve a nova.
+ */
+export function preserveInvoiceState(next: Entry, existing?: Entry): Entry {
+  if (!existing) return next;
+  return {
+    ...next,
+    createdAt: existing.createdAt,
+    isPaid: existing.isPaid,
+    paidDate: existing.paidDate,
+  };
+}
+
+/** Fatura já registrada de um ciclo do cartão (sem depender de fechamento/vencimento). */
+export function findInvoiceEntryForCardCycle(
+  entries: Entry[],
+  cardId: string,
+  billingMonth: number,
+  billingYear: number
+): Entry | undefined {
+  return findInvoiceEntryForCycle(entries, cardId, billingMonth, billingYear, 0, 0);
+}
+
+export type InvoiceSyncAction =
+  | { type: 'update'; entry: Entry; amount: number }
+  | { type: 'delete'; entry: Entry };
+
+type CycleTotal = { cardId: string; month: number; year: number; cents: number };
+
+/** Soma os gastos por cartão/ciclo em centavos (evita erro de ponto flutuante). */
+function totalsByCycle(expenses: CardExpense[]): Map<string, CycleTotal> {
+  const totals = new Map<string, CycleTotal>();
+  for (const expense of expenses) {
+    const key = `${expense.cardId}|${expense.billingYear}-${expense.billingMonth}`;
+    const amountCents = Math.round(expense.amount * 100);
+    const found = totals.get(key);
+    if (found) found.cents += amountCents;
+    else
+      totals.set(key, {
+        cardId: expense.cardId,
+        month: expense.billingMonth,
+        year: expense.billingYear,
+        cents: amountCents,
+      });
+  }
+  return totals;
+}
+
+/**
+ * O que fazer com as faturas JÁ registradas depois de um gasto ser criado,
+ * editado ou excluído:
+ *  - ciclo com gastos: a fatura acompanha a soma (o lançamento guarda o
+ *    pagamento e a data de criação — só o valor muda);
+ *  - ciclo que zerou: a fatura em aberto sai do fluxo; a paga fica como
+ *    histórico, porque o dinheiro já saiu do caixa.
+ *
+ * `previousExpenses` é a lista de antes da mudança: comparar antes/depois evita
+ * apagar faturas quando os gastos ainda não carregaram (as duas listas vazias).
+ */
+export function planInvoiceSync(
+  invoices: Entry[],
+  expenses: CardExpense[],
+  previousExpenses: CardExpense[]
+): InvoiceSyncAction[] {
+  const actions: InvoiceSyncAction[] = [];
+  const cycles = totalsByCycle(expenses);
+
+  for (const cycle of cycles.values()) {
+    if (cycle.cents === 0) continue;
+    const invoice = findInvoiceEntryForCardCycle(invoices, cycle.cardId, cycle.month, cycle.year);
+    if (!invoice) continue;
+    if (cycle.cents === Math.round(invoice.amount * 100)) continue;
+    actions.push({ type: 'update', entry: invoice, amount: cycle.cents / 100 });
+  }
+
+  for (const [key, previous] of totalsByCycle(previousExpenses)) {
+    if (previous.cents === 0) continue;
+    if ((cycles.get(key)?.cents ?? 0) !== 0) continue;
+    const invoice = findInvoiceEntryForCardCycle(
+      invoices,
+      previous.cardId,
+      previous.month,
+      previous.year
+    );
+    if (!invoice || invoice.isPaid) continue;
+    if (actions.some((action) => action.entry.id === invoice.id)) continue;
+    actions.push({ type: 'delete', entry: invoice });
+  }
+
+  return actions;
+}
+
 export type CardExpenseInstallmentInput = {
   cardId: string;
   name: string;

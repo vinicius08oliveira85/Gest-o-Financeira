@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { MotionConfig } from 'motion/react';
 import { useEntries } from './hooks/useEntries';
 import { useEntryForm } from './hooks/useEntryForm';
@@ -12,7 +12,12 @@ import { useOnboarding } from './hooks/useOnboarding';
 import { useToast } from './hooks/useToast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { exportEntriesToCSV, formatCurrency, todayLocalISO } from './lib/format';
-import { buildInvoiceEntry, findInvoiceEntryForCycle } from './lib/cardInvoice';
+import {
+  buildInvoiceEntry,
+  findInvoiceEntryForCycle,
+  planInvoiceSync,
+  preserveInvoiceState,
+} from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
 import { getInstallmentsToCancel, monthKey } from './lib/loans';
 import { logError } from './lib/logger';
@@ -336,19 +341,34 @@ export default function App() {
       const entry = buildInvoiceEntry(card, month, year, total, existing?.id);
       // Re-registrar a fatura não pode zerar o status de pagamento já registrado
       // nem reescrever a data de criação (usada na ordenação/paginação do Appwrite).
-      addOrUpdateEntry(
-        {
-          ...entry,
-          createdAt: existing?.createdAt ?? entry.createdAt,
-          isPaid: existing?.isPaid ?? false,
-          paidDate: existing?.paidDate,
-        },
-        existing != null
-      );
+      addOrUpdateEntry(preserveInvoiceState(entry, existing), existing != null);
       showToast('Fatura registrada no fluxo de caixa');
     },
     [entries, addOrUpdateEntry, showToast]
   );
+
+  /**
+   * Faturas já registradas acompanham os gastos do ciclo: criar, editar ou
+   * excluir um gasto atualiza o lançamento da fatura (sem desfazer o pagamento).
+   * O baseline anterior impede que uma lista de gastos ainda não carregada
+   * derrube as faturas.
+   */
+  const previousCardExpensesRef = useRef<CardExpense[]>([]);
+  useEffect(() => {
+    const actions = planInvoiceSync(
+      entries.filter((e) => e.isCardInvoice),
+      cardExpenses,
+      previousCardExpensesRef.current
+    );
+    previousCardExpensesRef.current = cardExpenses;
+    for (const action of actions) {
+      if (action.type === 'delete') {
+        deleteEntry(action.entry.id);
+      } else {
+        addOrUpdateEntry({ ...action.entry, amount: action.amount, updatedAt: Date.now() }, true);
+      }
+    }
+  }, [cardExpenses, entries, addOrUpdateEntry, deleteEntry]);
 
   /**
    * Parcela de empréstimo marcada como paga gera a saída no mês do vencimento da
@@ -1083,8 +1103,8 @@ export default function App() {
         title="Excluir gasto"
         message={
           expenseToDelete?.installmentNumber
-            ? `Excluir a parcela ${expenseToDelete.installmentNumber} de ${expenseToDelete.installmentsCount} deste gasto? As outras parcelas continuam na fatura.`
-            : 'Excluir este gasto do cartão? Esta ação não pode ser desfeita.'
+            ? `Excluir a parcela ${expenseToDelete.installmentNumber} de ${expenseToDelete.installmentsCount} deste gasto? As outras parcelas continuam na fatura e a fatura registrada é atualizada.`
+            : 'Excluir este gasto do cartão? A fatura registrada do ciclo é atualizada automaticamente.'
         }
         confirmLabel="Excluir"
         onConfirm={() => {

@@ -5,8 +5,10 @@ import {
   buildInvoiceEntry,
   buildInstallmentCardExpenses,
   findInvoiceEntryForCycle,
+  planInvoiceSync,
+  preserveInvoiceState,
 } from './cardInvoice';
-import type { CreditCard, Entry } from '../types';
+import type { CardExpense, CreditCard, Entry } from '../types';
 
 const card: CreditCard = {
   id: 'c1',
@@ -163,5 +165,127 @@ describe('buildInstallmentCardExpenses', () => {
     expect(rows[0].installmentsCount).toBeUndefined();
     expect(rows[0].installmentNumber).toBeUndefined();
     expect(rows[0].parentInstallmentId).toBeUndefined();
+  });
+});
+
+describe('preserveInvoiceState', () => {
+  const existing: Entry = {
+    id: 'inv-1',
+    name: 'Fatura Visa — março de 2025',
+    amount: 500,
+    dueDate: '2025-04-05',
+    invoicePaymentDueDate: '2025-04-05',
+    isPaid: true,
+    paidDate: '2025-04-03',
+    type: 'debt',
+    createdAt: 111,
+    cardId: 'c1',
+    isCardInvoice: true,
+  };
+
+  it('mantém pagamento e data de criação ao regravar a fatura com novo total', () => {
+    const next = buildInvoiceEntry(card, 2, 2025, 900, existing.id);
+    const merged = preserveInvoiceState(next, existing);
+
+    expect(merged.id).toBe('inv-1');
+    expect(merged.amount).toBe(900);
+    expect(merged.isPaid).toBe(true);
+    expect(merged.paidDate).toBe('2025-04-03');
+    expect(merged.createdAt).toBe(111);
+  });
+
+  it('sem fatura anterior, devolve a nova pendente', () => {
+    const next = buildInvoiceEntry(card, 2, 2025, 900);
+    const merged = preserveInvoiceState(next, undefined);
+
+    expect(merged.isPaid).toBe(false);
+    expect(merged.paidDate).toBeUndefined();
+    expect(merged.createdAt).toBe(next.createdAt);
+  });
+});
+
+describe('planInvoiceSync', () => {
+  const invoiceCard: CreditCard = {
+    id: 'c1',
+    name: 'Visa',
+    limitAmount: 5000,
+    closingDay: 25,
+    dueDay: 5,
+  };
+
+  const expense = (amount: number, overrides: Partial<CardExpense> = {}): CardExpense => ({
+    id: `x${amount}`,
+    cardId: 'c1',
+    name: 'Mercado',
+    amount,
+    date: '2026-11-10',
+    billingMonth: 10,
+    billingYear: 2026,
+    createdAt: 1,
+    ...overrides,
+  });
+
+  // Fatura do ciclo nov/2026: vence 05/12/2026.
+  const invoice = (overrides: Partial<Entry> = {}): Entry => ({
+    ...buildInvoiceEntry(invoiceCard, 10, 2026, 600),
+    ...overrides,
+  });
+
+  it('atualiza o valor da fatura quando o gasto é editado', () => {
+    const inv = invoice();
+    const actions = planInvoiceSync([inv], [expense(500)], [expense(600)]);
+
+    expect(actions).toEqual([{ type: 'update', entry: inv, amount: 500 }]);
+  });
+
+  it('mantém o pagamento e a data de criação ao atualizar uma fatura paga', () => {
+    const inv = invoice({ isPaid: true, paidDate: '2026-12-01' });
+    const actions = planInvoiceSync([inv], [expense(500)], [expense(600)]);
+
+    expect(actions[0]).toMatchObject({ type: 'update', amount: 500 });
+    expect(actions[0].entry.isPaid).toBe(true);
+    expect(actions[0].entry.paidDate).toBe('2026-12-01');
+  });
+
+  it('acompanha a exclusão de uma parcela do gasto parcelado', () => {
+    const inv = invoice();
+    const actions = planInvoiceSync([inv], [expense(400)], [expense(600)]);
+
+    expect(actions).toEqual([{ type: 'update', entry: inv, amount: 400 }]);
+  });
+
+  it('remove a fatura em aberto quando o ciclo fica sem gastos', () => {
+    const inv = invoice();
+    expect(planInvoiceSync([inv], [], [expense(600)])).toEqual([{ type: 'delete', entry: inv }]);
+  });
+
+  it('mantém a fatura paga como histórico quando o ciclo zera', () => {
+    const inv = invoice({ isPaid: true, paidDate: '2026-12-01' });
+    expect(planInvoiceSync([inv], [], [expense(600)])).toEqual([]);
+  });
+
+  it('não escreve nada quando a soma continua igual', () => {
+    const inv = invoice();
+    expect(planInvoiceSync([inv], [expense(600)], [expense(600)])).toEqual([]);
+  });
+
+  it('não apaga a fatura quando os gastos ainda não carregaram', () => {
+    // Lista vazia dos dois lados = nada observado, não "ciclo zerado".
+    expect(planInvoiceSync([invoice()], [], [])).toEqual([]);
+  });
+
+  it('ignora gastos de outro cartão ou de outro ciclo', () => {
+    const inv = invoice();
+    expect(
+      planInvoiceSync(
+        [inv],
+        [expense(600, { cardId: 'c2' }), expense(600, { billingMonth: 9 })],
+        []
+      )
+    ).toEqual([]);
+  });
+
+  it('não mexe em ciclo que nunca teve fatura registrada', () => {
+    expect(planInvoiceSync([], [expense(600)], [expense(400)])).toEqual([]);
   });
 });

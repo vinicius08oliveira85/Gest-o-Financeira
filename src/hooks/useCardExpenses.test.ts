@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useCardExpenses } from './useCardExpenses';
 import type { CardExpense } from '../types';
 import { CARD_EXPENSES_STORAGE_KEY } from '../constants';
@@ -158,5 +158,55 @@ describe('useCardExpenses', () => {
     );
     const raw = localStorage.getItem(CARD_EXPENSES_STORAGE_KEY);
     expect(JSON.parse(raw as string).data).toHaveLength(2);
+  });
+
+  it('exclui o gasto do estado e do espelho local', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
+    setStored(mockExpenses);
+
+    const { result } = renderHook(() => useCardExpenses());
+    await waitFor(() => expect(result.current.isLoadingExpenses).toBe(false), { timeout: 2000 });
+
+    act(() => result.current.deleteExpense('e1'));
+
+    await waitFor(() => expect(result.current.expenses).toHaveLength(0));
+    const raw = localStorage.getItem(CARD_EXPENSES_STORAGE_KEY);
+    expect(JSON.parse(raw as string).data).toHaveLength(0);
+  });
+
+  it('com Appwrite: exclui o gasto no servidor', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    const { fetchAllExpenses, deleteExpense: deleteExpenseDb } =
+      await import('../lib/cardExpensesDb');
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
+    vi.mocked(fetchAllExpenses).mockResolvedValue(mockExpenses);
+    vi.mocked(deleteExpenseDb).mockImplementation(async () => undefined);
+
+    const { result } = renderHook(() => useCardExpenses());
+    await waitFor(() => expect(result.current.isLoadingExpenses).toBe(false), { timeout: 2000 });
+
+    act(() => result.current.deleteExpense('e1'));
+
+    await waitFor(() => expect(deleteExpenseDb).toHaveBeenCalledWith('e1'));
+    expect(result.current.expenses).toHaveLength(0);
+  });
+
+  it('com Appwrite: devolve o gasto quando a exclusão falha', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    const { fetchAllExpenses, deleteExpense: deleteExpenseDb } =
+      await import('../lib/cardExpensesDb');
+    vi.mocked(isCloudConfigured).mockReturnValue(true);
+    vi.mocked(fetchAllExpenses).mockResolvedValue(mockExpenses);
+    vi.mocked(deleteExpenseDb).mockRejectedValue(new Error('offline'));
+
+    const { result } = renderHook(() => useCardExpenses());
+    await waitFor(() => expect(result.current.isLoadingExpenses).toBe(false), { timeout: 2000 });
+
+    act(() => result.current.deleteExpense('e1'));
+
+    // Falhou no servidor: o gasto volta para a lista, sem sumir do usuário.
+    await waitFor(() => expect(result.current.expenses).toHaveLength(1));
+    expect(result.current.expenses[0].id).toBe('e1');
   });
 });
