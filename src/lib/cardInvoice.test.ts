@@ -4,6 +4,7 @@ import {
   getInvoiceDueDate,
   buildInvoiceEntry,
   buildInstallmentCardExpenses,
+  findInvoiceEntriesForCard,
   findInvoiceEntryForCycle,
   planInvoiceSync,
   preserveInvoiceState,
@@ -287,5 +288,40 @@ describe('planInvoiceSync', () => {
 
   it('não mexe em ciclo que nunca teve fatura registrada', () => {
     expect(planInvoiceSync([], [expense(600)], [expense(400)])).toEqual([]);
+  });
+});
+
+describe('findInvoiceEntriesForCard', () => {
+  const invoiceOf = (cardId: string, month: number, overrides: Partial<Entry> = {}): Entry => ({
+    ...buildInvoiceEntry({ ...card, id: cardId }, month, 2026, 600),
+    ...overrides,
+  });
+
+  it('devolve as faturas do cartão em todos os ciclos, pagas ou em aberto', () => {
+    const open = invoiceOf('c1', 10);
+    const paid = invoiceOf('c1', 9, { isPaid: true, paidDate: '2026-10-05' });
+
+    expect(findInvoiceEntriesForCard([open, paid], 'c1')).toEqual([open, paid]);
+  });
+
+  it('ignora faturas de outro cartão e lançamentos comuns do mesmo cartão', () => {
+    const mine = invoiceOf('c1', 10);
+    const otherCard = invoiceOf('c2', 10);
+    const commonEntry: Entry = {
+      id: 'e1',
+      name: 'Aluguel',
+      amount: 100,
+      dueDate: '2026-11-05',
+      isPaid: false,
+      type: 'debt',
+      createdAt: 1,
+      cardId: 'c1',
+    };
+
+    expect(findInvoiceEntriesForCard([mine, otherCard, commonEntry], 'c1')).toEqual([mine]);
+  });
+
+  it('sem faturas registradas, devolve lista vazia', () => {
+    expect(findInvoiceEntriesForCard([], 'c1')).toEqual([]);
   });
 });

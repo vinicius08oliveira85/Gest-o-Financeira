@@ -145,4 +145,33 @@ describe('App · fatura do cartão ao excluir o gasto do ciclo', () => {
     expect(screen.queryByRole('button', { name: 'Atualizar' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Paga' })).toBeNull();
   });
+
+  it('tira a fatura paga do fluxo quando o cartão inteiro é excluído', async () => {
+    renderApp();
+    expect(await screen.findByText(/Fluxo de Caixa/i)).toBeInTheDocument();
+
+    await registerInvoiceAndOpenDecember();
+    const pendingRow = rowOf(await screen.findByText(invoiceName, {}, { timeout: 3000 }));
+    expect(textOf(pendingRow)).toContain('R$ 600,00');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finalizar (marcar como pago)' }));
+    const paidRow = rowOf(await screen.findByText(invoiceName));
+    expect(textOf(paidRow)).toContain('Finalizado');
+
+    // Exclui o cartão inteiro, e com ele os gastos e as faturas registradas.
+    fireEvent.click(screen.getByRole('button', { name: 'Cartões' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar cartão' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Excluir cartão' }, { timeout: 3000 })
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Excluir' }, { timeout: 3000 }));
+
+    // Sem o cartão, a fatura paga ficaria órfã no fluxo: ela sai junto.
+    fireEvent.click(screen.getByRole('button', { name: 'Lançamentos' }));
+    await waitFor(() => expect(screen.queryByText(invoiceName)).toBeNull(), { timeout: 3000 });
+    expect(screen.queryByText(/600,00/)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cartões' }));
+    expect(screen.queryByText('Nubank')).toBeNull();
+  });
 });

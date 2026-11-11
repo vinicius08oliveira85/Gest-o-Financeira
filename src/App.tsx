@@ -14,6 +14,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { exportEntriesToCSV, formatCurrency, todayLocalISO } from './lib/format';
 import {
   buildInvoiceEntry,
+  findInvoiceEntriesForCard,
   findInvoiceEntryForCycle,
   planInvoiceSync,
   preserveInvoiceState,
@@ -1048,10 +1049,15 @@ export default function App() {
         <ConfirmDeleteModal
           open={cardToDelete !== null}
           title="Excluir cartão"
-          message="Excluir este cartão e todos os seus gastos?"
+          message="Excluir este cartão, todos os seus gastos e as faturas registradas dele?"
           confirmLabel="Excluir"
           onConfirm={() => {
             if (cardToDelete) {
+              // Sem o cartão, as faturas ficariam órfãs no fluxo: saem junto com os
+              // gastos que as originaram (pagas inclusive, já que o cartão some).
+              for (const invoice of findInvoiceEntriesForCard(entries, cardToDelete.id)) {
+                deleteEntry(invoice.id);
+              }
               deleteCard(cardToDelete.id);
               // O modal avisa "excluir cartão e todos os seus gastos" — remove
               // os gastos também (local e servidor), evitando órfãos.

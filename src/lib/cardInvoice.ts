@@ -159,6 +159,11 @@ export function findInvoiceEntryForCardCycle(
   return findInvoiceEntryForCycle(entries, cardId, billingMonth, billingYear, 0, 0);
 }
 
+/** Faturas registradas de um cartão, de todos os ciclos (usado ao excluir o cartão). */
+export function findInvoiceEntriesForCard(entries: Entry[], cardId: string): Entry[] {
+  return entries.filter((e) => e.isCardInvoice && e.cardId === cardId);
+}
+
 export type InvoiceSyncAction =
   | { type: 'update'; entry: Entry; amount: number }
   | { type: 'delete'; entry: Entry };
