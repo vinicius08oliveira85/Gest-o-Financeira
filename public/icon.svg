@@ -1,4 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="128" fill="#10b981"/>
-  <path d="M256 96v320M176 176h160M176 256h160M176 336h112" stroke="white" stroke-width="32" stroke-linecap="round"/>
+  <defs>
+    <linearGradient
+      id="gf-tile"
+      x1="0"
+      y1="0"
+      x2="512"
+      y2="512"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#22304e" />
+      <stop offset="1" stop-color="#0a1120" />
+    </linearGradient>
+    <linearGradient
+      id="gf-mark"
+      x1="0"
+      y1="100"
+      x2="0"
+      y2="404"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#3ee0a6" />
+      <stop offset="1" stop-color="#0a9c6a" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="118" fill="url(#gf-tile)" />
+  <!-- Barras do gráfico (atrás do cifrão) -->
+  <g fill="#10b981" opacity="0.45">
+    <rect x="96" y="364" width="30" height="40" rx="10" />
+    <rect x="132" y="342" width="30" height="62" rx="10" />
+    <rect x="168" y="320" width="30" height="84" rx="10" />
+  </g>
+  <!-- Seta ascendente -->
+  <path
+    d="M196 420C272 424 330 372 366 260"
+    stroke="url(#gf-mark)"
+    stroke-width="40"
+    stroke-linecap="round"
+  />
+  <path d="M385 201 412 268 324 240Z" fill="url(#gf-mark)" />
+  <!-- Cifrão: haste fina + dois arcos de 180° ligados por uma diagonal -->
+  <g stroke="url(#gf-mark)" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M188 100V378" stroke-width="26" />
+    <path
+      d="M226 150A54 54 0 1 0 150 226L226 262A54 54 0 1 1 150 338"
+      stroke-width="34"
+    />
+  </g>
 </svg>

@@ -1,7 +1,6 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import {
   Plus,
-  Wallet,
   Sun,
   Moon,
   MoreVertical,
@@ -13,6 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { BrandMark } from './BrandMark';
 
 type HeaderProps = {
   onExportCSV: () => void;
@@ -64,12 +64,10 @@ export function Header({
   return (
     <div className="header-bar">
       <div className="flex items-center gap-2 min-w-0">
-        <div className="neu-icon-badge-emerald p-2 rounded-lg shrink-0">
-          <Wallet className="text-emerald-500 dark:text-emerald-400 w-5 h-5" />
-        </div>
+        <BrandMark className="h-9 w-9 shrink-0 rounded-[10px] shadow-sm" />
         <div className="flex items-center gap-2 min-w-0">
           <h1 className="font-semibold text-base sm:text-lg tracking-tight text-slate-900 dark:text-slate-100 truncate">
-            Gestão Financeira
+            Gestão <span className="text-emerald-600 dark:text-emerald-400">Financeira</span>
           </h1>
           {/* Escondido no celular: com ele a barra de ações quebrava para uma
               segunda linha e o cabeçalho fixo comia metade da tela. */}
