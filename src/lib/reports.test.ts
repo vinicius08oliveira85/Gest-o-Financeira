@@ -105,4 +105,23 @@ describe('buildReportsCsv', () => {
     expect(csv).toContain('Saldo do mês,-500.00,2000.00,-125.0');
     expect(csv).not.toContain("'-500");
   });
+
+  it('exporta finalizados e pendentes para a conta do saldo fechar', () => {
+    const csv = buildReportsCsv({
+      ...baseInput,
+      totals: {
+        ...baseInput.totals,
+        entradasFinalizadas: 4000,
+        entradasPendentes: 1000,
+        saidasFinalizadas: 2500,
+        saidasPendentes: 500,
+      },
+    });
+
+    expect(csv).toContain('Entradas finalizadas,4000.00');
+    expect(csv).toContain('Entradas pendentes,1000.00');
+    expect(csv).toContain('Saídas finalizadas,2500.00');
+    expect(csv).toContain('Saídas pendentes,500.00');
+    expect(csv).toContain('Saldo do mês considera apenas lançamentos finalizados');
+  });
 });

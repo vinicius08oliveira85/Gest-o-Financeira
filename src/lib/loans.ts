@@ -171,6 +171,23 @@ export function getNextDueDate(loan: Loan): string {
   return loan.dueDate;
 }
 
+/**
+ * Próximo compromisso em aberto: a parcela mais próxima de vencer (com o valor
+ * DELA, não o saldo do empréstimo) ou o pagamento único. Null quando não há
+ * mais nada a pagar (quitado, pago ou só com parcelas canceladas).
+ */
+export function getNextOpenItem(loan: Loan): { dueDate: string; amount: number } | null {
+  if (loan.settlement) return null;
+  if (isInstallmentLoan(loan)) {
+    const open = getOpenInstallments(loan);
+    if (open.length === 0) return null;
+    const next = open.reduce((min, i) => (i.dueDate < min.dueDate ? i : min), open[0]);
+    return { dueDate: next.dueDate, amount: next.amount };
+  }
+  if (loan.paid) return null;
+  return { dueDate: loan.dueDate, amount: loan.amount };
+}
+
 /** Data ISO somando meses, ajustando o dia ao último dia do mês (ex.: 31/01 + 1 = 28/02). */
 export function addMonthsISO(isoDate: string, months: number): string {
   const [year, month, day] = isoDate.split('-').map(Number);

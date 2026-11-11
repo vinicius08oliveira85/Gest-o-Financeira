@@ -19,10 +19,12 @@ type Props = {
   card: CreditCard;
   expense: CardExpense | null;
   onSave: (expense: Omit<CardExpense, 'id' | 'createdAt'>) => void;
+  /** Exclui o gasto (no parcelado, só a parcela aberta no modal). */
+  onRequestDelete?: (expense: CardExpense) => void;
   onClose: () => void;
 };
 
-export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props) {
+export function CardExpenseModal({ open, card, expense, onSave, onRequestDelete, onClose }: Props) {
   const today = todayLocalISO();
 
   const [name, setName] = React.useState('');
@@ -74,6 +76,7 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
     if (!date) errs.date = 'Data obrigatória';
     const inst = parseInt(installments, 10);
     if (Number.isNaN(inst) || inst < 1) errs.installments = 'Mínimo 1 parcela';
+    else if (inst > 48) errs.installments = 'Máximo 48 parcelas';
     return errs;
   }
 
@@ -284,6 +287,18 @@ export function CardExpenseModal({ open, card, expense, onSave, onClose }: Props
         >
           Salvar gasto
         </button>
+        {expense && onRequestDelete && (
+          <button
+            type="button"
+            onClick={() => {
+              onRequestDelete(expense);
+              onClose();
+            }}
+            className="w-full neu-btn-danger-soft py-2.5 rounded-2xl font-medium text-sm"
+          >
+            {expense.installmentNumber ? 'Excluir esta parcela' : 'Excluir gasto'}
+          </button>
+        )}
       </form>
     </ModalShell>
   );

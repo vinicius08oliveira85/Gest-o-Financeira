@@ -45,7 +45,7 @@ export function CardItem({
 }: Props) {
   const [showExpenses, setShowExpenses] = useState(false);
 
-  // Faturas dos últimos 3 meses + mês atual
+  // Mês atual e os dois anteriores (o atual é o primeiro da lista)
   const invoices = React.useMemo<InvoiceSummary[]>(() => {
     const result: InvoiceSummary[] = [];
     for (let delta = 0; delta >= -2; delta--) {
@@ -125,7 +125,10 @@ export function CardItem({
           </span>
           <span>Vence {dueDateFormatted}</span>
         </div>
-        <div className="w-full h-2 neu-progress-track">
+        <div
+          className="w-full h-2 neu-progress-track"
+          title={`${formatCurrency(currentTotal)} usados de ${formatCurrency(card.limitAmount)}`}
+        >
           <div
             className={`h-2 rounded-full transition-all ${progressColor}`}
             style={{ width: `${Math.min(usageRatio * 100, 100)}%` }}
@@ -164,10 +167,16 @@ export function CardItem({
             type="button"
             onClick={() => onRegisterInvoice(card, currentMonth, currentYear, currentTotal)}
             className="neu-btn-primary flex-1 flex items-center justify-center gap-1.5 text-sm font-medium rounded-xl py-2"
-            title="Registrar fatura no fluxo de caixa"
+            title={
+              currentInvoice?.isPaid
+                ? 'Fatura já paga no fluxo de caixa — clique para atualizar o valor'
+                : currentInvoice?.hasEntry
+                  ? 'Fatura já registrada no fluxo de caixa — clique para atualizar o valor'
+                  : 'Registrar fatura no fluxo de caixa'
+            }
           >
             <Send size={14} />
-            Fatura
+            {currentInvoice?.isPaid ? 'Paga' : currentInvoice?.hasEntry ? 'Atualizar' : 'Fatura'}
           </button>
         )}
       </div>

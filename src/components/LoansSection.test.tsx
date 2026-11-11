@@ -149,4 +149,39 @@ describe('LoansSection', () => {
 
     expect(screen.queryByText('Próximos vencimentos')).toBeNull();
   });
+
+  it('mostra o valor da próxima parcela, não o saldo do empréstimo', () => {
+    const parcelado = loan({
+      id: 'parcelado',
+      name: 'Parcelado',
+      amount: 300,
+      dueDate: '2026-11-20',
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 100, dueDate: '2026-11-20', paid: false },
+        { number: 2, amount: 100, dueDate: '2026-12-20', paid: false },
+        { number: 3, amount: 100, dueDate: '2027-01-20', paid: false },
+      ],
+    });
+
+    render(
+      <LoansSection
+        loans={[parcelado]}
+        onNewLoan={noop}
+        onEditLoan={noop}
+        onOpenInstallments={noop}
+        onSettleLoan={noop}
+        onUndoSettlement={noop}
+      />
+    );
+
+    const list = screen.getByText('Próximos vencimentos').parentElement as HTMLElement;
+    const item = within(list).getAllByRole('listitem')[0];
+
+    // A parcela de novembro é R$ 100 — não o saldo de R$ 300 do empréstimo.
+    // `textContent` cru usa espaço não separável na moeda; normaliza antes.
+    const text = (item.textContent ?? '').replace(/\u00a0/g, ' ');
+    expect(text).toContain('R$ 100,00');
+    expect(text).not.toContain('R$ 300,00');
+  });
 });

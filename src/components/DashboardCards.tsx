@@ -177,7 +177,10 @@ export function DashboardCards({
         {saldoProjetado !== undefined && (
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-3xs">
-              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
+              <span
+                className="text-slate-600 dark:text-slate-400 flex items-center gap-1"
+                title="Todas as entradas e saídas do mês, finalizadas ou não"
+              >
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400" />
                 Projetado
               </span>
@@ -194,7 +197,10 @@ export function DashboardCards({
         {totalLimiteDisponivel !== undefined && (
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-3xs">
-              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
+              <span
+                className="text-slate-600 dark:text-slate-400 flex items-center gap-1"
+                title="Limite dos cartões menos o que já foi gasto e ainda não foi pago"
+              >
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />
                 Limite cartões
               </span>
@@ -203,7 +209,10 @@ export function DashboardCards({
               </span>
             </div>
             <div className="flex items-center justify-between text-3xs">
-              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
+              <span
+                className="text-slate-600 dark:text-slate-400 flex items-center gap-1"
+                title="Saldo finalizado do mês + limite disponível dos cartões"
+              >
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" />
                 Total disponível
               </span>

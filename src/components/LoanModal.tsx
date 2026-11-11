@@ -59,9 +59,15 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     const dates = (loan?.installments ?? []).map((i) => i.dueDate).sort();
     const fallbackDue = dates[0] ?? loan?.dueDate ?? today;
     const start = loan?.discountStart ?? monthKey(fallbackDue);
+    // Sem período registrado: o parcelado sugere 12 meses (o usuário ajusta).
+    // À vista fica vazio, para não gravar um desconto de 12 meses que ninguém escolheu.
     const end =
       loan?.discountEnd ??
-      (dates.length > 0 ? monthKey(dates[dates.length - 1]) : addMonthsToMonth(start, 11));
+      (dates.length > 0
+        ? monthKey(dates[dates.length - 1])
+        : count > 1
+          ? addMonthsToMonth(start, 11)
+          : '');
     setDiscountStart(start);
     setDiscountEnd(end);
     setDueDay(String(Number(fallbackDue.slice(8, 10))));
@@ -93,6 +99,11 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
       }
       const day = Number(dueDay);
       if (!Number.isInteger(day) || day < 1 || day > 31) errs.dueDay = 'Dia de 1 a 31';
+    } else if (discountEnd) {
+      // À vista o período é opcional; se o fim for preenchido, tem que fazer sentido.
+      if (!discountStart) errs.discountStart = 'Informe o início';
+      else if (monthsBetweenMonths(discountStart, discountEnd) < 1)
+        errs.discountEnd = 'O fim precisa ser depois do início';
     }
     return errs;
   }
@@ -117,6 +128,8 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
         )
       : undefined;
     const count = installments?.length ?? 1;
+    // À vista o período só é gravado quando início e fim foram preenchidos.
+    const hasDiscount = isInstallment || Boolean(discountStart && discountEnd);
 
     onSave({
       id: loan?.id,
@@ -127,8 +140,8 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
       dueDate: installments ? installments[0].dueDate : dueDate,
       // Num parcelado, "pago" significa todas as parcelas pagas.
       paid: installments ? installments.every((i) => i.paid) : paid,
-      discountStart: discountStart || undefined,
-      discountEnd: discountEnd || undefined,
+      discountStart: hasDiscount ? discountStart || undefined : undefined,
+      discountEnd: hasDiscount ? discountEnd || undefined : undefined,
       installmentsCount: count > 1 ? count : undefined,
       installments,
     });
@@ -231,7 +244,14 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
           <div className="flex gap-2 mt-1">
             <button
               type="button"
-              onClick={() => setIsInstallment(false)}
+              onClick={() => {
+                setIsInstallment(false);
+                // O fim sugerido para 12 parcelas não pode virar período de
+                // desconto de um pagamento único que o usuário nem escolheu.
+                if (discountStart && discountEnd === addMonthsToMonth(discountStart, 11)) {
+                  setDiscountEnd('');
+                }
+              }}
               aria-pressed={!isInstallment}
               className={`flex-1 py-2 rounded-xl text-sm font-medium ${
                 !isInstallment ? 'neu-tab-active' : 'neu-btn-secondary'

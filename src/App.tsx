@@ -91,6 +91,7 @@ export default function App() {
   const [cardToEdit, setCardToEdit] = useState<CreditCard | null>(null);
   const [expenseModalCard, setExpenseModalCard] = useState<CreditCard | null>(null);
   const [expenseToEdit, setExpenseToEdit] = useState<CardExpense | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<CardExpense | null>(null);
   const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
 
   const { cards, upsertCard, deleteCard } = useCreditCards();
@@ -110,6 +111,7 @@ export default function App() {
     expenses: cardExpenses,
     addExpense,
     updateExpense,
+    deleteExpense,
     deleteExpensesByCard,
   } = useCardExpenses();
 
@@ -1048,6 +1050,7 @@ export default function App() {
             open={expenseModalCard !== null}
             card={expenseModalCard}
             expense={expenseToEdit}
+            onRequestDelete={(expense) => setExpenseToDelete(expense)}
             onSave={(partial) => {
               const onError = () => showToast('Não foi possível salvar o gasto');
               if (expenseToEdit) {
@@ -1074,6 +1077,25 @@ export default function App() {
           />
         )}
       </Suspense>
+
+      <ConfirmDeleteModal
+        open={expenseToDelete !== null}
+        title="Excluir gasto"
+        message={
+          expenseToDelete?.installmentNumber
+            ? `Excluir a parcela ${expenseToDelete.installmentNumber} de ${expenseToDelete.installmentsCount} deste gasto? As outras parcelas continuam na fatura.`
+            : 'Excluir este gasto do cartão? Esta ação não pode ser desfeita.'
+        }
+        confirmLabel="Excluir"
+        onConfirm={() => {
+          if (expenseToDelete) {
+            deleteExpense(expenseToDelete.id);
+            setExpenseToDelete(null);
+            showToast('Gasto excluído');
+          }
+        }}
+        onClose={() => setExpenseToDelete(null)}
+      />
 
       <Toast message={toastMessage} action={toastAction} onDismiss={dismissToast} />
     </ErrorBoundary>

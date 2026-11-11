@@ -62,6 +62,10 @@ export function ReportsPanel({
     .filter((d) => d.isPaid && isSaida(d))
     .reduce((acc, d) => acc + d.amount, 0);
   const saldoDoMes = totalEntradasFinalizadas - totalSaidasFinalizadas;
+  // Os KPIs de total incluem pendentes; o saldo não. Mostrar o split deixa a
+  // conta reconciliável (entradas − saídas ≠ saldo quando há pendentes).
+  const totalEntradasPendentes = totalByType.entradas - totalEntradasFinalizadas;
+  const totalSaidasPendentes = totalByType.saidas - totalSaidasFinalizadas;
 
   const prevDate = new Date(year, month - 1, 1);
   const prevByPeriod = entries.filter((d) => {
@@ -145,6 +149,10 @@ export function ReportsPanel({
           prevEntradas: prevTotalEntradas,
           prevSaidas: prevTotalSaidas,
           prevSaldo,
+          entradasFinalizadas: totalEntradasFinalizadas,
+          saidasFinalizadas: totalSaidasFinalizadas,
+          entradasPendentes: totalEntradasPendentes,
+          saidasPendentes: totalSaidasPendentes,
         },
         categories: { saidas: totalByCategorySaidas, entradas: totalByCategoryEntradas },
         cards: cardTotals,
@@ -190,6 +198,10 @@ export function ReportsPanel({
             {formatCurrency(totalByType.entradas)}
           </p>
           <DeltaBadge current={totalByType.entradas} previous={prevTotalEntradas} />
+          <p className="text-3xs text-slate-600 dark:text-slate-400 mt-0.5">
+            {formatCurrency(totalEntradasFinalizadas)} finalizadas ·{' '}
+            {formatCurrency(totalEntradasPendentes)} pendentes
+          </p>
         </div>
         <div className="neu-surface rounded-xl card-pad">
           <p className="text-3xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -199,6 +211,10 @@ export function ReportsPanel({
             {formatCurrency(totalByType.saidas)}
           </p>
           <DeltaBadge current={totalByType.saidas} previous={prevTotalSaidas} invert />
+          <p className="text-3xs text-slate-600 dark:text-slate-400 mt-0.5">
+            {formatCurrency(totalSaidasFinalizadas)} finalizadas ·{' '}
+            {formatCurrency(totalSaidasPendentes)} pendentes
+          </p>
         </div>
         <div className="neu-surface rounded-xl card-pad">
           <p className="text-3xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -208,6 +224,9 @@ export function ReportsPanel({
             {formatCurrency(saldoDoMes)}
           </p>
           <DeltaBadge current={saldoDoMes} previous={prevSaldo} />
+          <p className="text-3xs text-slate-600 dark:text-slate-400 mt-0.5">
+            Só lançamentos finalizados
+          </p>
         </div>
       </div>
 
@@ -262,6 +281,9 @@ export function ReportsPanel({
           <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Categorias (saídas)
           </h3>
+          <p className="text-3xs text-slate-600 dark:text-slate-400 -mt-1">
+            Todos os lançamentos do mês (finalizados e pendentes).
+          </p>
           {categorySaidasEntries.length === 0 ? (
             <EmptyState
               variant="expenses"

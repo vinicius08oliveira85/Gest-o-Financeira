@@ -9,6 +9,7 @@ import {
   getLoanPaidAmount,
   getLoanTotals,
   getNextDueDate,
+  getNextOpenItem,
   getOpenAmount,
   isInstallmentLoan,
   monthKey,
@@ -138,17 +139,26 @@ export function LoansSection({
                 Próximos vencimentos
               </p>
               <ul className="flex flex-col gap-1">
-                {upcoming.map((loan) => (
-                  <li key={loan.id} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="truncate text-slate-900 dark:text-slate-100">
-                      {formatDate(getNextDueDate(loan))} · {loan.name}
-                    </span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100 shrink-0">
-                      {formatCurrency(getOpenAmount(loan))}
-                    </span>
-                  </li>
-                ))}
+                {upcoming.map((loan) => {
+                  // Valor do próximo vencimento (a parcela), não o saldo do empréstimo
+                  // inteiro — senão um 12x de R$ 100 aparecia como R$ 1.200 no dia 10.
+                  const next = getNextOpenItem(loan);
+                  if (!next) return null;
+                  return (
+                    <li key={loan.id} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="truncate text-slate-900 dark:text-slate-100">
+                        {formatDate(next.dueDate)} · {loan.name}
+                      </span>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 shrink-0">
+                        {formatCurrency(next.amount)}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
+              <p className="mt-2 text-2xs text-slate-500 dark:text-slate-400">
+                Valor do próximo vencimento de cada empréstimo (parcela ou pagamento único).
+              </p>
             </div>
           )}
 
@@ -156,6 +166,7 @@ export function LoansSection({
             {sorted.map((loan) => {
               const paidCount = loan.installments?.filter((i) => i.paid).length ?? 0;
               const count = loan.installments?.length ?? 1;
+              const open = getOpenAmount(loan);
               const discount = formatDiscountPeriod(loan);
               return (
                 <li
@@ -195,11 +206,14 @@ export function LoansSection({
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">
-                      {formatCurrency(isInstallmentLoan(loan) ? getOpenAmount(loan) : loan.amount)}
+                    <span className="font-semibold text-right text-slate-900 dark:text-slate-100">
+                      {formatCurrency(open > 0 ? open : loan.amount)}
+                      <span className="block text-2xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {open > 0 ? 'a pagar' : loan.settlement ? 'quitado' : 'pago'}
+                      </span>
                     </span>
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      {getOpenAmount(loan) > 0 && (
+                      {open > 0 && (
                         <button
                           type="button"
                           onClick={() => onSettleLoan(loan)}

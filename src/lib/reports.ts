@@ -7,6 +7,12 @@ export type ReportsTotals = {
   prevEntradas: number;
   prevSaidas: number;
   prevSaldo: number;
+  /** Finalizados/pendentes do mês: o saldo só usa os finalizados, então o split
+   *  é exportado junto para a conta fechar. Ausentes = linha omitida. */
+  entradasFinalizadas?: number;
+  saidasFinalizadas?: number;
+  entradasPendentes?: number;
+  saidasPendentes?: number;
 };
 
 export type ReportsCategories = {
@@ -76,6 +82,18 @@ export function buildReportsCsv({
         .join(',')
     );
   }
+  // Mesma separação do painel: total (todos) x finalizado/pendente.
+  const split: Array<[string, number | undefined]> = [
+    ['Entradas finalizadas', totals.entradasFinalizadas],
+    ['Entradas pendentes', totals.entradasPendentes],
+    ['Saídas finalizadas', totals.saidasFinalizadas],
+    ['Saídas pendentes', totals.saidasPendentes],
+  ];
+  for (const [label, value] of split) {
+    if (value === undefined) continue;
+    lines.push([label, money(value), '', ''].map(escapeCsvCell).join(','));
+  }
+  lines.push(escapeCsvCell('Saldo do mês considera apenas lançamentos finalizados'));
   lines.push('');
 
   // Categorias (saídas)

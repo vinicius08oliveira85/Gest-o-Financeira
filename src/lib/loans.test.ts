@@ -13,11 +13,54 @@ import {
   getLoanPaidAmount,
   getLoanTotals,
   getNextDueDate,
+  getNextOpenItem,
   getOpenAmount,
   isInstallmentLoan,
   monthsBetweenMonths,
 } from './loans';
 import type { Loan } from '../types';
+
+describe('getNextOpenItem', () => {
+  it('devolve a parcela mais próxima com o valor dela, não o saldo', () => {
+    const parcelado = loan({
+      id: 'p',
+      amount: 300,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 100, dueDate: '2026-12-10', paid: true },
+        { number: 2, amount: 100, dueDate: '2027-01-10', paid: false },
+        { number: 3, amount: 100, dueDate: '2026-11-10', paid: false },
+      ],
+    });
+
+    expect(getNextOpenItem(parcelado)).toEqual({ dueDate: '2026-11-10', amount: 100 });
+  });
+
+  it('ignora parcelas canceladas e quitações', () => {
+    const cancelada = loan({
+      id: 'c',
+      amount: 200,
+      installmentsCount: 2,
+      installments: [
+        { number: 1, amount: 100, dueDate: '2026-11-10', paid: false, cancelled: true },
+        { number: 2, amount: 100, dueDate: '2026-12-10', paid: false },
+      ],
+    });
+    expect(getNextOpenItem(cancelada)).toEqual({ dueDate: '2026-12-10', amount: 100 });
+
+    const quitado = loan({
+      id: 'q',
+      settlement: { amount: 90, date: '2026-11-01', cancelledNumbers: [1] },
+    });
+    expect(getNextOpenItem(quitado)).toBeNull();
+  });
+
+  it('devolve o pagamento único quando não é parcelado', () => {
+    const unico = loan({ id: 'u', amount: 500, dueDate: '2026-11-20' });
+    expect(getNextOpenItem(unico)).toEqual({ dueDate: '2026-11-20', amount: 500 });
+    expect(getNextOpenItem(loan({ id: 'pago', amount: 500, paid: true }))).toBeNull();
+  });
+});
 
 function loan(overrides: Partial<Loan> & { id: string }): Loan {
   return {
