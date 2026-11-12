@@ -1,11 +1,18 @@
-import { useEffect } from 'react';
-import { Ban, Check, HandCoins, RotateCcw, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Ban, Check, HandCoins, Pencil, RotateCcw, X } from 'lucide-react';
 import type { Loan } from '../types';
 import { ModalShell } from './ModalShell';
 import { formatCurrency, formatDate } from '../lib/format';
 import {
+  formatCurrencyForInput,
+  maskCurrencyInput,
+  parseCurrencyInput,
+} from '../lib/currencyInput';
+import {
   formatDiscountPeriod,
+  getLoanInterest,
   getLoanPaidAmount,
+  getLoanPayableAmount,
   getOpenAmount,
   isInstallmentLoan,
 } from '../lib/loans';
@@ -21,6 +28,8 @@ type Props = {
   onChangeDueDate: (loan: Loan, number: number, dueDate: string) => void;
   /** Cancela/reativa a parcela: cancelada não conta como em aberto. */
   onToggleCancelled: (loan: Loan, number: number, cancelled: boolean) => void;
+  /** Ajusta o valor real da parcela (juros, acordo com o credor). */
+  onChangeAmount: (loan: Loan, number: number, amount: number) => void;
   /** Abre a quitação antecipada do empréstimo. */
   onSettleLoan: (loan: Loan) => void;
   onClose: () => void;
@@ -32,9 +41,18 @@ export function LoanInstallmentsModal({
   onTogglePaid,
   onChangeDueDate,
   onToggleCancelled,
+  onChangeAmount,
   onSettleLoan,
   onClose,
 }: Props) {
+  const [editingNumber, setEditingNumber] = useState<number | null>(null);
+  const [amountDraft, setAmountDraft] = useState('');
+
+  // Fechar o modal (ou trocar de empréstimo) abandona a edição em andamento.
+  useEffect(() => {
+    setEditingNumber(null);
+  }, [loan?.id, open]);
+
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -47,6 +65,19 @@ export function LoanInstallmentsModal({
   const installments = loan?.installments ?? [];
   const paidCount = installments.filter((i) => i.paid).length;
   const discount = loan ? formatDiscountPeriod(loan) : null;
+  const interest = loan ? getLoanInterest(loan) : 0;
+
+  function startEditing(number: number, amount: number) {
+    setEditingNumber(number);
+    setAmountDraft(formatCurrencyForInput(amount));
+  }
+
+  function commitAmount(number: number) {
+    const parsed = parseCurrencyInput(amountDraft);
+    if (!loan || parsed === null || parsed <= 0) return;
+    onChangeAmount(loan, number, parsed);
+    setEditingNumber(null);
+  }
 
   const inputClass = 'neu-input rounded-lg px-2 py-1 text-xs text-slate-900 dark:text-slate-100';
 
@@ -73,6 +104,12 @@ export function LoanInstallmentsModal({
                 {formatCurrency(loan.amount)} · {paidCount}/{installments.length} parcelas pagas ·{' '}
                 {formatCurrency(getLoanPaidAmount(loan))} pago
               </p>
+              {interest > 0 && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Total com juros: {formatCurrency(getLoanPayableAmount(loan))} · juros de{' '}
+                  {formatCurrency(interest)}
+                </p>
+              )}
               {discount && (
                 <p className="text-xs text-slate-500 dark:text-slate-400">Desconto: {discount}</p>
               )}
@@ -110,10 +147,55 @@ export function LoanInstallmentsModal({
                     }`}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {installment.number}/{installments.length} ·{' '}
-                        {formatCurrency(installment.amount)}
-                      </p>
+                      {editingNumber === installment.number ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            autoFocus
+                            value={amountDraft}
+                            onChange={(e) => setAmountDraft(maskCurrencyInput(e.target.value))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                commitAmount(installment.number);
+                              }
+                            }}
+                            aria-label={`Valor da parcela ${installment.number}`}
+                            className={inputClass + ' w-24'}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => commitAmount(installment.number)}
+                            className="neu-btn-primary p-2 rounded-xl"
+                            aria-label={`Salvar valor da parcela ${installment.number}`}
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingNumber(null)}
+                            className="neu-btn-secondary p-2 rounded-xl"
+                            aria-label={`Cancelar edição do valor da parcela ${installment.number}`}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                          {installment.number}/{installments.length} ·{' '}
+                          {formatCurrency(installment.amount)}
+                          <button
+                            type="button"
+                            onClick={() => startEditing(installment.number, installment.amount)}
+                            className="text-slate-500 dark:text-slate-400"
+                            aria-label={`Editar valor da parcela ${installment.number}`}
+                            title="Editar valor da parcela"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                        </p>
+                      )}
                       <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                         Vence
                         <input

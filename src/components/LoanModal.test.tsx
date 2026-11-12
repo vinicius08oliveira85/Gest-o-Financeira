@@ -46,6 +46,65 @@ describe('LoanModal', () => {
     expect(saved.discountEnd).toBe('2027-01');
   });
 
+  it('usa o valor da parcela informado e mostra o total com juros', () => {
+    const onSave = vi.fn();
+    render(<LoanModal open loan={null} onSave={onSave} onClose={() => {}} />);
+
+    fillBasicFields();
+    fireEvent.click(screen.getByRole('button', { name: 'Parcelado' }));
+    fireEvent.change(screen.getByLabelText('Início'), { target: { value: '2026-11' } });
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2027-01' } });
+    fireEvent.change(screen.getByLabelText('Valor da parcela'), { target: { value: '450' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar empréstimo' }));
+
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.amount).toBe(1200);
+    expect(saved.installments.map((i: { amount: number }) => i.amount)).toEqual([450, 450, 450]);
+    // 3x 450 = 1350: os R$ 150 a mais são juros sobre os R$ 1.200 contratados.
+    const preview = (screen.queryByText(/juros de/)?.textContent ?? '').replace(/\u00a0/g, ' ');
+    expect(preview).toContain('3x de R$ 450,00 = R$ 1.350,00');
+    expect(preview).toContain('juros de R$ 150,00');
+  });
+
+  it('recusa valor de parcela inválido no parcelado', () => {
+    const onSave = vi.fn();
+    render(<LoanModal open loan={null} onSave={onSave} onClose={() => {}} />);
+
+    fillBasicFields();
+    fireEvent.click(screen.getByRole('button', { name: 'Parcelado' }));
+    fireEvent.change(screen.getByLabelText('Início'), { target: { value: '2026-11' } });
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2027-01' } });
+    fireEvent.change(screen.getByLabelText('Valor da parcela'), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar empréstimo' }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByText('Informe um valor válido')).toBeInTheDocument();
+  });
+
+  it('abre o valor da parcela preenchido quando o empréstimo já tem juros', () => {
+    const comJuros = {
+      id: 'p',
+      name: 'Carro',
+      amount: 1000,
+      sourceType: 'pessoa_fisica' as const,
+      dueDate: '2026-11-10',
+      paid: false,
+      createdAt: 1,
+      installmentsCount: 3,
+      discountStart: '2026-11',
+      discountEnd: '2027-01',
+      installments: [
+        { number: 1, amount: 450, dueDate: '2026-11-10', paid: false },
+        { number: 2, amount: 450, dueDate: '2026-12-10', paid: false },
+        { number: 3, amount: 450, dueDate: '2027-01-10', paid: false },
+      ],
+    };
+
+    render(<LoanModal open loan={comJuros} onSave={() => {}} onClose={() => {}} />);
+
+    expect(screen.getByLabelText('Valor da parcela')).toHaveValue('450,00');
+  });
+
   it('recusa fim anterior ao início no pagamento à vista', () => {
     const onSave = vi.fn();
     render(<LoanModal open loan={null} onSave={onSave} onClose={() => {}} />);

@@ -20,7 +20,7 @@ import {
   preserveInvoiceState,
 } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
-import { getInstallmentsToCancel, monthKey } from './lib/loans';
+import { getInstallmentsToCancel, monthKey, updateInstallmentAmount } from './lib/loans';
 import { logError } from './lib/logger';
 import { DISMISSED_ALERTS_KEY, WISHLIST_CATEGORY } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal, Loan, WishlistItem } from './types';
@@ -562,6 +562,34 @@ export default function App() {
   );
 
   /**
+   * Mudar o valor de uma parcela ajusta o saldo em aberto (é assim que juros
+   * diferentes por parcela entram no empréstimo). Se ela já foi paga, a saída
+   * vinculada acompanha o novo valor para o mês continuar batendo.
+   */
+  const handleChangeLoanInstallmentAmount = useCallback(
+    (loan: Loan, number: number, amount: number) => {
+      if (!(amount > 0)) {
+        showToast('Informe um valor maior que zero');
+        return;
+      }
+      const installments = loan.installments ?? [];
+      const installment = installments.find((i) => i.number === number);
+      if (!installment || installment.amount === amount) return;
+
+      if (installment.paid && installment.entryId) {
+        const entry = entries.find((e) => e.id === installment.entryId);
+        if (entry) void addOrUpdateEntry({ ...entry, amount }, true);
+      }
+
+      const nextLoan = updateInstallmentAmount(loan, number, amount);
+      upsertLoan(nextLoan);
+      setLoanInstallmentsLoan(nextLoan);
+      showToast(`Parcela ${number}/${installments.length} ajustada para ${formatCurrency(amount)}`);
+    },
+    [addOrUpdateEntry, entries, upsertLoan, showToast]
+  );
+
+  /**
    * Marcar como comprado cria a saída paga do dia em Lançamentos, para o valor
    * sair do saldo do mês; desfazer a compra remove essa saída.
    */
@@ -980,6 +1008,7 @@ export default function App() {
           onTogglePaid={handleToggleLoanInstallmentPaid}
           onChangeDueDate={handleChangeLoanInstallmentDueDate}
           onToggleCancelled={handleToggleLoanInstallmentCancelled}
+          onChangeAmount={handleChangeLoanInstallmentAmount}
           onSettleLoan={(loan) => setLoanToSettle(loan)}
           onClose={() => setLoanInstallmentsLoan(null)}
         />

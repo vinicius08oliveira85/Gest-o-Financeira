@@ -65,6 +65,39 @@ export function getOpenAmount(loan: Loan): number {
   return loan.paid ? 0 : loan.amount;
 }
 
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * Total que vai sair do caixa: a soma das parcelas (que já inclui os juros) ou o
+ * valor único quando não é parcelado.
+ */
+export function getLoanPayableAmount(loan: Loan): number {
+  if (isInstallmentLoan(loan)) {
+    return roundMoney(loan.installments!.reduce((sum, i) => sum + i.amount, 0));
+  }
+  return loan.amount;
+}
+
+/** Juros embutidos no parcelamento: o total das parcelas menos o valor contratado. */
+export function getLoanInterest(loan: Loan): number {
+  return roundMoney(Math.max(0, getLoanPayableAmount(loan) - loan.amount));
+}
+
+/**
+ * Troca o valor de uma parcela mantendo as outras como estão (vencimento,
+ * pagamento e cancelamento são preservados): é assim que o valor real de uma
+ * parcela com juros diferente das demais entra no empréstimo.
+ */
+export function updateInstallmentAmount(loan: Loan, number: number, amount: number): Loan {
+  if (!(amount > 0)) return loan;
+  const installments = (loan.installments ?? []).map((i) =>
+    i.number === number ? { ...i, amount: roundMoney(amount) } : i
+  );
+  return { ...loan, installments };
+}
+
 /**
  * Empréstimos com saldo em aberto cujo desconto termina em até `months` meses
  * (contando o mês atual), do que termina antes para o que termina depois.
@@ -257,10 +290,11 @@ export function buildInstallmentsForPeriod(
   startMonth: string,
   endMonth: string,
   day: number,
-  previous: LoanInstallment[] = []
+  previous: LoanInstallment[] = [],
+  installmentAmount?: number
 ): LoanInstallment[] {
   const count = Math.max(1, monthsBetweenMonths(startMonth, endMonth));
-  return buildInstallments(total, count, dateInMonth(startMonth, day), previous);
+  return buildInstallments(total, count, dateInMonth(startMonth, day), previous, installmentAmount);
 }
 
 /**
@@ -294,14 +328,22 @@ export function formatDiscountPeriod(loan: Loan): string | null {
  *
  * Parcelas já pagas em `previous` são mantidas como estão (valor, data e
  * lançamento vinculado): editar o empréstimo não pode desfazer pagamentos.
+ *
+ * `installmentAmount` é o valor real de cada parcela quando o parcelamento tem
+ * juros: todas saem com ele, então o total pago fica maior que `total`.
  */
 export function buildInstallments(
   total: number,
   count: number,
   firstDueDate: string,
-  previous: LoanInstallment[] = []
+  previous: LoanInstallment[] = [],
+  installmentAmount?: number
 ): LoanInstallment[] {
   const safeCount = Math.max(1, Math.min(Math.trunc(count), 120));
+  const fixedCents =
+    installmentAmount !== undefined && installmentAmount > 0
+      ? Math.round(installmentAmount * 100)
+      : null;
   const totalCents = Math.round(total * 100);
   const baseCents = Math.floor(totalCents / safeCount);
   const remainder = totalCents - baseCents * safeCount;
@@ -313,7 +355,8 @@ export function buildInstallments(
     if (keptBefore) return keptBefore;
     return {
       number,
-      amount: (baseCents + (index < remainder ? 1 : 0)) / 100,
+      amount:
+        fixedCents !== null ? fixedCents / 100 : (baseCents + (index < remainder ? 1 : 0)) / 100,
       dueDate: addMonthsISO(firstDueDate, index),
       paid: false,
     };

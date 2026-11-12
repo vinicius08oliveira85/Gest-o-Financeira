@@ -42,6 +42,7 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
   const [discountStart, setDiscountStart] = React.useState('');
   const [discountEnd, setDiscountEnd] = React.useState('');
   const [dueDay, setDueDay] = React.useState('10');
+  const [installmentValue, setInstallmentValue] = React.useState('');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -54,6 +55,13 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     setPaid(loan?.paid ?? false);
     const count = loan?.installmentsCount ?? 1;
     setIsInstallment(count > 1);
+    // Parcela com juros: se as parcelas registradas não são o rateio do valor
+    // contratado, o campo abre com o valor real cobrado (e não vazio).
+    const savedInstallments = loan?.installments ?? [];
+    const equalSplit = count > 1 ? (loan?.amount ?? 0) / count : 0;
+    const hasInterest =
+      savedInstallments.length > 0 && savedInstallments[0].amount - equalSplit > 0.005;
+    setInstallmentValue(hasInterest ? formatCurrencyForInput(savedInstallments[0].amount) : '');
 
     // Período do desconto: o registrado ou, na falta dele, o das parcelas.
     const dates = (loan?.installments ?? []).map((i) => i.dueDate).sort();
@@ -99,6 +107,12 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
       }
       const day = Number(dueDay);
       if (!Number.isInteger(day) || day < 1 || day > 31) errs.dueDay = 'Dia de 1 a 31';
+      if (installmentValue.trim()) {
+        const perInstallment = parseCurrencyInput(installmentValue);
+        if (perInstallment === null || perInstallment <= 0) {
+          errs.installmentValue = 'Informe um valor válido';
+        }
+      }
     } else if (discountEnd) {
       // À vista o período é opcional; se o fim for preenchido, tem que fazer sentido.
       if (!discountStart) errs.discountStart = 'Informe o início';
@@ -118,13 +132,16 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     const total = parseCurrencyInput(amount) ?? 0;
     // No parcelado o período do desconto define as parcelas (uma por mês).
     // Parcelas já pagas são preservadas por `buildInstallmentsForPeriod`.
+    // O valor informado por parcela (com juros) sobrepõe o rateio do valor contratado.
+    const perInstallment = parseCurrencyInput(installmentValue) ?? undefined;
     const installments: LoanInstallment[] | undefined = isInstallment
       ? buildInstallmentsForPeriod(
           total,
           discountStart,
           discountEnd,
           Number(dueDay),
-          loan?.installments ?? []
+          loan?.installments ?? [],
+          perInstallment
         )
       : undefined;
     const count = installments?.length ?? 1;
@@ -152,6 +169,19 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
   const previewMonths =
     discountStart && discountEnd ? monthsBetweenMonths(discountStart, discountEnd) : 0;
   const previewValid = previewMonths >= 2 && previewMonths <= 120;
+  const manualInstallment = parseCurrencyInput(installmentValue);
+  const previewPerInstallment =
+    manualInstallment !== null && manualInstallment > 0
+      ? manualInstallment
+      : previewTotal !== null && previewMonths > 0
+        ? previewTotal / previewMonths
+        : null;
+  const previewPayable =
+    previewPerInstallment !== null && previewMonths > 0
+      ? Math.round(previewPerInstallment * previewMonths * 100) / 100
+      : null;
+  const previewInterest =
+    previewPayable !== null && previewTotal !== null ? previewPayable - previewTotal : 0;
 
   const inputClass =
     'w-full neu-input rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 transition-all';
@@ -317,28 +347,55 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
         </div>
 
         {isInstallment ? (
-          <div>
-            <label htmlFor="loan-installment-day" className={labelClass}>
-              Dia do vencimento
-            </label>
-            <input
-              id="loan-installment-day"
-              type="number"
-              min={1}
-              max={31}
-              inputMode="numeric"
-              value={dueDay}
-              onChange={(e) => setDueDay(e.target.value)}
-              className={inputClass + (errors.dueDay ? ' border-red-400' : '')}
-            />
-            {errors.dueDay && <p className={errorClass}>{errors.dueDay}</p>}
-            {previewTotal !== null && previewValid && (
+          <>
+            <div>
+              <label htmlFor="loan-installment-day" className={labelClass}>
+                Dia do vencimento
+              </label>
+              <input
+                id="loan-installment-day"
+                type="number"
+                min={1}
+                max={31}
+                inputMode="numeric"
+                value={dueDay}
+                onChange={(e) => setDueDay(e.target.value)}
+                className={inputClass + (errors.dueDay ? ' border-red-400' : '')}
+              />
+              {errors.dueDay && <p className={errorClass}>{errors.dueDay}</p>}
+            </div>
+            <div>
+              <label htmlFor="loan-installment-value" className={labelClass}>
+                Valor da parcela
+              </label>
+              <input
+                id="loan-installment-value"
+                type="text"
+                inputMode="decimal"
+                value={installmentValue}
+                onChange={(e) => setInstallmentValue(maskCurrencyInput(e.target.value))}
+                placeholder="Automático (valor dividido pelas parcelas)"
+                className={inputClass + (errors.installmentValue ? ' border-red-400' : '')}
+              />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {previewMonths}x de aproximadamente {formatCurrency(previewTotal / previewMonths)} ·
-                desconto de {formatMonthLabel(discountStart)} até {formatMonthLabel(discountEnd)}
+                Opcional: o valor real cobrado por parcela. É por aqui que entram os juros do
+                parcelamento — o total pago e os juros aparecem abaixo.
               </p>
-            )}
-          </div>
+              {errors.installmentValue && <p className={errorClass}>{errors.installmentValue}</p>}
+              {previewPerInstallment !== null && previewValid && (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {previewMonths}x de {formatCurrency(previewPerInstallment)}
+                  {previewPayable !== null ? ` = ${formatCurrency(previewPayable)}` : ''}
+                  {previewInterest > 0.005 ? ` · juros de ${formatCurrency(previewInterest)}` : ''}
+                </p>
+              )}
+              {previewValid && (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Desconto de {formatMonthLabel(discountStart)} até {formatMonthLabel(discountEnd)}
+                </p>
+              )}
+            </div>
+          </>
         ) : (
           <div>
             <label htmlFor="loan-due" className={labelClass}>

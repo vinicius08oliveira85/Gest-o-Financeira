@@ -102,7 +102,7 @@ export interface LoanSettlement {
 export interface Loan {
   id: string;
   name: string;
-  /** Valor total do empréstimo */
+  /** Valor contratado do empréstimo (sem juros); a soma das parcelas pode ser maior */
   amount: number;
   sourceType: LoanSourceType;
   /** Nome da pessoa ou da empresa que empresta (opcional) */

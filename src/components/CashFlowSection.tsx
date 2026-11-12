@@ -23,7 +23,7 @@ import { TabNav, type TabId } from './TabNav';
 import { CardsSection } from './CardsSection';
 import { LoansSection } from './LoansSection';
 import { WishlistSection } from './WishlistSection';
-import { getLoanTotals } from '../lib/loans';
+import { getLoanInterest, getLoanTotals } from '../lib/loans';
 
 const CalendarView = lazy(() =>
   import('./CalendarView').then((m) => ({ default: m.CalendarView }))
@@ -174,6 +174,9 @@ export function CashFlowSection({
     isCurrentMonth,
   } = usePeriod();
   const showSkipButton = !showNewEntryHint && !showReportsHint;
+  // Juros já embutidos nas parcelas: aparece como informação, nunca somado ao
+  // saldo em aberto (que já considera o valor cheio de cada parcela).
+  const loanInterest = loans.reduce((sum, loan) => sum + getLoanInterest(loan), 0);
 
   // `capitalize` do CSS deixava "Out. De 2026": capitalizava cada palavra. Só a
   // inicial do mês deve subir.
@@ -348,6 +351,19 @@ export function CashFlowSection({
                     {formatCurrency(getLoanTotals(loans, todayLocalISO()).overdue)}
                   </p>
                 </div>
+                {loanInterest > 0 && (
+                  <div className="neu-card p-4">
+                    <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Juros no parcelamento
+                    </p>
+                    <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                      {formatCurrency(loanInterest)}
+                    </p>
+                    <p className="text-2xs text-slate-500 dark:text-slate-400">
+                      Já dentro das parcelas — não somados ao saldo em aberto.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             <AlertsPanel alerts={alerts} onDismiss={onDismissAlert} onAction={onAlertAction} />

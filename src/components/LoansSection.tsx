@@ -6,7 +6,9 @@ import {
   formatDiscountPeriod,
   formatMonthLabel,
   getEndingDiscounts,
+  getLoanInterest,
   getLoanPaidAmount,
+  getLoanPayableAmount,
   getLoanTotals,
   getNextDueDate,
   getNextOpenItem,
@@ -193,6 +195,12 @@ export function LoansSection({
                           ? `${paidCount}/${count} parcelas pagas`
                           : `Pagar em ${formatDate(loan.dueDate)}`}
                     </p>
+                    {getLoanInterest(loan) > 0 && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Total com juros: {formatCurrency(getLoanPayableAmount(loan))} · juros de{' '}
+                        {formatCurrency(getLoanInterest(loan))}
+                      </p>
+                    )}
                     {discount && (
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         Desconto: {discount}

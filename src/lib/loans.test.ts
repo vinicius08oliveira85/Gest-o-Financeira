@@ -9,14 +9,17 @@ import {
   getEndingDiscounts,
   getInstallmentsToCancel,
   getLoanItemsForMonth,
+  getLoanInterest,
   getLoanMonthTotal,
   getLoanPaidAmount,
+  getLoanPayableAmount,
   getLoanTotals,
   getNextDueDate,
   getNextOpenItem,
   getOpenAmount,
   isInstallmentLoan,
   monthsBetweenMonths,
+  updateInstallmentAmount,
 } from './loans';
 import type { Loan } from '../types';
 
@@ -286,6 +289,25 @@ describe('buildInstallments', () => {
     expect(installments.every((i) => !i.paid)).toBe(true);
   });
 
+  it('com valor de parcela informado, todas saem com esse valor (juros)', () => {
+    const installments = buildInstallments(1000, 3, '2026-11-10', [], 450);
+
+    expect(installments.map((i) => i.amount)).toEqual([450, 450, 450]);
+    // O total pago passa a ser maior que o valor contratado: a diferença é o juro.
+    expect(installments.reduce((sum, i) => sum + i.amount, 0)).toBe(1350);
+  });
+
+  it('não sobrescreve parcelas já pagas quando o valor da parcela é informado', () => {
+    const previous = buildInstallments(900, 3, '2026-11-10').map((i) =>
+      i.number === 1 ? { ...i, paid: true, entryId: 'e1' } : i
+    );
+    const rebuilt = buildInstallments(1000, 3, '2026-11-10', previous, 450);
+
+    expect(rebuilt[0]).toMatchObject({ amount: 300, paid: true, entryId: 'e1' });
+    expect(rebuilt[1].amount).toBe(450);
+    expect(rebuilt[2].amount).toBe(450);
+  });
+
   it('mantém parcelas já pagas ao editar o empréstimo', () => {
     const previous = buildInstallments(300, 3, '2026-11-10').map((i) =>
       i.number === 1 ? { ...i, paid: true, paidDate: '2026-11-10', entryId: 'e1' } : i
@@ -295,6 +317,66 @@ describe('buildInstallments', () => {
     expect(rebuilt[0]).toMatchObject({ paid: true, entryId: 'e1', dueDate: '2026-11-10' });
     expect(rebuilt[1].paid).toBe(false);
     expect(rebuilt[1].dueDate).toBe('2027-02-15');
+  });
+});
+
+describe('juros do parcelamento', () => {
+  const comJuros = loan({
+    id: 'juros',
+    amount: 1000,
+    installmentsCount: 3,
+    installments: buildInstallments(1000, 3, '2026-11-10', [], 450),
+  });
+
+  it('o total pago é a soma das parcelas, maior que o valor contratado', () => {
+    expect(getLoanPayableAmount(comJuros)).toBe(1350);
+    expect(getLoanInterest(comJuros)).toBe(350);
+    expect(getOpenAmount(comJuros)).toBe(1350);
+  });
+
+  it('sem juros o total pago é o próprio valor contratado', () => {
+    const semJuros = loan({
+      id: 'sem',
+      amount: 900,
+      installmentsCount: 3,
+      installments: buildInstallments(900, 3, '2026-11-10'),
+    });
+    expect(getLoanPayableAmount(semJuros)).toBe(900);
+    expect(getLoanInterest(semJuros)).toBe(0);
+  });
+
+  it('no pagamento único não há juros escondidos', () => {
+    expect(getLoanPayableAmount(loan({ id: 'u', amount: 500 }))).toBe(500);
+    expect(getLoanInterest(loan({ id: 'u', amount: 500 }))).toBe(0);
+  });
+});
+
+describe('updateInstallmentAmount', () => {
+  const base = loan({
+    id: 'p',
+    amount: 900,
+    installmentsCount: 3,
+    installments: [
+      { number: 1, amount: 300, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+      { number: 2, amount: 300, dueDate: '2026-12-10', paid: false },
+      { number: 3, amount: 300, dueDate: '2027-01-10', paid: false, cancelled: true },
+    ],
+  });
+
+  it('troca só o valor da parcela pedida, preservando pagamento e vencimento', () => {
+    const next = updateInstallmentAmount(base, 2, 350);
+
+    expect(next.installments![1]).toMatchObject({ amount: 350, dueDate: '2026-12-10' });
+    expect(next.installments![0]).toEqual(base.installments![0]);
+    expect(next.installments![2]).toEqual(base.installments![2]);
+    // Só a parcela 2 está em aberto (1 paga, 3 cancelada).
+    expect(getOpenAmount(next)).toBe(350);
+    expect(getLoanInterest(next)).toBe(50);
+  });
+
+  it('arredonda para centavos e ignora valor inválido', () => {
+    expect(updateInstallmentAmount(base, 2, 350.555).installments![1].amount).toBe(350.56);
+    expect(updateInstallmentAmount(base, 2, 0)).toBe(base);
   });
 });
 
