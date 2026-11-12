@@ -9,6 +9,7 @@ import {
   getLoanInterest,
   getLoanPaidAmount,
   getLoanPayableAmount,
+  getMonthlyInstallments,
   getLoanTotals,
   getNextDueDate,
   getNextOpenItem,
@@ -170,6 +171,7 @@ export function LoansSection({
               const count = loan.installments?.length ?? 1;
               const open = getOpenAmount(loan);
               const discount = formatDiscountPeriod(loan);
+              const monthly = getMonthlyInstallments(loan);
               return (
                 <li
                   key={loan.id}
@@ -195,6 +197,13 @@ export function LoansSection({
                           ? `${paidCount}/${count} parcelas pagas`
                           : `Pagar em ${formatDate(loan.dueDate)}`}
                     </p>
+                    {monthly && (
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {monthly.varies
+                          ? `Parcelas de ${formatCurrency(monthly.min)} a ${formatCurrency(monthly.max)} por mês`
+                          : `Parcela mensal: ${formatCurrency(monthly.amount)}`}
+                      </p>
+                    )}
                     {getLoanInterest(loan) > 0 && (
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         Total com juros: {formatCurrency(getLoanPayableAmount(loan))} · juros de{' '}

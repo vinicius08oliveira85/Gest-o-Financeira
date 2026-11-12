@@ -150,6 +150,46 @@ describe('LoansSection', () => {
     expect(screen.queryByText('Próximos vencimentos')).toBeNull();
   });
 
+  it('mostra o valor mensal da parcela do empréstimo parcelado', () => {
+    const parcelado = loan({
+      id: 'parcelado',
+      name: 'Parcelado',
+      amount: 300,
+      dueDate: '2026-11-20',
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 100, dueDate: '2026-11-20', paid: false },
+        { number: 2, amount: 100, dueDate: '2026-12-20', paid: false },
+        { number: 3, amount: 100, dueDate: '2027-01-20', paid: false },
+      ],
+    });
+
+    const pagamentoUnico = loan({
+      id: 'unico',
+      name: 'Pagamento único',
+      amount: 400,
+      dueDate: '2026-11-25',
+    });
+
+    render(
+      <LoansSection
+        loans={[parcelado, pagamentoUnico]}
+        onNewLoan={noop}
+        onEditLoan={noop}
+        onOpenInstallments={noop}
+        onSettleLoan={noop}
+        onUndoSettlement={noop}
+      />
+    );
+
+    const item = screen.getByText('Parcelado').closest('li') as HTMLElement;
+    expect((item.textContent ?? '').replace(/\u00a0/g, ' ')).toContain('Parcela mensal: R$ 100,00');
+
+    // Pagamento único não tem valor mensal: só o parcelado mostra a linha.
+    const unico = screen.getByText('Pagamento único').closest('li') as HTMLElement;
+    expect(unico.textContent).not.toContain('Parcela mensal');
+  });
+
   it('mostra o valor da próxima parcela, não o saldo do empréstimo', () => {
     const parcelado = loan({
       id: 'parcelado',

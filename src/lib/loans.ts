@@ -86,6 +86,22 @@ export function getLoanInterest(loan: Loan): number {
 }
 
 /**
+ * Valor mensal das parcelas: o valor delas quando é fixo (o caso normal do
+ * parcelamento, com ou sem juros) ou a faixa quando variam de uma para outra.
+ * Canceladas ficam de fora; pagamento único devolve null (não é mensal).
+ */
+export function getMonthlyInstallments(
+  loan: Loan
+): { amount: number; varies: boolean; min: number; max: number } | null {
+  if (!isInstallmentLoan(loan)) return null;
+  const amounts = loan.installments!.filter((i) => !i.cancelled).map((i) => i.amount);
+  if (amounts.length === 0) return null;
+  const min = roundMoney(Math.min(...amounts));
+  const max = roundMoney(Math.max(...amounts));
+  return { amount: amounts[0], varies: max - min > 0.005, min, max };
+}
+
+/**
  * Troca o valor de uma parcela mantendo as outras como estão (vencimento,
  * pagamento e cancelamento são preservados): é assim que o valor real de uma
  * parcela com juros diferente das demais entra no empréstimo.

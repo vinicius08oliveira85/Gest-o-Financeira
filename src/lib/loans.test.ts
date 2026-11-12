@@ -14,6 +14,7 @@ import {
   getLoanPaidAmount,
   getLoanPayableAmount,
   getLoanTotals,
+  getMonthlyInstallments,
   getNextDueDate,
   getNextOpenItem,
   getOpenAmount,
@@ -348,6 +349,47 @@ describe('juros do parcelamento', () => {
   it('no pagamento único não há juros escondidos', () => {
     expect(getLoanPayableAmount(loan({ id: 'u', amount: 500 }))).toBe(500);
     expect(getLoanInterest(loan({ id: 'u', amount: 500 }))).toBe(0);
+  });
+});
+
+describe('getMonthlyInstallments', () => {
+  it('devolve o valor fixo das parcelas', () => {
+    const loja = loan({
+      id: 'fixo',
+      amount: 1000,
+      installmentsCount: 3,
+      installments: buildInstallments(1000, 3, '2026-11-10', [], 450),
+    });
+    expect(getMonthlyInstallments(loja)).toEqual({
+      amount: 450,
+      varies: false,
+      min: 450,
+      max: 450,
+    });
+  });
+
+  it('devolve a faixa quando as parcelas têm valores diferentes', () => {
+    const variavel = loan({
+      id: 'variavel',
+      amount: 600,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 200, dueDate: '2026-11-10', paid: true },
+        { number: 2, amount: 350, dueDate: '2026-12-10', paid: false },
+        { number: 3, amount: 300, dueDate: '2027-01-10', paid: false, cancelled: true },
+      ],
+    });
+    // A parcela cancelada fica de fora da faixa.
+    expect(getMonthlyInstallments(variavel)).toEqual({
+      amount: 200,
+      varies: true,
+      min: 200,
+      max: 350,
+    });
+  });
+
+  it('não devolve valor mensal para pagamento único', () => {
+    expect(getMonthlyInstallments(loan({ id: 'unico', amount: 500 }))).toBeNull();
   });
 });
 
