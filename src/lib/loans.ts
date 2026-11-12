@@ -307,10 +307,18 @@ export function buildInstallmentsForPeriod(
   endMonth: string,
   day: number,
   previous: LoanInstallment[] = [],
-  installmentAmount?: number
+  installmentAmount?: number,
+  keepExistingAmounts = false
 ): LoanInstallment[] {
   const count = Math.max(1, monthsBetweenMonths(startMonth, endMonth));
-  return buildInstallments(total, count, dateInMonth(startMonth, day), previous, installmentAmount);
+  return buildInstallments(
+    total,
+    count,
+    dateInMonth(startMonth, day),
+    previous,
+    installmentAmount,
+    keepExistingAmounts
+  );
 }
 
 /**
@@ -347,13 +355,18 @@ export function formatDiscountPeriod(loan: Loan): string | null {
  *
  * `installmentAmount` é o valor real de cada parcela quando o parcelamento tem
  * juros: todas saem com ele, então o total pago fica maior que `total`.
+ *
+ * `keepExistingAmounts` mantém o valor já salvo de cada parcela (inclusive os
+ * ajustes feitos uma a uma) e só reescreve vencimento: editar o empréstimo não
+ * pode desfazer o valor real de cada mês.
  */
 export function buildInstallments(
   total: number,
   count: number,
   firstDueDate: string,
   previous: LoanInstallment[] = [],
-  installmentAmount?: number
+  installmentAmount?: number,
+  keepExistingAmounts = false
 ): LoanInstallment[] {
   const safeCount = Math.max(1, Math.min(Math.trunc(count), 120));
   const fixedCents =
@@ -369,10 +382,14 @@ export function buildInstallments(
     // Pagas e canceladas são mantidas ao editar o empréstimo.
     const keptBefore = previous.find((p) => p.number === number && (p.paid || p.cancelled));
     if (keptBefore) return keptBefore;
+    const keptAmount = keepExistingAmounts ? previous.find((p) => p.number === number) : undefined;
     return {
       number,
-      amount:
-        fixedCents !== null ? fixedCents / 100 : (baseCents + (index < remainder ? 1 : 0)) / 100,
+      amount: keptAmount
+        ? roundMoney(keptAmount.amount)
+        : fixedCents !== null
+          ? fixedCents / 100
+          : (baseCents + (index < remainder ? 1 : 0)) / 100,
       dueDate: addMonthsISO(firstDueDate, index),
       paid: false,
     };

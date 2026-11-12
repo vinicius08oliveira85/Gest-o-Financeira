@@ -22,7 +22,7 @@ import {
   monthsBetweenMonths,
   updateInstallmentAmount,
 } from './loans';
-import type { Loan } from '../types';
+import type { Loan, LoanInstallment } from '../types';
 
 describe('getNextOpenItem', () => {
   it('devolve a parcela mais próxima com o valor dela, não o saldo', () => {
@@ -307,6 +307,30 @@ describe('buildInstallments', () => {
     expect(rebuilt[0]).toMatchObject({ amount: 300, paid: true, entryId: 'e1' });
     expect(rebuilt[1].amount).toBe(450);
     expect(rebuilt[2].amount).toBe(450);
+  });
+
+  it('preserva os valores ajustados parcela a parcela quando pedido', () => {
+    const previous: LoanInstallment[] = [
+      { number: 1, amount: 300, dueDate: '2026-11-10', paid: true },
+      { number: 2, amount: 350, dueDate: '2026-12-10', paid: false },
+      { number: 3, amount: 280, dueDate: '2027-01-10', paid: false },
+    ];
+    const rebuilt = buildInstallments(1000, 3, '2026-12-05', previous, 450, true);
+
+    // Valores mantidos; só os vencimentos passam a seguir a nova data — a parcela
+    // 1 já paga continua exatamente como estava (data inclusive).
+    expect(rebuilt.map((i) => i.amount)).toEqual([300, 350, 280]);
+    expect(rebuilt.map((i) => i.dueDate)).toEqual(['2026-11-10', '2027-01-05', '2027-02-05']);
+  });
+
+  it('sem preservar, o valor informado ainda iguala todas as parcelas', () => {
+    const previous: LoanInstallment[] = [
+      { number: 1, amount: 300, dueDate: '2026-11-10', paid: false },
+      { number: 2, amount: 350, dueDate: '2026-12-10', paid: false },
+    ];
+    expect(buildInstallments(1000, 2, '2026-11-10', previous, 450).map((i) => i.amount)).toEqual([
+      450, 450,
+    ]);
   });
 
   it('mantém parcelas já pagas ao editar o empréstimo', () => {

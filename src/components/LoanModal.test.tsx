@@ -66,6 +66,61 @@ describe('LoanModal', () => {
     expect(preview).toContain('juros de R$ 150,00');
   });
 
+  it('mantém os valores ajustados de cada parcela ao salvar o empréstimo', () => {
+    const onSave = vi.fn();
+    const comAjustes = {
+      id: 'a',
+      name: 'Carro',
+      amount: 1000,
+      sourceType: 'pessoa_fisica' as const,
+      dueDate: '2026-11-10',
+      paid: false,
+      createdAt: 1,
+      installmentsCount: 3,
+      discountStart: '2026-11',
+      discountEnd: '2027-01',
+      installments: [
+        { number: 1, amount: 300, dueDate: '2026-11-10', paid: false },
+        { number: 2, amount: 350, dueDate: '2026-12-10', paid: false },
+        { number: 3, amount: 280, dueDate: '2027-01-10', paid: false },
+      ],
+    };
+
+    render(<LoanModal open loan={comAjustes} onSave={onSave} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar empréstimo' }));
+
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.installments.map((i: { amount: number }) => i.amount)).toEqual([300, 350, 280]);
+  });
+
+  it('iguala todas as parcelas quando o valor da parcela é digitado', () => {
+    const onSave = vi.fn();
+    const comAjustes = {
+      id: 'a',
+      name: 'Carro',
+      amount: 1000,
+      sourceType: 'pessoa_fisica' as const,
+      dueDate: '2026-11-10',
+      paid: false,
+      createdAt: 1,
+      installmentsCount: 3,
+      discountStart: '2026-11',
+      discountEnd: '2027-01',
+      installments: [
+        { number: 1, amount: 300, dueDate: '2026-11-10', paid: false },
+        { number: 2, amount: 350, dueDate: '2026-12-10', paid: false },
+        { number: 3, amount: 280, dueDate: '2027-01-10', paid: false },
+      ],
+    };
+
+    render(<LoanModal open loan={comAjustes} onSave={onSave} onClose={() => {}} />);
+    fireEvent.change(screen.getByLabelText('Valor da parcela'), { target: { value: '400' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar empréstimo' }));
+
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.installments.map((i: { amount: number }) => i.amount)).toEqual([400, 400, 400]);
+  });
+
   it('recusa valor de parcela inválido no parcelado', () => {
     const onSave = vi.fn();
     render(<LoanModal open loan={null} onSave={onSave} onClose={() => {}} />);

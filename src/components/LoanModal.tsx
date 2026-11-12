@@ -43,6 +43,9 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
   const [discountEnd, setDiscountEnd] = React.useState('');
   const [dueDay, setDueDay] = React.useState('10');
   const [installmentValue, setInstallmentValue] = React.useState('');
+  // Só recalcula o valor de todas as parcelas quando o campo é mexido; senão os
+  // valores já ajustados (um a um) são preservados ao salvar o empréstimo.
+  const [installmentValueTouched, setInstallmentValueTouched] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -62,6 +65,7 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     const hasInterest =
       savedInstallments.length > 0 && savedInstallments[0].amount - equalSplit > 0.005;
     setInstallmentValue(hasInterest ? formatCurrencyForInput(savedInstallments[0].amount) : '');
+    setInstallmentValueTouched(false);
 
     // Período do desconto: o registrado ou, na falta dele, o das parcelas.
     const dates = (loan?.installments ?? []).map((i) => i.dueDate).sort();
@@ -133,7 +137,11 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     // No parcelado o período do desconto define as parcelas (uma por mês).
     // Parcelas já pagas são preservadas por `buildInstallmentsForPeriod`.
     // O valor informado por parcela (com juros) sobrepõe o rateio do valor contratado.
-    const perInstallment = parseCurrencyInput(installmentValue) ?? undefined;
+    // Campo intocado: mantém o valor real de cada parcela (inclusive ajustes
+    // individuais); mexeu no campo: iguala todas pelo valor informado.
+    const perInstallment = installmentValueTouched
+      ? (parseCurrencyInput(installmentValue) ?? undefined)
+      : undefined;
     const installments: LoanInstallment[] | undefined = isInstallment
       ? buildInstallmentsForPeriod(
           total,
@@ -141,7 +149,8 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
           discountEnd,
           Number(dueDay),
           loan?.installments ?? [],
-          perInstallment
+          perInstallment,
+          Boolean(loan) && !installmentValueTouched
         )
       : undefined;
     const count = installments?.length ?? 1;
@@ -169,16 +178,27 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
   const previewMonths =
     discountStart && discountEnd ? monthsBetweenMonths(discountStart, discountEnd) : 0;
   const previewValid = previewMonths >= 2 && previewMonths <= 120;
-  const manualInstallment = parseCurrencyInput(installmentValue);
-  const previewPerInstallment =
-    manualInstallment !== null && manualInstallment > 0
-      ? manualInstallment
-      : previewTotal !== null && previewMonths > 0
-        ? previewTotal / previewMonths
-        : null;
+  const keepExistingAmounts = Boolean(loan) && !installmentValueTouched;
+  const manualInstallment = installmentValueTouched ? parseCurrencyInput(installmentValue) : null;
+  // A prévia usa a mesma função do salvar: o que aparece é o que vai ser gravado.
+  const previewInstallments =
+    isInstallment && previewValid && previewTotal !== null
+      ? buildInstallmentsForPeriod(
+          previewTotal,
+          discountStart,
+          discountEnd,
+          Number(dueDay) || 1,
+          loan?.installments ?? [],
+          manualInstallment ?? undefined,
+          keepExistingAmounts
+        )
+      : null;
+  const previewAmounts = previewInstallments?.map((i) => i.amount) ?? [];
+  const previewMin = previewAmounts.length > 0 ? Math.min(...previewAmounts) : null;
+  const previewMax = previewAmounts.length > 0 ? Math.max(...previewAmounts) : null;
   const previewPayable =
-    previewPerInstallment !== null && previewMonths > 0
-      ? Math.round(previewPerInstallment * previewMonths * 100) / 100
+    previewAmounts.length > 0
+      ? Math.round(previewAmounts.reduce((sum, value) => sum + value, 0) * 100) / 100
       : null;
   const previewInterest =
     previewPayable !== null && previewTotal !== null ? previewPayable - previewTotal : 0;
@@ -373,19 +393,25 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
                 type="text"
                 inputMode="decimal"
                 value={installmentValue}
-                onChange={(e) => setInstallmentValue(maskCurrencyInput(e.target.value))}
+                onChange={(e) => {
+                  setInstallmentValue(maskCurrencyInput(e.target.value));
+                  setInstallmentValueTouched(true);
+                }}
                 placeholder="Automático (valor dividido pelas parcelas)"
                 className={inputClass + (errors.installmentValue ? ' border-red-400' : '')}
               />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Opcional: o valor real cobrado por parcela. É por aqui que entram os juros do
-                parcelamento — o total pago e os juros aparecem abaixo.
+                {keepExistingAmounts && loan?.installments?.length
+                  ? 'Deixe em branco para manter o valor de cada parcela; preencha para igualar todas.'
+                  : 'Opcional: o valor real cobrado por parcela. É por aqui que entram os juros do parcelamento — o total pago e os juros aparecem abaixo.'}
               </p>
               {errors.installmentValue && <p className={errorClass}>{errors.installmentValue}</p>}
-              {previewPerInstallment !== null && previewValid && (
+              {previewMin !== null && previewMax !== null && previewPayable !== null && (
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {previewMonths}x de {formatCurrency(previewPerInstallment)}
-                  {previewPayable !== null ? ` = ${formatCurrency(previewPayable)}` : ''}
+                  {previewMin === previewMax
+                    ? `${previewMonths}x de ${formatCurrency(previewMin)}`
+                    : `Parcelas de ${formatCurrency(previewMin)} a ${formatCurrency(previewMax)}`}
+                  {` = ${formatCurrency(previewPayable)}`}
                   {previewInterest > 0.005 ? ` · juros de ${formatCurrency(previewInterest)}` : ''}
                 </p>
               )}
