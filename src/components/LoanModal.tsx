@@ -73,6 +73,8 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     const start = loan?.discountStart ?? monthKey(fallbackDue);
     // Sem período registrado: o parcelado sugere 12 meses (o usuário ajusta).
     // À vista fica vazio, para não gravar um desconto de 12 meses que ninguém escolheu.
+    // O fim registrado é mantido mesmo que parcelas pagas passem dele: mudar aqui
+    // recriaria parcelas futuras que o usuário já tinha encurtado.
     const end =
       loan?.discountEnd ??
       (dates.length > 0
@@ -165,11 +167,14 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
       sourceName: sourceName.trim() || undefined,
       dueDate: installments ? installments[0].dueDate : dueDate,
       // Num parcelado, "pago" significa todas as parcelas pagas.
-      paid: installments ? installments.every((i) => i.paid) : paid,
+      paid: loan?.settlement ? true : installments ? installments.every((i) => i.paid) : paid,
       discountStart: hasDiscount ? discountStart || undefined : undefined,
       discountEnd: hasDiscount ? discountEnd || undefined : undefined,
       installmentsCount: count > 1 ? count : undefined,
       installments,
+      // A quitação não tem campo no formulário, mas editar o empréstimo não
+      // pode apagá-la (nem no modo nuvem, que grava o objeto inteiro).
+      settlement: loan?.settlement,
     });
     onClose();
   }
@@ -179,6 +184,7 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
     discountStart && discountEnd ? monthsBetweenMonths(discountStart, discountEnd) : 0;
   const previewValid = previewMonths >= 2 && previewMonths <= 120;
   const keepExistingAmounts = Boolean(loan) && !installmentValueTouched;
+  const paidInstallmentsCount = loan?.installments?.filter((i) => i.paid).length ?? 0;
   const manualInstallment = installmentValueTouched ? parseCurrencyInput(installmentValue) : null;
   // A prévia usa a mesma função do salvar: o que aparece é o que vai ser gravado.
   const previewInstallments =
@@ -193,6 +199,11 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
           keepExistingAmounts
         )
       : null;
+  // Última parcela da prévia: mostra até onde o período realmente vai quando as
+  // pagas passam do fim registrado.
+  const previewLastMonth = previewInstallments?.length
+    ? monthKey(previewInstallments[previewInstallments.length - 1].dueDate)
+    : null;
   const previewAmounts = previewInstallments?.map((i) => i.amount) ?? [];
   const previewMin = previewAmounts.length > 0 ? Math.min(...previewAmounts) : null;
   const previewMax = previewAmounts.length > 0 ? Math.max(...previewAmounts) : null;
@@ -409,7 +420,7 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
               {previewMin !== null && previewMax !== null && previewPayable !== null && (
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {previewMin === previewMax
-                    ? `${previewMonths}x de ${formatCurrency(previewMin)}`
+                    ? `${previewAmounts.length}x de ${formatCurrency(previewMin)}`
                     : `Parcelas de ${formatCurrency(previewMin)} a ${formatCurrency(previewMax)}`}
                   {` = ${formatCurrency(previewPayable)}`}
                   {previewInterest > 0.005 ? ` · juros de ${formatCurrency(previewInterest)}` : ''}
@@ -418,6 +429,13 @@ export function LoanModal({ open, loan, onSave, onRequestDelete, onClose }: Prop
               {previewValid && (
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Desconto de {formatMonthLabel(discountStart)} até {formatMonthLabel(discountEnd)}
+                </p>
+              )}
+              {previewValid && previewLastMonth && previewAmounts.length > previewMonths && (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  Desconto até {formatMonthLabel(previewLastMonth)}: as {paidInstallmentsCount}{' '}
+                  parcelas já pagas continuam no empréstimo, então o período não fica menor que
+                  elas.
                 </p>
               )}
             </div>

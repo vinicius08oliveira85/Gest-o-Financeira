@@ -190,6 +190,37 @@ describe('LoansSection', () => {
     expect(unico.textContent).not.toContain('Parcela mensal');
   });
 
+  it('mostra os juros já pagos separados dos juros contratados', () => {
+    const comJuros = loan({
+      id: 'juros',
+      name: 'Com juros',
+      amount: 1000,
+      dueDate: '2026-11-10',
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 450, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 450, dueDate: '2026-12-10', paid: false },
+        { number: 3, amount: 450, dueDate: '2027-01-10', paid: false },
+      ],
+    });
+
+    render(
+      <LoansSection
+        loans={[comJuros]}
+        onNewLoan={noop}
+        onEditLoan={noop}
+        onOpenInstallments={noop}
+        onSettleLoan={noop}
+        onUndoSettlement={noop}
+      />
+    );
+
+    const item = screen.getByText('Com juros').closest('li') as HTMLElement;
+    const text = (item.textContent ?? '').replace(/\u00a0/g, ' ');
+    expect(text).toContain('juros de R$ 350,00');
+    expect(text).toContain('Juros já pagos: R$ 116,67');
+  });
+
   it('mostra o valor da próxima parcela, não o saldo do empréstimo', () => {
     const parcelado = loan({
       id: 'parcelado',

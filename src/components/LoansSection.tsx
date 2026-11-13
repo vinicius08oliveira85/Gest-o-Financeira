@@ -8,6 +8,7 @@ import {
   getEndingDiscounts,
   getLoanInterest,
   getLoanPaidAmount,
+  getLoanPaidInterest,
   getLoanPayableAmount,
   getMonthlyInstallments,
   getLoanTotals,
@@ -208,6 +209,11 @@ export function LoansSection({
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         Total com juros: {formatCurrency(getLoanPayableAmount(loan))} · juros de{' '}
                         {formatCurrency(getLoanInterest(loan))}
+                      </p>
+                    )}
+                    {getLoanPaidInterest(loan) > 0 && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Juros já pagos: {formatCurrency(getLoanPaidInterest(loan))}
                       </p>
                     )}
                     {discount && (

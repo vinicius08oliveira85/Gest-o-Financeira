@@ -66,6 +66,107 @@ describe('LoanModal', () => {
     expect(preview).toContain('juros de R$ 150,00');
   });
 
+  it('preserva a quitação ao editar um empréstimo quitado', () => {
+    const onSave = vi.fn();
+    const settlement = {
+      amount: 600,
+      date: '2026-11-12',
+      entryId: 'e2',
+      cancelledNumbers: [2, 3],
+    };
+    const quitado = {
+      id: 'q',
+      name: 'Quitado',
+      amount: 1000,
+      sourceType: 'pessoa_fisica' as const,
+      dueDate: '2026-11-10',
+      paid: true,
+      createdAt: 1,
+      installmentsCount: 3,
+      discountStart: '2026-11',
+      discountEnd: '2027-01',
+      installments: [
+        { number: 1, amount: 350, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 350, dueDate: '2026-12-10', paid: false, cancelled: true },
+        { number: 3, amount: 350, dueDate: '2027-01-10', paid: false, cancelled: true },
+      ],
+      settlement,
+    };
+
+    render(<LoanModal open loan={quitado} onSave={onSave} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar empréstimo' }));
+
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.settlement).toEqual(settlement);
+    expect(saved.paid).toBe(true);
+  });
+
+  it('não perde as parcelas pagas ao encurtar o período', () => {
+    const onSave = vi.fn();
+    const comPagas = {
+      id: 'p',
+      name: 'Carro',
+      amount: 1200,
+      sourceType: 'pessoa_fisica' as const,
+      dueDate: '2026-11-10',
+      paid: false,
+      createdAt: 1,
+      installmentsCount: 6,
+      discountStart: '2026-11',
+      discountEnd: '2027-04',
+      installments: [
+        { number: 1, amount: 200, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 200, dueDate: '2026-12-10', paid: true, entryId: 'e2' },
+        { number: 3, amount: 200, dueDate: '2027-01-10', paid: false },
+        { number: 4, amount: 200, dueDate: '2027-02-10', paid: true, entryId: 'e4' },
+        { number: 5, amount: 200, dueDate: '2027-03-10', paid: false },
+        { number: 6, amount: 200, dueDate: '2027-04-10', paid: false },
+      ],
+    };
+
+    render(<LoanModal open loan={comPagas} onSave={onSave} onClose={() => {}} />);
+    // Encurta de abr/2027 para jan/2027: 3 meses, mas a parcela 4 já foi paga.
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2027-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar empréstimo' }));
+
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.installments.map((i: { number: number }) => i.number)).toEqual([1, 2, 3, 4]);
+    expect(saved.installments[3]).toMatchObject({ number: 4, paid: true, entryId: 'e4' });
+  });
+
+  it('mostra o período real quando parcelas pagas passam do fim registrado', () => {
+    // Fim registrado em jan/2027, mas a parcela de abr/2027 já foi paga.
+    const comPagas = {
+      id: 'p',
+      name: 'Carro',
+      amount: 1200,
+      sourceType: 'pessoa_fisica' as const,
+      dueDate: '2026-11-10',
+      paid: false,
+      createdAt: 1,
+      installmentsCount: 4,
+      discountStart: '2026-11',
+      discountEnd: '2027-01',
+      installments: [
+        { number: 1, amount: 300, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 300, dueDate: '2026-12-10', paid: true, entryId: 'e2' },
+        { number: 3, amount: 300, dueDate: '2027-01-10', paid: false },
+        { number: 4, amount: 300, dueDate: '2027-04-10', paid: true, entryId: 'e4' },
+      ],
+    };
+
+    render(<LoanModal open loan={comPagas} onSave={vi.fn()} onClose={() => {}} />);
+
+    // O campo continua com o período salvo; o aviso diz até onde as pagas vão.
+    expect((screen.getByLabelText('Fim') as HTMLInputElement).value).toBe('2027-01');
+    const aviso = (screen.getByText(/continuam no empréstimo/).textContent ?? '').replace(
+      /\u00a0/g,
+      ' '
+    );
+    expect(aviso).toContain('Desconto até abr/2027');
+    expect(aviso).toContain('3 parcelas já pagas');
+  });
+
   it('mantém os valores ajustados de cada parcela ao salvar o empréstimo', () => {
     const onSave = vi.fn();
     const comAjustes = {

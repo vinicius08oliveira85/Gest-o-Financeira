@@ -161,6 +161,42 @@ describe('useLoans', () => {
     expect(result.current.loans.find((l) => l.id === 'cloud')).toBeUndefined();
   });
 
+  it('com Appwrite: editar preserva a quitação e a data de criação', async () => {
+    const { fetchLoans, upsertLoan: upsertDb } = await import('../lib/loansDb');
+    const quitado: Loan = {
+      ...cloudLoan,
+      paid: true,
+      settlement: { amount: 800, date: '2026-11-12', entryId: 'e1', cancelledNumbers: [2, 3] },
+    };
+    vi.mocked(fetchLoans).mockResolvedValue([quitado]);
+    vi.mocked(upsertDb).mockImplementation(async (l) => ({ ...quitado, ...l }) as Loan);
+    const { result } = await renderLoaded(true);
+
+    // O formulário manda só os campos que edita, sem `settlement`.
+    act(() => {
+      result.current.upsertLoan({
+        id: 'cloud',
+        name: 'Renomeado',
+        amount: 1000,
+        sourceType: 'pessoa_fisica',
+        dueDate: '2026-12-10',
+        paid: true,
+      });
+    });
+
+    await waitFor(() =>
+      expect(upsertDb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'cloud',
+          name: 'Renomeado',
+          createdAt: 1,
+          settlement: expect.objectContaining({ amount: 800, date: '2026-11-12' }),
+        })
+      )
+    );
+    expect(result.current.loans[0].settlement?.amount).toBe(800);
+  });
+
   it('com Appwrite: falha ao cadastrar remove só o item novo, sem apagar outros', async () => {
     const { fetchLoans, upsertLoan: upsertDb } = await import('../lib/loansDb');
     vi.mocked(fetchLoans).mockResolvedValue([cloudLoan]);

@@ -27,6 +27,7 @@ import {
   getLoanInterest,
   getLoanMonthPendingAmount,
   getLoanMonthlyImpact,
+  getLoanPaidInterest,
   getLoanTotals,
 } from '../lib/loans';
 
@@ -182,6 +183,9 @@ export function CashFlowSection({
   // Juros já embutidos nas parcelas: aparece como informação, nunca somado ao
   // saldo em aberto (que já considera o valor cheio de cada parcela).
   const loanInterest = loans.reduce((sum, loan) => sum + getLoanInterest(loan), 0);
+  // Juros contratados x já pagos: o que sobra está embutido nas parcelas em aberto.
+  const loanPaidInterest = loans.reduce((sum, loan) => sum + getLoanPaidInterest(loan), 0);
+  const loanOpenInterest = Math.max(0, Math.round((loanInterest - loanPaidInterest) * 100) / 100);
   // Parcelas do mês ainda não pagas contam como saída do mês (as pagas já são
   // lançamentos): sem isso o Resumo não mostra o valor real do mês.
   const loanPendingMes = useMemo(
@@ -249,6 +253,19 @@ export function CashFlowSection({
         .reduce((acc, d) => acc + d.amount, 0);
     return { entradas, saidas, saldo };
   }, [entries, currentMonth, currentYear]);
+
+  // Parcelas de empréstimo do mês anterior que ainda não viraram lançamento:
+  // entram no comparativo do mesmo jeito que as do mês atual, senão as saídas
+  // parecem ter caído só porque o mês anterior não somava os empréstimos.
+  const prevLoanPending = useMemo(() => {
+    const prevDate = new Date(currentYear, currentMonth - 1, 1);
+    return getLoanMonthPendingAmount(
+      loans,
+      prevDate.getMonth(),
+      prevDate.getFullYear(),
+      todayLocalISO()
+    );
+  }, [loans, currentMonth, currentYear]);
 
   // Gasto no cartão do mês (fatura) e do mês anterior, para o comparativo do Resumo
   const cardSpendingMes = useMemo(
@@ -346,7 +363,9 @@ export function CashFlowSection({
               saldoProjetado={saldoProjetadoMes - loanPendingMes}
               periodLabel="do mês"
               prevEntradasLancadas={prevMonthTotals.entradas}
-              prevSaidasLancadas={prevMonthTotals.saidas}
+              prevSaidasLancadas={
+                Math.round((prevMonthTotals.saidas + prevLoanPending) * 100) / 100
+              }
               prevSaldo={prevMonthTotals.saldo}
               cardSpending={cardSpendingMes}
               prevCardSpending={prevCardSpending}
@@ -410,6 +429,18 @@ export function CashFlowSection({
                     <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
                       {formatCurrency(loanInterest)}
                     </p>
+                    <div className="mt-1 flex items-center justify-between text-2xs text-slate-500 dark:text-slate-400">
+                      <span>Já pagos</span>
+                      <span className="font-medium text-amber-700 dark:text-amber-400">
+                        {formatCurrency(loanPaidInterest)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-2xs text-slate-500 dark:text-slate-400">
+                      <span>A pagar</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        {formatCurrency(loanOpenInterest)}
+                      </span>
+                    </div>
                     <p className="text-2xs text-slate-500 dark:text-slate-400">
                       Já dentro das parcelas — não somados ao saldo em aberto.
                     </p>

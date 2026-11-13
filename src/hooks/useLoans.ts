@@ -71,17 +71,20 @@ export function useLoans() {
       if (useCloudSync) {
         const optimisticId = loan.id ?? randomUUID();
         const previousItem = loans.find((l) => l.id === optimisticId);
-        const optimistic = {
-          ...loan,
-          id: optimisticId,
-          createdAt: previousItem?.createdAt ?? Date.now(),
-        } as Loan;
+        // Mescla sobre o que já estava salvo: quem edita (o formulário, por
+        // exemplo) manda só os campos que conhece, e quitação, parcelas e a
+        // data de criação não podem se perder no caminho para a nuvem.
+        const optimistic = (
+          previousItem
+            ? { ...previousItem, ...loan, id: optimisticId, createdAt: previousItem.createdAt }
+            : { ...loan, id: optimisticId, createdAt: Date.now() }
+        ) as Loan;
         setLoans((ls) =>
           previousItem
             ? ls.map((x) => (x.id === optimisticId ? optimistic : x))
             : [...ls, optimistic]
         );
-        upsertLoanDb({ ...loan, id: optimisticId })
+        upsertLoanDb(optimistic)
           .then((saved) => {
             setLoans((ls) => ls.map((x) => (x.id === optimisticId ? saved : x)));
           })

@@ -14,6 +14,7 @@ import {
   getLoanMonthTotal,
   getLoanMonthlyImpact,
   getLoanPaidAmount,
+  getLoanPaidInterest,
   getLoanPayableAmount,
   getLoanTotals,
   getMonthlyInstallments,
@@ -110,6 +111,37 @@ describe('período do desconto', () => {
     expect(installments.reduce((sum, i) => sum + i.amount, 0)).toBeCloseTo(1000, 2);
   });
 
+  it('preserva as parcelas pagas ao encurtar o período', () => {
+    const previous: LoanInstallment[] = [
+      { number: 1, amount: 100, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+      { number: 2, amount: 100, dueDate: '2026-12-10', paid: true, entryId: 'e2' },
+      { number: 3, amount: 100, dueDate: '2027-01-10', paid: false },
+      { number: 4, amount: 100, dueDate: '2027-02-10', paid: false },
+    ];
+
+    // Encurtar de 4 para 2 meses para o empréstimo em 2 parcelas: as pagas ficam.
+    const curto = buildInstallmentsForPeriod(400, '2026-11', '2026-12', 10, previous);
+    expect(curto.map((i) => i.number)).toEqual([1, 2]);
+    expect(curto.every((i) => i.paid)).toBe(true);
+
+    // Mesmo pedindo um período menor que as parcelas pagas, elas não são apagadas.
+    const todasPagas = previous.map((i) => ({ ...i, paid: true, entryId: `e${i.number}` }));
+    const menorQuePagas = buildInstallmentsForPeriod(400, '2026-11', '2026-12', 10, todasPagas);
+    expect(menorQuePagas.map((i) => i.number)).toEqual([1, 2, 3, 4]);
+    expect(menorQuePagas.map((i) => i.entryId)).toEqual(['e1', 'e2', 'e3', 'e4']);
+  });
+
+  it('mantém uma parcela paga distante ao encurtar o período', () => {
+    const previous = buildInstallments(600, 6, '2026-11-10').map((i) =>
+      i.number === 6 ? { ...i, paid: true, entryId: 'e6' } : i
+    );
+
+    const curto = buildInstallmentsForPeriod(600, '2026-11', '2027-01', 10, previous);
+    expect(curto).toHaveLength(6);
+    expect(curto[5]).toMatchObject({ number: 6, paid: true, entryId: 'e6' });
+    expect(curto.slice(0, 5).reduce((sum, i) => sum + i.amount, 0)).toBeCloseTo(500, 2);
+  });
+
   it('mostra o período registrado e deduz o das parcelas antigas', () => {
     const withPeriod = loan({ id: 'p', discountStart: '2026-11', discountEnd: '2027-01' });
     expect(getDiscountPeriod(withPeriod)).toEqual({ start: '2026-11', end: '2027-01' });
@@ -126,6 +158,29 @@ describe('período do desconto', () => {
     expect(formatDiscountPeriod(loan({ id: 's', discountStart: '2026-11' }))).toBe(
       'nov/2026 em diante'
     );
+  });
+
+  it('estende o período exibido até a última parcela paga', () => {
+    // Período encurtado para jan/2027, mas a 4ª parcela (abr/2027) já foi paga.
+    const encurtado = loan({
+      id: 'e',
+      discountStart: '2026-11',
+      discountEnd: '2027-01',
+      installmentsCount: 4,
+      installments: [
+        { number: 1, amount: 100, dueDate: '2026-11-10', paid: true },
+        { number: 2, amount: 100, dueDate: '2026-12-10', paid: true },
+        { number: 3, amount: 100, dueDate: '2027-01-10', paid: false },
+        { number: 4, amount: 100, dueDate: '2027-04-10', paid: true },
+      ],
+    });
+
+    expect(getDiscountPeriod(encurtado)).toEqual({ start: '2026-11', end: '2027-04' });
+    expect(formatDiscountPeriod(encurtado)).toBe('nov/2026 até abr/2027');
+
+    // Sem parcela além do fim registrado, o período não muda.
+    const dentro = loan({ ...encurtado, installments: encurtado.installments!.slice(0, 3) });
+    expect(getDiscountPeriod(dentro)).toEqual({ start: '2026-11', end: '2027-01' });
   });
 });
 
@@ -376,6 +431,88 @@ describe('juros do parcelamento', () => {
     expect(getLoanPayableAmount(loan({ id: 'u', amount: 500 }))).toBe(500);
     expect(getLoanInterest(loan({ id: 'u', amount: 500 }))).toBe(0);
   });
+
+  it('não cobra parcela cancelada no total nem nos juros', () => {
+    const comCancelada = loan({
+      id: 'cancelada',
+      amount: 1000,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 450, dueDate: '2026-11-10', paid: false },
+        { number: 2, amount: 450, dueDate: '2026-12-10', paid: false },
+        { number: 3, amount: 450, dueDate: '2027-01-10', paid: false, cancelled: true },
+      ],
+    });
+
+    expect(getLoanPayableAmount(comCancelada)).toBe(900);
+    expect(getLoanInterest(comCancelada)).toBe(0);
+  });
+
+  it('usa o valor da quitação no lugar do saldo que ela cancelou', () => {
+    const quitado = loan({
+      id: 'quitado',
+      amount: 1200,
+      installmentsCount: 3,
+      paid: true,
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 500, dueDate: '2026-12-10', paid: false, cancelled: true },
+        { number: 3, amount: 500, dueDate: '2027-01-10', paid: false, cancelled: true },
+      ],
+      settlement: { amount: 900, date: '2026-11-12', entryId: 'e2', cancelledNumbers: [2, 3] },
+    });
+
+    // 500 pago + 900 da quitação (com desconto) = 1.400; juros de 200.
+    expect(getLoanPayableAmount(quitado)).toBe(1400);
+    expect(getLoanInterest(quitado)).toBe(200);
+    expect(getLoanPaidAmount(quitado)).toBe(1400);
+  });
+
+  it('rateia o juros pago na proporção do que já saiu do caixa', () => {
+    const comUmaPaga = loan({
+      id: 'uma',
+      amount: 1000,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 450, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 450, dueDate: '2026-12-10', paid: false },
+        { number: 3, amount: 450, dueDate: '2027-01-10', paid: false },
+      ],
+    });
+
+    // 450 de 1.350 = 1/3 dos 350 de juros contratados.
+    expect(getLoanPaidInterest(comUmaPaga)).toBe(116.67);
+    expect(getLoanPaidInterest(comJuros)).toBe(0);
+
+    const todasPagas = loan({
+      ...comUmaPaga,
+      installments: comUmaPaga.installments!.map((i) => ({ ...i, paid: true })),
+    });
+    expect(getLoanPaidInterest(todasPagas)).toBe(getLoanInterest(todasPagas));
+  });
+
+  it('não conta juros de empréstimo sem juros', () => {
+    const semJuros = loan({
+      id: 'sem',
+      amount: 900,
+      installmentsCount: 3,
+      installments: buildInstallments(900, 3, '2026-11-10'),
+      paid: true,
+    });
+    expect(getLoanPaidInterest(semJuros)).toBe(0);
+  });
+
+  it('no pagamento único quitado o total é só a quitação', () => {
+    const unicoQuitado = loan({
+      id: 'u2',
+      amount: 800,
+      paid: true,
+      settlement: { amount: 700, date: '2026-11-12' },
+    });
+
+    expect(getLoanPayableAmount(unicoQuitado)).toBe(700);
+    expect(getLoanInterest(unicoQuitado)).toBe(0);
+  });
 });
 
 describe('getMonthlyInstallments', () => {
@@ -504,7 +641,9 @@ describe('updateInstallmentAmount', () => {
     expect(next.installments![2]).toEqual(base.installments![2]);
     // Só a parcela 2 está em aberto (1 paga, 3 cancelada).
     expect(getOpenAmount(next)).toBe(350);
-    expect(getLoanInterest(next)).toBe(50);
+    // A parcela 3 está cancelada, então o total (650) fica abaixo do contratado
+    // e não há juros a mostrar.
+    expect(getLoanInterest(next)).toBe(0);
   });
 
   it('arredonda para centavos e ignora valor inválido', () => {

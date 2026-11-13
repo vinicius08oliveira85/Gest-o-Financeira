@@ -70,19 +70,43 @@ function roundMoney(value: number): number {
 }
 
 /**
- * Total que vai sair do caixa: a soma das parcelas (que já inclui os juros) ou o
- * valor único quando não é parcelado.
+ * Total que sai (ou saiu) do caixa pelo empréstimo: a soma das parcelas não
+ * canceladas — que já incluem os juros — mais o valor da quitação, quando houve.
+ * Parcela cancelada não é cobrada, então não entra no total; na quitação (que
+ * substitui o saldo restante) só o valor pago à vista conta.
  */
 export function getLoanPayableAmount(loan: Loan): number {
   if (isInstallmentLoan(loan)) {
-    return roundMoney(loan.installments!.reduce((sum, i) => sum + i.amount, 0));
+    const installments = loan.installments!.reduce(
+      (sum, i) => (i.cancelled ? sum : sum + i.amount),
+      0
+    );
+    return roundMoney(installments + (loan.settlement?.amount ?? 0));
   }
-  return loan.amount;
+  return loan.settlement ? roundMoney(loan.settlement.amount) : loan.amount;
 }
 
-/** Juros embutidos no parcelamento: o total das parcelas menos o valor contratado. */
+/**
+ * Juros embutidos no que efetivamente será pago: o total (parcelas não
+ * canceladas + quitação) menos o valor contratado. Nunca negativo — quando o
+ * total fica abaixo do contratado, os juros não aparecem.
+ */
 export function getLoanInterest(loan: Loan): number {
   return roundMoney(Math.max(0, getLoanPayableAmount(loan) - loan.amount));
+}
+
+/**
+ * Juros efetivamente pagos: como o contrato não guarda a taxa, os juros são
+ * rateados na mesma proporção do que já saiu do caixa (cada parcela carrega a
+ * mesma fatia de juros do total). Quitação com desconto reduz o total pago e,
+ * com ele, os juros pagos.
+ */
+export function getLoanPaidInterest(loan: Loan): number {
+  const payable = getLoanPayableAmount(loan);
+  const interest = getLoanInterest(loan);
+  if (payable <= 0 || interest <= 0) return 0;
+  const paid = getLoanPaidAmount(loan);
+  return roundMoney(Math.min(interest, (paid / payable) * interest));
 }
 
 /**
@@ -367,7 +391,21 @@ export function buildInstallmentsForPeriod(
  * das parcelas (do primeiro ao último vencimento).
  */
 export function getDiscountPeriod(loan: Loan): { start: string; end?: string } | null {
-  if (loan.discountStart) return { start: loan.discountStart, end: loan.discountEnd };
+  if (loan.discountStart) {
+    // Encurtar o período não apaga parcelas pagas, então elas podem passar do
+    // fim registrado: o período mostrado acompanha a última parcela.
+    const lastDate = isInstallmentLoan(loan)
+      ? loan
+          .installments!.map((i) => i.dueDate)
+          .sort()
+          .pop()
+      : undefined;
+    const lastMonth = lastDate ? monthKey(lastDate) : undefined;
+    if (lastMonth && (!loan.discountEnd || lastMonth > loan.discountEnd)) {
+      return { start: loan.discountStart, end: lastMonth };
+    }
+    return { start: loan.discountStart, end: loan.discountEnd };
+  }
   if (isInstallmentLoan(loan)) {
     const dates = loan.installments!.map((i) => i.dueDate).sort();
     if (dates.length === 0) return null;
@@ -400,6 +438,10 @@ export function formatDiscountPeriod(loan: Loan): string | null {
  * `keepExistingAmounts` mantém o valor já salvo de cada parcela (inclusive os
  * ajustes feitos uma a uma) e só reescreve vencimento: editar o empréstimo não
  * pode desfazer o valor real de cada mês.
+ *
+ * Encurtar o período só descarta parcelas futuras: as pagas (e as canceladas)
+ * sempre continuam, então o empréstimo nunca fica com menos parcelas do que a
+ * última delas — do contrário o pagamento já feito desapareceria do contrato.
  */
 export function buildInstallments(
   total: number,
@@ -410,15 +452,20 @@ export function buildInstallments(
   keepExistingAmounts = false
 ): LoanInstallment[] {
   const safeCount = Math.max(1, Math.min(Math.trunc(count), 120));
+  const lastKept = previous.reduce(
+    (last, p) => (p.paid || p.cancelled ? Math.max(last, p.number) : last),
+    0
+  );
+  const totalCount = Math.min(120, Math.max(safeCount, lastKept));
   const fixedCents =
     installmentAmount !== undefined && installmentAmount > 0
       ? Math.round(installmentAmount * 100)
       : null;
   const totalCents = Math.round(total * 100);
-  const baseCents = Math.floor(totalCents / safeCount);
-  const remainder = totalCents - baseCents * safeCount;
+  const baseCents = Math.floor(totalCents / totalCount);
+  const remainder = totalCents - baseCents * totalCount;
 
-  return Array.from({ length: safeCount }, (_, index) => {
+  return Array.from({ length: totalCount }, (_, index) => {
     const number = index + 1;
     // Pagas e canceladas são mantidas ao editar o empréstimo.
     const keptBefore = previous.find((p) => p.number === number && (p.paid || p.cancelled));
