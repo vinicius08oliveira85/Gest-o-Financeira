@@ -1,5 +1,6 @@
-import type { CardExpense, CreditCard, Entry } from '../types';
-import { escapeCsvCell, parseDateLocal } from './format';
+import type { CardExpense, CreditCard, Entry, Loan } from '../types';
+import { escapeCsvCell, parseDateLocal, todayLocalISO } from './format';
+import { getLoanMonthPendingAmount } from './loans';
 
 export type CardLimitPoint = {
   cardId: string;
@@ -40,6 +41,9 @@ export type MonthTrendPoint = {
  *
  * `cardExpenses` entra como `cardSpending` por mês da fatura (billingMonth/Year);
  * `cards` entra como `cardLimit` (soma dos limites dos cartões já criados naquele mês).
+ *
+ * `loans` soma as parcelas em aberto de cada mês nas saídas (as pagas já são
+ * lançamentos), para o gráfico bater com o total de saídas do relatório.
  */
 export function buildMonthlyTrend(
   entries: Entry[],
@@ -47,9 +51,11 @@ export function buildMonthlyTrend(
   currentYear: number,
   months = 6,
   cardExpenses: CardExpense[] = [],
-  cards: CreditCard[] = []
+  cards: CreditCard[] = [],
+  loans: Loan[] = []
 ): MonthTrendPoint[] {
   const isEntrada = (d: Entry) => (d.goalId ? d.type === 'debt' : d.type === 'cash');
+  const today = todayLocalISO();
 
   // Cartões vigentes em um mês (criados até lá). Sem `createdAt` (legado/migração),
   // o cartão conta em todos os meses.
@@ -96,6 +102,10 @@ export function buildMonthlyTrend(
         if (e.isPaid) saldo -= e.amount;
       }
     }
+    // Parcelas de empréstimo ainda não pagas entram como saída do mês; as pagas
+    // já estão em `entries`.
+    saidas += getLoanMonthPendingAmount(loans, m, y, today);
+
     for (const c of cardExpenses) {
       if (c.billingMonth === m && c.billingYear === y) cardSpending += c.amount;
     }

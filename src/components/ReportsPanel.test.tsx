@@ -2,6 +2,24 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { ReportsPanel } from './ReportsPanel';
 import { TREND_MONTHS_KEY } from '../constants';
+import type { Entry, Loan } from '../types';
+
+function loan(): Loan {
+  return {
+    id: 'l1',
+    name: 'Carro',
+    amount: 600,
+    sourceType: 'pessoa_fisica',
+    dueDate: '2025-03-10',
+    paid: false,
+    createdAt: 1,
+    installmentsCount: 2,
+    installments: [
+      { number: 1, amount: 300, dueDate: '2025-03-10', paid: false },
+      { number: 2, amount: 400, dueDate: '2025-04-10', paid: false },
+    ],
+  };
+}
 
 describe('ReportsPanel', () => {
   afterEach(() => {
@@ -53,6 +71,40 @@ describe('ReportsPanel', () => {
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     const blob = createObjectURL.mock.calls[0][0] as Blob;
     expect(blob.type).toBe('text/csv;charset=utf-8;');
+  });
+
+  it('conta as parcelas de empréstimo em aberto como saídas do mês', () => {
+    render(<ReportsPanel entries={[]} month={2} year={2025} loans={[loan()]} />);
+
+    const card = screen.getByText('Total saídas').closest('div') as HTMLElement;
+    const text = (card.textContent ?? '').replace(/\u00a0/g, ' ');
+    // R$ 300,00 no total e como pendente (nada foi pago).
+    expect(text).toContain('R$ 300,00');
+    expect(text).toContain('R$ 0,00 finalizadas');
+    expect(screen.getByText('Empréstimos')).toBeInTheDocument();
+  });
+
+  it('mostra o peso dos empréstimos nas saídas separado do resto', () => {
+    const entrada: Entry = {
+      id: 'e1',
+      name: 'Conta de luz',
+      amount: 200,
+      dueDate: '2025-03-15',
+      isPaid: true,
+      type: 'debt',
+      createdAt: 1,
+    };
+
+    render(<ReportsPanel entries={[entrada]} month={2} year={2025} loans={[loan()]} />);
+
+    expect(screen.getByText('Empréstimos nas saídas do mês')).toBeInTheDocument();
+    // 300 de 500 em saídas = 60%; os outros 200 são as demais saídas.
+    expect(screen.getByText('60% das saídas')).toBeInTheDocument();
+    const demais = (screen.getByText('Demais saídas').parentElement?.textContent ?? '').replace(
+      /\u00a0/g,
+      ' '
+    );
+    expect(demais).toContain('R$ 200,00');
   });
 
   it('exporta o relatório completo (KPIs + categorias) em CSV', () => {

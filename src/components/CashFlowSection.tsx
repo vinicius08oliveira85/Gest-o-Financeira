@@ -23,7 +23,12 @@ import { TabNav, type TabId } from './TabNav';
 import { CardsSection } from './CardsSection';
 import { LoansSection } from './LoansSection';
 import { WishlistSection } from './WishlistSection';
-import { getLoanInterest, getLoanTotals } from '../lib/loans';
+import {
+  getLoanInterest,
+  getLoanMonthPendingAmount,
+  getLoanMonthlyImpact,
+  getLoanTotals,
+} from '../lib/loans';
 
 const CalendarView = lazy(() =>
   import('./CalendarView').then((m) => ({ default: m.CalendarView }))
@@ -177,6 +182,24 @@ export function CashFlowSection({
   // Juros já embutidos nas parcelas: aparece como informação, nunca somado ao
   // saldo em aberto (que já considera o valor cheio de cada parcela).
   const loanInterest = loans.reduce((sum, loan) => sum + getLoanInterest(loan), 0);
+  // Parcelas do mês ainda não pagas contam como saída do mês (as pagas já são
+  // lançamentos): sem isso o Resumo não mostra o valor real do mês.
+  const loanPendingMes = useMemo(
+    () => getLoanMonthPendingAmount(loans, currentMonth, currentYear, todayLocalISO()),
+    [loans, currentMonth, currentYear]
+  );
+  // Peso do empréstimo no mês (parcelas vencendo, pagas ou não): é o que sai das
+  // saídas do mês por causa de empréstimo; o resto é o "demais saídas".
+  const loanImpactMes = useMemo(
+    () => getLoanMonthlyImpact(loans, currentMonth, currentYear),
+    [loans, currentMonth, currentYear]
+  );
+  const saidasComEmprestimos = totalSaidasLancadasMes + loanPendingMes;
+  const outrasSaidasMes = Math.max(
+    0,
+    Math.round((saidasComEmprestimos - loanImpactMes) * 100) / 100
+  );
+  const loanShareMes = saidasComEmprestimos > 0 ? (loanImpactMes / saidasComEmprestimos) * 100 : 0;
 
   // `capitalize` do CSS deixava "Out. De 2026": capitalizava cada palavra. Só a
   // inicial do mês deve subir.
@@ -311,16 +334,16 @@ export function CashFlowSection({
           <section className="section-stack">
             <DashboardCards
               totalEntradasLancadas={totalEntradasLancadasMes}
-              totalSaidasLancadas={totalSaidasLancadasMes}
+              totalSaidasLancadas={saidasComEmprestimos}
               saldo={saldoMes}
               entradasCount={entradasCountMes}
               saidasCount={saidasCountMes}
               totalEntradasFinalizadas={totalEntradasFinalizadasMes}
               totalEntradasPendentes={totalEntradasPendentesMes}
               totalSaidasFinalizadas={totalSaidasFinalizadasMes}
-              totalSaidasPendentes={totalSaidasPendentesMes}
+              totalSaidasPendentes={totalSaidasPendentesMes + loanPendingMes}
               totalLimiteDisponivel={cards.length > 0 ? totalLimiteDisponivel : undefined}
-              saldoProjetado={saldoProjetadoMes}
+              saldoProjetado={saldoProjetadoMes - loanPendingMes}
               periodLabel="do mês"
               prevEntradasLancadas={prevMonthTotals.entradas}
               prevSaidasLancadas={prevMonthTotals.saidas}
@@ -333,6 +356,34 @@ export function CashFlowSection({
               <span className="font-semibold">finalizados</span>. Entradas aumentam e saídas
               diminuem o saldo.
             </p>
+            {loanPendingMes > 0 && (
+              <p className="info-bar">
+                As parcelas de empréstimo em aberto do mês entram nas saídas como{' '}
+                <span className="font-semibold">pendentes</span>; as pagas já são lançamentos.
+              </p>
+            )}
+            {loanImpactMes > 0 && (
+              <div className="neu-card p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Empréstimos nas saídas do mês
+                  </p>
+                  <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                    {formatCurrency(loanImpactMes)}
+                  </p>
+                </div>
+                <div className="h-2 neu-progress-track mt-2">
+                  <div
+                    className="h-full bg-amber-500 transition-all"
+                    style={{ width: `${Math.min(100, loanShareMes)}%` }}
+                  />
+                </div>
+                <div className="mt-1.5 flex items-center justify-between gap-2 text-2xs text-slate-500 dark:text-slate-400">
+                  <span>{loanShareMes.toFixed(0)}% das saídas do mês</span>
+                  <span>Demais saídas: {formatCurrency(outrasSaidasMes)}</span>
+                </div>
+              </div>
+            )}
             {loans.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="neu-card p-4">
@@ -467,6 +518,7 @@ export function CashFlowSection({
               year={currentYear}
               cards={cards}
               cardExpenses={cardExpenses}
+              loans={loans}
             />
           </Suspense>
         )}

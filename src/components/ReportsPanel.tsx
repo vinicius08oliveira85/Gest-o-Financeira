@@ -1,7 +1,8 @@
 ﻿import { useState } from 'react';
 import { Download } from 'lucide-react';
-import type { CardExpense, CreditCard, Entry } from '../types';
+import type { CardExpense, CreditCard, Entry, Loan } from '../types';
 import { downloadCsv, formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
+import { getLoanMonthPendingAmount, getLoanMonthlyImpact } from '../lib/loans';
 import { buildMonthlyTrend, buildTrendCsv } from '../lib/monthlyTrend';
 import { buildReportsCsv } from '../lib/reports';
 import { chipClass } from '../lib/neu';
@@ -16,6 +17,7 @@ type ReportsPanelProps = {
   year: number;
   cards?: CreditCard[];
   cardExpenses?: CardExpense[];
+  loans?: Loan[];
 };
 
 function formatCycleDate(d: Date): string {
@@ -36,6 +38,7 @@ export function ReportsPanel({
   year,
   cards = [],
   cardExpenses = [],
+  loans = [],
 }: ReportsPanelProps) {
   const byPeriod = entries.filter((d) => {
     const date = parseDateLocal(d.dueDate);
@@ -54,6 +57,17 @@ export function ReportsPanel({
     },
     { entradas: 0, saidas: 0 }
   );
+
+  // Parcelas de empréstimo em aberto no mês são saídas do mês: entram como
+  // pendentes porque as pagas já estão em `entries` (evita contar duas vezes).
+  const loanPending = getLoanMonthPendingAmount(loans, month, year, todayLocalISO());
+  totalByType.saidas += loanPending;
+
+  // Peso do empréstimo nas saídas do mês (parcelas vencendo, pagas ou não) e o
+  // que sobra para as demais saídas.
+  const loanImpact = getLoanMonthlyImpact(loans, month, year);
+  const loanShareSaidas = totalByType.saidas > 0 ? (loanImpact / totalByType.saidas) * 100 : 0;
+  const outrasSaidas = Math.max(0, Math.round((totalByType.saidas - loanImpact) * 100) / 100);
 
   const totalEntradasFinalizadas = byPeriod
     .filter((d) => d.isPaid && isEntrada(d))
@@ -75,9 +89,9 @@ export function ReportsPanel({
   const prevTotalEntradas = prevByPeriod
     .filter((d) => isEntrada(d))
     .reduce((acc, d) => acc + d.amount, 0);
-  const prevTotalSaidas = prevByPeriod
-    .filter((d) => isSaida(d))
-    .reduce((acc, d) => acc + d.amount, 0);
+  const prevTotalSaidas =
+    prevByPeriod.filter((d) => isSaida(d)).reduce((acc, d) => acc + d.amount, 0) +
+    getLoanMonthPendingAmount(loans, prevDate.getMonth(), prevDate.getFullYear(), todayLocalISO());
   const prevEntradasFinalizadas = prevByPeriod
     .filter((d) => d.isPaid && isEntrada(d))
     .reduce((acc, d) => acc + d.amount, 0);
@@ -91,6 +105,11 @@ export function ReportsPanel({
     acc[d.category] = (acc[d.category] ?? 0) + d.amount;
     return acc;
   }, {});
+
+  if (loanPending > 0) {
+    totalByCategorySaidas['Empréstimos'] =
+      (totalByCategorySaidas['Empréstimos'] ?? 0) + loanPending;
+  }
 
   const totalByCategoryEntradas = byPeriod.reduce<Record<string, number>>((acc, d) => {
     if (!d.category || !isEntrada(d)) return acc;
@@ -122,7 +141,7 @@ export function ReportsPanel({
     localStorage.setItem(TREND_MONTHS_KEY, String(m));
   };
 
-  const trend = buildMonthlyTrend(entries, month, year, trendMonths, cardExpenses, cards);
+  const trend = buildMonthlyTrend(entries, month, year, trendMonths, cardExpenses, cards, loans);
 
   // Faturas do mês por cartão (reutilizada na seção visual e no CSV do relatório)
   const cardTotals = cards.map((card) => ({
@@ -277,12 +296,44 @@ export function ReportsPanel({
           </div>
         </div>
 
+        {loanImpact > 0 && (
+          <div className="neu-surface rounded-2xl card-pad section-stack">
+            <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+              Empréstimos nas saídas do mês
+            </h3>
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                {formatCurrency(loanImpact)}
+              </p>
+              <p className="text-3xs text-slate-600 dark:text-slate-400">
+                {loanShareSaidas.toFixed(0)}% das saídas
+              </p>
+            </div>
+            <div className="h-2 neu-progress-track">
+              <div
+                className="h-full bg-amber-500 transition-all"
+                style={{ width: `${Math.min(100, loanShareSaidas)}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+              <span>Demais saídas</span>
+              <span className="font-medium text-slate-900 dark:text-slate-100">
+                {formatCurrency(outrasSaidas)}
+              </span>
+            </div>
+            <p className="text-3xs text-slate-600 dark:text-slate-400">
+              Parcelas com vencimento no mês (pagas e em aberto).
+            </p>
+          </div>
+        )}
+
         <div className="neu-surface rounded-2xl card-pad section-stack">
           <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             Categorias (saídas)
           </h3>
           <p className="text-3xs text-slate-600 dark:text-slate-400 -mt-1">
-            Todos os lançamentos do mês (finalizados e pendentes).
+            Todos os lançamentos do mês (finalizados e pendentes) + parcelas de empréstimo em
+            aberto.
           </p>
           {categorySaidasEntries.length === 0 ? (
             <EmptyState

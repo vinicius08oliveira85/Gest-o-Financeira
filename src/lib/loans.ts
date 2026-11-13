@@ -205,6 +205,47 @@ export function getLoanMonthTotal(items: LoanMonthItem[]): number {
     .reduce((sum, item) => sum + item.amount, 0);
 }
 
+/**
+ * Parcelas de empréstimo do mês que ainda NÃO viraram lançamento: é o que falta
+ * somar às saídas do mês. As pagas já existem como lançamentos (e as canceladas
+ * não são mais compromisso), então ficam de fora para não contar duas vezes.
+ */
+export function getLoanMonthPendingAmount(
+  loans: Loan[],
+  month: number,
+  year: number,
+  today: string
+): number {
+  return getLoanMonthTotal(getLoanItemsForMonth(loans, month, year, today));
+}
+
+/**
+ * Peso do empréstimo nas saídas de um mês: todas as parcelas que vencem no mês
+ * (pagas e em aberto, sem as canceladas), o empréstimo de pagamento único com
+ * vencimento no mês e a quitação feita no mês.
+ */
+export function getLoanMonthlyImpact(loans: Loan[], month: number, year: number): number {
+  const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  let total = 0;
+
+  for (const loan of loans) {
+    if (isInstallmentLoan(loan)) {
+      for (const installment of loan.installments!) {
+        if (installment.cancelled || monthKey(installment.dueDate) !== prefix) continue;
+        total += installment.amount;
+      }
+    } else if (!loan.settlement && monthKey(loan.dueDate) === prefix) {
+      // Pagamento único quitado conta pela quitação abaixo, não duas vezes.
+      total += loan.amount;
+    }
+    if (loan.settlement && monthKey(loan.settlement.date) === prefix) {
+      total += loan.settlement.amount;
+    }
+  }
+
+  return roundMoney(total);
+}
+
 /** Parcelas em aberto que a quitação cancela (as pagas continuam como estão). */
 export function getInstallmentsToCancel(loan: Loan): LoanInstallment[] {
   return isInstallmentLoan(loan) ? loan.installments!.filter((i) => !i.paid && !i.cancelled) : [];

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { averageCardUsage, buildMonthlyTrend, buildTrendCsv } from './monthlyTrend';
-import type { CardExpense, CreditCard, Entry } from '../types';
+import type { CardExpense, CreditCard, Entry, Loan } from '../types';
 
 function entry(
   id: string,
@@ -51,7 +51,32 @@ function card(id: string, limitAmount: number, createdAt?: string): CreditCard {
   };
 }
 
+function installmentLoan(): Loan {
+  return {
+    id: 'l1',
+    name: 'Carro',
+    amount: 600,
+    sourceType: 'pessoa_fisica',
+    dueDate: '2025-03-10',
+    paid: false,
+    createdAt: 1,
+    installmentsCount: 2,
+    installments: [
+      { number: 1, amount: 300, dueDate: '2025-03-10', paid: false },
+      { number: 2, amount: 400, dueDate: '2025-04-10', paid: false },
+    ],
+  };
+}
+
 describe('buildMonthlyTrend', () => {
+  it('soma as parcelas de empréstimo em aberto nas saídas, sem mexer no saldo', () => {
+    const trend = buildMonthlyTrend([], 2, 2025, 3, [], [], [installmentLoan()]);
+
+    expect(trend[2]).toMatchObject({ month: 2, year: 2025, saidas: 300, saldo: 0 });
+    // A parcela de abril fica fora da janela (jan–mar) e fevereiro não tem parcela.
+    expect(trend[1]).toMatchObject({ saidas: 0 });
+  });
+
   it('monta a janela de meses terminando no mês visível (mais antigo → atual)', () => {
     const entries: Entry[] = [entry('1', 'cash', 100, '2025-03-10', true)];
     const trend = buildMonthlyTrend(entries, 2, 2025, 3);

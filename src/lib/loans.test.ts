@@ -10,7 +10,9 @@ import {
   getInstallmentsToCancel,
   getLoanItemsForMonth,
   getLoanInterest,
+  getLoanMonthPendingAmount,
   getLoanMonthTotal,
+  getLoanMonthlyImpact,
   getLoanPaidAmount,
   getLoanPayableAmount,
   getLoanTotals,
@@ -414,6 +416,71 @@ describe('getMonthlyInstallments', () => {
 
   it('não devolve valor mensal para pagamento único', () => {
     expect(getMonthlyInstallments(loan({ id: 'unico', amount: 500 }))).toBeNull();
+  });
+});
+
+describe('getLoanMonthlyImpact', () => {
+  it('soma parcelas do mês pagas e em aberto, ignorando canceladas', () => {
+    const parcelado = loan({
+      id: 'p',
+      amount: 1200,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 350, dueDate: '2026-11-20', paid: false },
+        { number: 3, amount: 300, dueDate: '2026-12-10', paid: false, cancelled: true },
+      ],
+    });
+
+    expect(getLoanMonthlyImpact([parcelado], 10, 2026)).toBe(850);
+  });
+
+  it('conta pagamento único e quitação pela data certa, sem duplicar', () => {
+    const unico = loan({ id: 'u', amount: 400, dueDate: '2026-11-25' });
+    const quitado = loan({
+      id: 'q',
+      amount: 1000,
+      dueDate: '2026-11-05',
+      settlement: { amount: 600, date: '2026-11-12' },
+    });
+
+    // 400 (único) + 600 (quitação de novembro); o valor original do quitado fica de fora.
+    expect(getLoanMonthlyImpact([unico, quitado], 10, 2026)).toBe(1000);
+    expect(getLoanMonthlyImpact([unico], 11, 2026)).toBe(0);
+  });
+});
+
+describe('getLoanMonthPendingAmount', () => {
+  it('soma as parcelas em aberto do mês e ignora as já pagas', () => {
+    const parcelado = loan({
+      id: 'p',
+      amount: 1200,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 350, dueDate: '2026-11-20', paid: false },
+        { number: 3, amount: 300, dueDate: '2026-12-10', paid: false },
+      ],
+    });
+    const unico = loan({ id: 'u', amount: 500, dueDate: '2026-11-25' });
+
+    // 350 (parcela 2) + 500 (pagamento único); a paga e a de dezembro ficam fora.
+    expect(getLoanMonthPendingAmount([parcelado, unico], 10, 2026, '2026-11-13')).toBe(850);
+  });
+
+  it('não soma parcelas canceladas nem meses sem compromisso', () => {
+    const parcelado = loan({
+      id: 'p',
+      amount: 600,
+      installmentsCount: 2,
+      installments: [
+        { number: 1, amount: 300, dueDate: '2026-11-10', paid: false, cancelled: true },
+        { number: 2, amount: 300, dueDate: '2026-12-10', paid: false },
+      ],
+    });
+
+    expect(getLoanMonthPendingAmount([parcelado], 10, 2026, '2026-11-13')).toBe(0);
+    expect(getLoanMonthPendingAmount([parcelado], 0, 2027, '2026-11-13')).toBe(0);
   });
 });
 
