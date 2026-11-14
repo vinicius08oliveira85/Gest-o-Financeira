@@ -26,6 +26,9 @@ ntuser.*
 # Saída de build (regenerada por `npm run build`; nunca versionada)
 /dist/
 
+# Capturas, relatórios e outros artefatos locais
+/artifacts/
+
 # Playwright E2E
 playwright-report/
 test-results/
