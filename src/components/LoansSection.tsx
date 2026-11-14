@@ -1,4 +1,4 @@
-import { Plus, Pencil, ListOrdered, BellRing, HandCoins, Undo2 } from 'lucide-react';
+import { Plus, Pencil, ListOrdered, BellRing, HandCoins, Undo2 } from './icons';
 import type { Loan, LoanSourceType } from '../types';
 import { EmptyState } from './EmptyState';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';

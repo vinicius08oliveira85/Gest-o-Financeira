@@ -1,8 +1,12 @@
 ﻿import { useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download } from './icons';
 import type { CardExpense, CreditCard, Entry, Loan } from '../types';
 import { downloadCsv, formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
-import { getLoanMonthPendingAmount, getLoanMonthlyImpact } from '../lib/loans';
+import {
+  getLoanMonthImpactPosted,
+  getLoanMonthPaidInterest,
+  getLoanMonthPendingAmount,
+} from '../lib/loans';
 import { buildMonthlyTrend, buildTrendCsv } from '../lib/monthlyTrend';
 import { buildReportsCsv } from '../lib/reports';
 import { chipClass } from '../lib/neu';
@@ -63,11 +67,14 @@ export function ReportsPanel({
   const loanPending = getLoanMonthPendingAmount(loans, month, year, todayLocalISO());
   totalByType.saidas += loanPending;
 
-  // Peso do empréstimo nas saídas do mês (parcelas vencendo, pagas ou não) e o
-  // que sobra para as demais saídas.
-  const loanImpact = getLoanMonthlyImpact(loans, month, year);
+  // Peso do empréstimo nas saídas do mês casando com o que está lançado: uma
+  // parcela paga em outro mês não pode inflar o mês do vencimento.
+  const loanImpact = getLoanMonthImpactPosted(entries, loans, month, year, todayLocalISO());
   const loanShareSaidas = totalByType.saidas > 0 ? (loanImpact / totalByType.saidas) * 100 : 0;
   const outrasSaidas = Math.max(0, Math.round((totalByType.saidas - loanImpact) * 100) / 100);
+  // Juros que saíram do caixa no mês (parcelas pagas + quitação), não o juro
+  // contratado: é o custo do empréstimo que já foi efetivamente pago.
+  const loanPaidInterest = getLoanMonthPaidInterest(loans, month, year, entries);
 
   const totalEntradasFinalizadas = byPeriod
     .filter((d) => d.isPaid && isEntrada(d))
@@ -175,6 +182,7 @@ export function ReportsPanel({
         },
         categories: { saidas: totalByCategorySaidas, entradas: totalByCategoryEntradas },
         cards: cardTotals,
+        loans: { impact: loanImpact, paidInterest: loanPaidInterest },
       }),
       `relatorios_${todayLocalISO()}.csv`
     );
@@ -296,7 +304,7 @@ export function ReportsPanel({
           </div>
         </div>
 
-        {loanImpact > 0 && (
+        {(loanImpact > 0 || loanPaidInterest > 0) && (
           <div className="neu-surface rounded-2xl card-pad section-stack">
             <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               Empréstimos nas saídas do mês
@@ -321,8 +329,17 @@ export function ReportsPanel({
                 {formatCurrency(outrasSaidas)}
               </span>
             </div>
+            {loanPaidInterest > 0 && (
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                <span>Juros pagos no mês</span>
+                <span className="font-medium text-amber-700 dark:text-amber-400">
+                  {formatCurrency(loanPaidInterest)}
+                </span>
+              </div>
+            )}
             <p className="text-3xs text-slate-600 dark:text-slate-400">
-              Parcelas com vencimento no mês (pagas e em aberto).
+              Parcelas do mês em aberto + saídas de empréstimo já lançadas no mês (mesmo pagas em
+              outro mês). Os juros pagos são a fatia de juros das parcelas já pagas no mês.
             </p>
           </div>
         )}

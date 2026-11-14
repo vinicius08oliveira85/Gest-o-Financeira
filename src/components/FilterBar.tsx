@@ -1,4 +1,4 @@
-﻿import { Search, ChevronDown, SlidersHorizontal, X } from 'lucide-react';
+﻿import { Search, ChevronDown, SlidersHorizontal, X, Check } from './icons';
 import type { FilterType } from '../types';
 import { NeuSelect } from './NeuSelect';
 
@@ -73,23 +73,29 @@ export function FilterBar({
         {/* Quebra em duas linhas no celular em vez de rolar: antes os filtros da
             direita (Entradas) ficavam fora da área visível. */}
         <div className="neu-inset flex flex-wrap justify-center gap-0.5 p-1 sm:p-1.5 rounded-2xl sm:rounded-full w-full sm:w-auto min-w-0">
-          {FILTER_OPTIONS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => {
-                onFilterChange(value);
-                if (value === 'all') onCategoryChange('all');
-              }}
-              className={`whitespace-nowrap px-2 py-1 sm:px-4 sm:py-1.5 rounded-full text-2xs sm:text-sm font-medium transition-all ${
-                filter === value
-                  ? 'neu-filter-active'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+          {FILTER_OPTIONS.map(({ value, label }) => {
+            const active = filter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  onFilterChange(value);
+                  if (value === 'all') onCategoryChange('all');
+                }}
+                className={`inline-flex items-center gap-1 whitespace-nowrap px-2 py-1 sm:px-4 sm:py-1.5 rounded-full text-2xs sm:text-sm font-medium transition-all ${
+                  active
+                    ? 'neu-filter-active'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+                aria-pressed={active}
+              >
+                {/* Filtro ativo ganha o ícone Filled do Fluent, como no Windows 12. */}
+                {active && <Check size={12} filled className="shrink-0" />}
+                {label}
+              </button>
+            );
+          })}
         </div>
         <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium text-center sm:text-right">
           Mostrando {filteredCount} de {totalCount} registros
@@ -97,7 +103,7 @@ export function FilterBar({
       </div>
       <details className="group">
         <summary className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer list-none py-1 hover:text-slate-700 dark:hover:text-slate-300 [&::-webkit-details-marker]:hidden">
-          <SlidersHorizontal size={14} />
+          <SlidersHorizontal size={14} filled={selectedCategory !== 'all'} />
           Filtros avançados
           <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
         </summary>

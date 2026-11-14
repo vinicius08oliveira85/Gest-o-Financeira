@@ -10,7 +10,7 @@ import {
   CloudDownload,
   CloudOff,
   Loader2,
-} from 'lucide-react';
+} from './icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { BrandMark } from './BrandMark';
 

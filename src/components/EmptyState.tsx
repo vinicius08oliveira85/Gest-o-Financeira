@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { FileText, Target, CreditCard, Filter, TrendingUp, Calendar, Gift } from 'lucide-react';
+import { FileText, Target, CreditCard, Filter, TrendingUp, Calendar, Gift } from './icons';
 
 type EmptyStateVariant =
   | 'entries'

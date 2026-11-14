@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2 } from './icons';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { DateInput } from './DateInput';
 import { todayLocalISO } from '../lib/format';

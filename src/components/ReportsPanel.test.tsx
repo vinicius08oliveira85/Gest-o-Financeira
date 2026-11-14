@@ -107,6 +107,40 @@ describe('ReportsPanel', () => {
     expect(demais).toContain('R$ 200,00');
   });
 
+  it('mostra os juros pagos no mês junto do peso dos empréstimos', () => {
+    const comJuros: Loan = {
+      id: 'j1',
+      name: 'Carro',
+      amount: 1000,
+      sourceType: 'pessoa_fisica',
+      dueDate: '2025-03-10',
+      paid: false,
+      createdAt: 1,
+      installmentsCount: 3,
+      installments: [
+        {
+          number: 1,
+          amount: 450,
+          dueDate: '2025-03-10',
+          paid: true,
+          paidDate: '2025-03-10',
+          entryId: 'e1',
+        },
+        { number: 2, amount: 450, dueDate: '2025-04-10', paid: false },
+        { number: 3, amount: 450, dueDate: '2025-05-10', paid: false },
+      ],
+    };
+
+    render(<ReportsPanel entries={[]} month={2} year={2025} loans={[comJuros]} />);
+
+    // 450 de 1.350 = 116,67 de juros já pagos em março.
+    const linha = (screen.getByText('Juros pagos no mês').parentElement?.textContent ?? '').replace(
+      /\u00a0/g,
+      ' '
+    );
+    expect(linha).toContain('R$ 116,67');
+  });
+
   it('exporta o relatório completo (KPIs + categorias) em CSV', () => {
     let capturedParts: BlobPart[] = [];
     const RealBlob = global.Blob;

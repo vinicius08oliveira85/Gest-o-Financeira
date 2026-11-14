@@ -1,5 +1,5 @@
 ﻿import { lazy, Suspense, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from './icons';
 import type {
   CardExpense,
   CreditCard,
@@ -20,13 +20,15 @@ import { LoanMonthItems } from './LoanMonthItems';
 import { AlertsPanel } from './AlertsPanel';
 import { GuidedTooltip } from './GuidedTooltip';
 import { TabNav, type TabId } from './TabNav';
+import { ViewModeToggle } from './ViewModeToggle';
 import { CardsSection } from './CardsSection';
 import { LoansSection } from './LoansSection';
 import { WishlistSection } from './WishlistSection';
 import {
   getLoanInterest,
+  getLoanItemsForMonth,
   getLoanMonthPendingAmount,
-  getLoanMonthlyImpact,
+  getLoanMonthImpactPosted,
   getLoanPaidInterest,
   getLoanTotals,
 } from '../lib/loans';
@@ -192,11 +194,11 @@ export function CashFlowSection({
     () => getLoanMonthPendingAmount(loans, currentMonth, currentYear, todayLocalISO()),
     [loans, currentMonth, currentYear]
   );
-  // Peso do empréstimo no mês (parcelas vencendo, pagas ou não): é o que sai das
-  // saídas do mês por causa de empréstimo; o resto é o "demais saídas".
+  // Peso do empréstimo nas saídas do mês, casando com o que está lançado:
+  // lançamentos de empréstimo do mês + parcelas do mês ainda sem lançamento.
   const loanImpactMes = useMemo(
-    () => getLoanMonthlyImpact(loans, currentMonth, currentYear),
-    [loans, currentMonth, currentYear]
+    () => getLoanMonthImpactPosted(entries, loans, currentMonth, currentYear, todayLocalISO()),
+    [entries, loans, currentMonth, currentYear]
   );
   const saidasComEmprestimos = totalSaidasLancadasMes + loanPendingMes;
   const outrasSaidasMes = Math.max(
@@ -204,6 +206,15 @@ export function CashFlowSection({
     Math.round((saidasComEmprestimos - loanImpactMes) * 100) / 100
   );
   const loanShareMes = saidasComEmprestimos > 0 ? (loanImpactMes / saidasComEmprestimos) * 100 : 0;
+  // Quantas parcelas entraram nas saídas do mês: o total já soma esses valores,
+  // mas o texto continuava falando só de saídas lançadas.
+  const loanItemsMes = useMemo(
+    () =>
+      getLoanItemsForMonth(loans, currentMonth, currentYear, todayLocalISO()).filter(
+        (item) => item.status !== 'cancelled'
+      ).length,
+    [loans, currentMonth, currentYear]
+  );
 
   // `capitalize` do CSS deixava "Out. De 2026": capitalizava cada palavra. Só a
   // inicial do mês deve subir.
@@ -355,6 +366,7 @@ export function CashFlowSection({
               saldo={saldoMes}
               entradasCount={entradasCountMes}
               saidasCount={saidasCountMes}
+              saidasParcelas={loanPendingMes > 0 ? loanItemsMes : 0}
               totalEntradasFinalizadas={totalEntradasFinalizadasMes}
               totalEntradasPendentes={totalEntradasPendentesMes}
               totalSaidasFinalizadas={totalSaidasFinalizadasMes}
@@ -401,6 +413,9 @@ export function CashFlowSection({
                   <span>{loanShareMes.toFixed(0)}% das saídas do mês</span>
                   <span>Demais saídas: {formatCurrency(outrasSaidasMes)}</span>
                 </div>
+                <p className="mt-1 text-2xs text-slate-500 dark:text-slate-400">
+                  Parcelas do mês em aberto + saídas de empréstimo já lançadas.
+                </p>
               </div>
             )}
             {loans.length > 0 && (
@@ -473,30 +488,7 @@ export function CashFlowSection({
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
               />
-              <div className="neu-inset flex rounded-full p-1 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-1 rounded-full font-medium ${
-                    viewMode === 'list'
-                      ? 'neu-filter-active'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                >
-                  Lista
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('calendar')}
-                  className={`px-3 py-1 rounded-full font-medium ${
-                    viewMode === 'calendar'
-                      ? 'neu-filter-active'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                >
-                  Calendário
-                </button>
-              </div>
+              <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
             </div>
             {viewMode === 'list' && (
               <LoanMonthItems
@@ -518,6 +510,8 @@ export function CashFlowSection({
                 }}
                 compact
                 groupByDate
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
                 filtered={entriesCount > 0 && filteredEntries.length === 0}
                 onClearFilters={() => {
                   setFilter('all');

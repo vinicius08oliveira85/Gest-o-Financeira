@@ -20,9 +20,14 @@ import {
   preserveInvoiceState,
 } from './lib/cardInvoice';
 import { randomUUID } from './lib/uuid';
-import { getInstallmentsToCancel, monthKey, updateInstallmentAmount } from './lib/loans';
+import {
+  detachEntryFromLoan,
+  getInstallmentsToCancel,
+  monthKey,
+  updateInstallmentAmount,
+} from './lib/loans';
 import { logError } from './lib/logger';
-import { DISMISSED_ALERTS_KEY, WISHLIST_CATEGORY } from './constants';
+import { DISMISSED_ALERTS_KEY, LOANS_CATEGORY, WISHLIST_CATEGORY } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal, Loan, WishlistItem } from './types';
 import type { TabId } from './components/TabNav';
 import { PeriodProvider } from './contexts/PeriodContext';
@@ -292,14 +297,49 @@ export default function App() {
   const handleConfirmDelete = useCallback(() => {
     if (entryToDelete) {
       const entry = entryToDelete;
+      // Excluir a saída de uma parcela paga não pode deixá-la "paga no vácuo":
+      // a parcela volta a pendente (e a quitação é desfeita, se for a dela).
+      // O "Desfazer" recoloca o lançamento e o vínculo original.
+      const linkedLoan = loans.find(
+        (loan) =>
+          loan.settlement?.entryId === entry.id ||
+          (loan.installments ?? []).some(
+            (installment) => installment.paid && installment.entryId === entry.id
+          )
+      );
+      const detachedLoan = linkedLoan ? detachEntryFromLoan(linkedLoan, entry.id) : null;
+      const wasSettlement = linkedLoan?.settlement?.entryId === entry.id;
+      if (detachedLoan) {
+        upsertLoan(detachedLoan);
+        // Se o modal de parcelas estiver aberto, ele mostra o estado novo.
+        setLoanInstallmentsLoan((current) =>
+          current?.id === detachedLoan.id ? detachedLoan : current
+        );
+      }
+
       deleteEntry(entry.id);
       setEntryToDelete(null);
-      showToast('Registro excluído', {
-        label: 'Desfazer',
-        callback: () => addOrUpdateEntry(entry, false),
-      });
+      showToast(
+        wasSettlement
+          ? 'Registro excluído — quitação desfeita'
+          : detachedLoan
+            ? 'Registro excluído — parcela voltou a ficar pendente'
+            : 'Registro excluído',
+        {
+          label: 'Desfazer',
+          callback: () => {
+            addOrUpdateEntry(entry, false);
+            if (linkedLoan) {
+              upsertLoan(linkedLoan);
+              setLoanInstallmentsLoan((current) =>
+                current?.id === linkedLoan.id ? linkedLoan : current
+              );
+            }
+          },
+        }
+      );
     }
-  }, [entryToDelete, deleteEntry, showToast, addOrUpdateEntry]);
+  }, [entryToDelete, deleteEntry, showToast, addOrUpdateEntry, loans, upsertLoan]);
 
   const handleSaveEntriesLocal = useCallback(() => {
     saveEntriesLocal();
@@ -392,7 +432,7 @@ export default function App() {
           paidDate: todayLocalISO(),
           type: 'debt',
           createdAt: Date.now(),
-          category: 'Empréstimos',
+          category: LOANS_CATEGORY,
           installmentsCount: installments.length,
           installmentNumber: number,
         };
@@ -481,7 +521,7 @@ export default function App() {
         paidDate: date,
         type: 'debt',
         createdAt: Date.now(),
-        category: 'Empréstimos',
+        category: LOANS_CATEGORY,
       };
       void addOrUpdateEntry(entry, false);
 

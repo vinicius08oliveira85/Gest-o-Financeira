@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X } from './icons';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { EntryType } from '../types';
 import type { FormErrors } from '../hooks/useEntryForm';

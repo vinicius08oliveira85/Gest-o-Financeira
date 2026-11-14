@@ -1,4 +1,4 @@
-﻿import { Plus } from 'lucide-react';
+﻿import { Plus } from './icons';
 import type { CardExpense, CreditCard, Entry } from '../types';
 import { CardItem } from './CardItem';
 import { EmptyState } from './EmptyState';

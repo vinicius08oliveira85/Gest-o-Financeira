@@ -1,4 +1,5 @@
-import type { Loan, LoanInstallment } from '../types';
+import type { Entry, Loan, LoanInstallment } from '../types';
+import { LOANS_CATEGORY } from '../constants';
 
 export type LoanTotals = {
   open: number;
@@ -244,9 +245,134 @@ export function getLoanMonthPendingAmount(
 }
 
 /**
- * Peso do empréstimo nas saídas de um mês: todas as parcelas que vencem no mês
- * (pagas e em aberto, sem as canceladas), o empréstimo de pagamento único com
- * vencimento no mês e a quitação feita no mês.
+ * Saídas de empréstimo já lançadas no mês (parcelas pagas e quitação). Usa a
+ * data do lançamento, não o vencimento da parcela: se a parcela foi paga em
+ * outro mês, o dinheiro saiu no mês do lançamento.
+ */
+export function getLoanPostedAmount(entries: Entry[], month: number, year: number): number {
+  const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  return roundMoney(
+    entries
+      .filter(
+        (entry) =>
+          entry.type === 'debt' &&
+          entry.category === LOANS_CATEGORY &&
+          entry.dueDate.startsWith(prefix)
+      )
+      .reduce((sum, entry) => sum + entry.amount, 0)
+  );
+}
+
+/**
+ * Peso real do empréstimo nas saídas do mês: o que já está lançado (parcelas
+ * pagas e quitação, no mês em que saíram) mais as parcelas do mês que ainda não
+ * viraram lançamento. É a base de "Demais saídas": olhando só o vencimento, uma
+ * parcela paga em outro mês fazia a subtração ficar negativa e zerava o resto.
+ */
+export function getLoanMonthImpactPosted(
+  entries: Entry[],
+  loans: Loan[],
+  month: number,
+  year: number,
+  today: string
+): number {
+  return roundMoney(
+    getLoanPostedAmount(entries, month, year) + getLoanMonthPendingAmount(loans, month, year, today)
+  );
+}
+
+/**
+ * Solta o vínculo de um lançamento que foi excluído: a parcela paga volta a
+ * pendente (com vencimento no mês dela) e, se for a saída da quitação, a
+ * quitação é desfeita e as parcelas canceladas por ela voltam a valer — mesma
+ * regra do "Desfazer quitação". Devolve `null` quando o lançamento não pertence
+ * ao empréstimo, para o chamador saber que nada mudou.
+ */
+export function detachEntryFromLoan(loan: Loan, entryId: string): Loan | null {
+  const installments = loan.installments ?? [];
+  const linked = installments.find(
+    (installment) => installment.paid && installment.entryId === entryId
+  );
+
+  if (linked) {
+    const nextInstallments = installments.map((installment) =>
+      installment.number === linked.number
+        ? { ...installment, paid: false, paidDate: undefined, entryId: undefined }
+        : installment
+    );
+    return {
+      ...loan,
+      installments: nextInstallments,
+      paid: nextInstallments.every((installment) => installment.paid),
+    };
+  }
+
+  if (loan.settlement?.entryId === entryId) {
+    const restored = loan.settlement.cancelledNumbers ?? [];
+    const nextInstallments = loan.installments?.map((installment) =>
+      restored.includes(installment.number) ? { ...installment, cancelled: false } : installment
+    );
+    return {
+      ...loan,
+      settlement: undefined,
+      installments: nextInstallments,
+      paid: nextInstallments ? nextInstallments.every((installment) => installment.paid) : false,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Juros efetivamente pagos em um mês: a fatia de juros das parcelas pagas mais a
+ * da quitação, no **mês da saída** — o mesmo em que o lançamento aparece no
+ * Resumo. O mês vem do lançamento vinculado (`entryId`), então mover a data de
+ * um lançamento move o juro junto; sem lançamento, vale o vencimento, que é a
+ * data usada ao criar a saída da parcela. Usa o mesmo rateio do
+ * `getLoanPaidInterest`, proporcional ao que saiu do caixa em cada contrato.
+ */
+export function getLoanMonthPaidInterest(
+  loans: Loan[],
+  month: number,
+  year: number,
+  entries: Entry[] = []
+): number {
+  const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const entryMonths = new Map(entries.map((entry) => [entry.id, monthKey(entry.dueDate)]));
+  let total = 0;
+
+  for (const loan of loans) {
+    const payable = getLoanPayableAmount(loan);
+    const interest = getLoanInterest(loan);
+    if (payable <= 0 || interest <= 0) continue;
+
+    let paid = 0;
+    for (const installment of loan.installments ?? []) {
+      if (!installment.paid) continue;
+      const postedMonth = installment.entryId ? entryMonths.get(installment.entryId) : undefined;
+      const paidMonth = postedMonth ?? monthKey(installment.dueDate);
+      if (paidMonth === prefix) paid += installment.amount;
+    }
+    if (loan.settlement) {
+      const postedMonth = loan.settlement.entryId
+        ? entryMonths.get(loan.settlement.entryId)
+        : undefined;
+      if ((postedMonth ?? monthKey(loan.settlement.date)) === prefix) {
+        paid += loan.settlement.amount;
+      }
+    }
+
+    if (paid > 0) total += (paid / payable) * interest;
+  }
+
+  return roundMoney(total);
+}
+
+/**
+ * Peso do empréstimo nas saídas de um mês **pelo vencimento**: todas as parcelas
+ * que vencem no mês (pagas e em aberto, sem as canceladas), o pagamento único com
+ * vencimento no mês e a quitação feita no mês. Para casar com os lançamentos, use
+ * `getLoanMonthImpactPosted` — esta aqui ignora o mês em que a parcela foi paga.
  */
 export function getLoanMonthlyImpact(loans: Loan[], month: number, year: number): number {
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown } from './icons';
 
 export type NeuSelectOption = { value: string; label: string };
 
@@ -106,6 +106,7 @@ export function NeuSelect({
                 ref={(el) => {
                   optionRefs.current[idx] = el;
                 }}
+                aria-current={opt.value === value ? 'true' : undefined}
                 onClick={() => {
                   onChange(opt.value);
                   setOpen(false);
@@ -127,7 +128,15 @@ export function NeuSelect({
                   opt.value === value ? 'neu-list-item-selected' : ''
                 } ${idx === highlightedIndex ? 'neu-list-item-hover' : ''}`}
               >
-                {opt.label}
+                <span className="truncate">{opt.label}</span>
+                {/* Opção escolhida: check Filled do Fluent, como nos menus do Windows 12. */}
+                {opt.value === value && (
+                  <Check
+                    size={14}
+                    filled
+                    className="ml-auto shrink-0 text-emerald-600 dark:text-emerald-400"
+                  />
+                )}
               </button>
             </li>
           ))}

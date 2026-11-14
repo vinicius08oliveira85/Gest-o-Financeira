@@ -1,4 +1,4 @@
-import { ListOrdered } from 'lucide-react';
+import { ListOrdered } from './icons';
 import type { Loan } from '../types';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
 import { getLoanItemsForMonth, getLoanMonthTotal } from '../lib/loans';

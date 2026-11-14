@@ -1,4 +1,4 @@
-﻿import { Plus } from 'lucide-react';
+﻿import { Plus } from './icons';
 import { formatCurrency, formatDate } from '../lib/format';
 import type { Goal } from '../types';
 import { EmptyState } from './EmptyState';

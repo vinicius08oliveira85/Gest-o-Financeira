@@ -1,5 +1,5 @@
 ﻿import { motion } from 'motion/react';
-import { TrendingDown, DollarSign, ArrowUpRight } from 'lucide-react';
+import { TrendingDown, DollarSign, ArrowUpRight } from './icons';
 import { formatCurrency } from '../lib/format';
 import { DeltaBadge } from './DeltaBadge';
 
@@ -9,6 +9,8 @@ type DashboardCardsProps = {
   saldo: number;
   entradasCount: number;
   saidasCount: number;
+  /** Parcelas de empréstimo em aberto somadas às saídas do mês (não são lançamentos). */
+  saidasParcelas?: number;
   totalEntradasFinalizadas?: number;
   totalEntradasPendentes?: number;
   totalSaidasFinalizadas?: number;
@@ -34,6 +36,7 @@ export function DashboardCards({
   saldo,
   entradasCount,
   saidasCount,
+  saidasParcelas = 0,
   totalEntradasFinalizadas,
   totalEntradasPendentes,
   totalSaidasFinalizadas,
@@ -118,7 +121,10 @@ export function DashboardCards({
           {formatCurrency(totalSaidasLancadas)}
         </div>
         <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
-          <span>{saidasCount} saídas lançadas</span>
+          <span>
+            {saidasCount} saídas lançadas
+            {saidasParcelas > 0 ? ` + ${saidasParcelas} parcelas` : ''}
+          </span>
           {prevSaidasLancadas !== undefined && (
             <DeltaBadge current={totalSaidasLancadas} previous={prevSaidasLancadas} invert />
           )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Ban, Check, HandCoins, Pencil, RotateCcw, X } from 'lucide-react';
+import { Ban, Check, HandCoins, Pencil, RotateCcw, X } from './icons';
 import type { Loan } from '../types';
 import { ModalShell } from './ModalShell';
 import { formatCurrency, formatDate } from '../lib/format';

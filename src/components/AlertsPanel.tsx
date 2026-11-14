@@ -1,13 +1,4 @@
-import {
-  AlertTriangle,
-  CreditCard,
-  Gauge,
-  Info,
-  Target,
-  X,
-  ChevronRight,
-  Landmark,
-} from 'lucide-react';
+import { AlertTriangle, CreditCard, Gauge, Info, Target, X, ChevronRight, Landmark } from './icons';
 import type { Alert, AlertType } from '../hooks/useAlerts';
 
 function AlertIcon({ type }: { type: AlertType }) {

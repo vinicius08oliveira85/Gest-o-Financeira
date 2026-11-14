@@ -1,5 +1,5 @@
 ﻿import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X } from './icons';
 import type { CardExpense, CreditCard } from '../types';
 import { buildInstallmentCardExpenses, getBillingPeriod } from '../lib/cardInvoice';
 import { splitInstallments } from '../lib/installments';

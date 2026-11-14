@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X } from './icons';
 import type { WishlistItem } from '../types';
 import { ModalShell } from './ModalShell';
 import {

@@ -21,6 +21,9 @@ export const WISHLIST_STORAGE_KEY = 'gestao-financeira-wishlist';
 /** Categoria do lançamento de saída criado ao marcar um item da lista de desejos como comprado. */
 export const WISHLIST_CATEGORY = 'Lista de desejos';
 
+/** Categoria da saída criada ao pagar uma parcela ou quitar um empréstimo. */
+export const LOANS_CATEGORY = 'Empréstimos';
+
 /** Janela de meses escolhida no gráfico de evolução mensal (3 | 6 | 12). */
 export const TREND_MONTHS_KEY = 'gestao-financeira-trend-months';
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HandCoins, X } from 'lucide-react';
+import { HandCoins, X } from './icons';
 import type { Loan } from '../types';
 import { ModalShell } from './ModalShell';
 import { formatCurrency, todayLocalISO } from '../lib/format';

@@ -87,6 +87,24 @@ describe('buildReportsCsv', () => {
     expect(csv).not.toContain('Cartão,Fatura,Limite,Uso %');
   });
 
+  it('inclui os empréstimos do mês quando informados', () => {
+    const csv = buildReportsCsv({
+      ...baseInput,
+      loans: { impact: 900, paidInterest: 116.67 },
+    });
+
+    expect(csv).toContain('Empréstimos do mês');
+    expect(csv).toContain('Parcelas no mês,900.00');
+    expect(csv).toContain('Juros pagos no mês,116.67');
+  });
+
+  it('omite a seção de empréstimos sem valores', () => {
+    const csv = buildReportsCsv({ ...baseInput, loans: { impact: 0, paidInterest: 0 } });
+
+    expect(csv).not.toContain('Empréstimos do mês');
+    expect(csv).not.toContain('Juros pagos no mês');
+  });
+
   it('escapa categorias que iniciam com caracteres de fórmula', () => {
     const csv = buildReportsCsv({
       ...baseInput,

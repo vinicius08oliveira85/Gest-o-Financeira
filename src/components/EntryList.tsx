@@ -17,6 +17,9 @@ type EntryListProps = {
   /** Lista vazia por causa de filtro/busca (não por falta de lançamentos) */
   filtered?: boolean;
   onClearFilters?: () => void;
+  /** Categoria filtrada na tela (destaque do chip) e ação de filtrar pelo chip. */
+  selectedCategory?: string;
+  onSelectCategory?: (category: string) => void;
 };
 
 function groupEntriesByDate(entries: Entry[]): Map<string, Entry[]> {
@@ -59,6 +62,8 @@ export function EntryList({
   groupByDate = false,
   filtered = false,
   onClearFilters,
+  selectedCategory,
+  onSelectCategory,
 }: EntryListProps) {
   const groupedByDate = useMemo(
     () => (groupByDate && entries.length > 0 ? groupEntriesByDate(entries) : null),
@@ -86,6 +91,8 @@ export function EntryList({
                         onEdit={onEdit}
                         onDeleteRequest={onDeleteRequest}
                         compact={compact}
+                        selectedCategory={selectedCategory}
+                        onSelectCategory={onSelectCategory}
                       />
                     ))}
                   </div>
@@ -103,6 +110,8 @@ export function EntryList({
                   onEdit={onEdit}
                   onDeleteRequest={onDeleteRequest}
                   compact={compact}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={onSelectCategory}
                 />
               ))}
             </div>

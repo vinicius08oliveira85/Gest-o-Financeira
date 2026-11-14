@@ -4,13 +4,17 @@ import {
   buildInstallments,
   buildInstallmentsForPeriod,
   dateInMonth,
+  detachEntryFromLoan,
   formatDiscountPeriod,
   getDiscountPeriod,
   getEndingDiscounts,
   getInstallmentsToCancel,
   getLoanItemsForMonth,
   getLoanInterest,
+  getLoanMonthImpactPosted,
+  getLoanMonthPaidInterest,
   getLoanMonthPendingAmount,
+  getLoanPostedAmount,
   getLoanMonthTotal,
   getLoanMonthlyImpact,
   getLoanPaidAmount,
@@ -25,7 +29,8 @@ import {
   monthsBetweenMonths,
   updateInstallmentAmount,
 } from './loans';
-import type { Loan, LoanInstallment } from '../types';
+import type { Entry, Loan, LoanInstallment } from '../types';
+import { LOANS_CATEGORY } from '../constants';
 
 describe('getNextOpenItem', () => {
   it('devolve a parcela mais próxima com o valor dela, não o saldo', () => {
@@ -491,6 +496,92 @@ describe('juros do parcelamento', () => {
     expect(getLoanPaidInterest(todasPagas)).toBe(getLoanInterest(todasPagas));
   });
 
+  it('conta os juros pagos no mês do vencimento quando não há lançamento à mão', () => {
+    const parcelado = loan({
+      id: 'mes',
+      amount: 1000,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 450, dueDate: '2026-11-10', paid: true, paidDate: '2026-11-10' },
+        // Paga em janeiro, mas a saída é criada no mês do vencimento (dezembro).
+        { number: 2, amount: 450, dueDate: '2026-12-10', paid: true, paidDate: '2027-01-05' },
+        { number: 3, amount: 450, dueDate: '2027-01-10', paid: false },
+      ],
+    });
+
+    // 450 de 1.350 = 116,67 de juros em cada mês com parcela paga.
+    expect(getLoanMonthPaidInterest([parcelado], 10, 2026)).toBe(116.67);
+    expect(getLoanMonthPaidInterest([parcelado], 11, 2026)).toBe(116.67);
+    expect(getLoanMonthPaidInterest([parcelado], 0, 2027)).toBe(0);
+  });
+
+  it('segue o mês do lançamento quando a data da saída é movida', () => {
+    const comLancamentoMovido = loan({
+      id: 'movido',
+      amount: 1000,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 450, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 450, dueDate: '2026-12-10', paid: true, entryId: 'e2' },
+        { number: 3, amount: 450, dueDate: '2027-01-10', paid: false },
+      ],
+    });
+    const entries: Entry[] = [
+      {
+        id: 'e1',
+        name: 'Parcela 1',
+        amount: 450,
+        dueDate: '2026-11-10',
+        isPaid: true,
+        type: 'debt',
+        createdAt: 1,
+        category: LOANS_CATEGORY,
+      },
+      // A saída da 2ª parcela foi movida para janeiro.
+      {
+        id: 'e2',
+        name: 'Parcela 2',
+        amount: 450,
+        dueDate: '2027-01-05',
+        isPaid: true,
+        type: 'debt',
+        createdAt: 1,
+        category: LOANS_CATEGORY,
+      },
+    ];
+
+    expect(getLoanMonthPaidInterest([comLancamentoMovido], 10, 2026, entries)).toBe(116.67);
+    expect(getLoanMonthPaidInterest([comLancamentoMovido], 11, 2026, entries)).toBe(0);
+    expect(getLoanMonthPaidInterest([comLancamentoMovido], 0, 2027, entries)).toBe(116.67);
+  });
+
+  it('conta os juros da quitação no mês em que ela foi feita', () => {
+    const quitado = loan({
+      id: 'quit',
+      amount: 1000,
+      settlement: { amount: 1400, date: '2026-12-20', entryId: 'e1', cancelledNumbers: [1, 2] },
+    });
+
+    expect(getLoanMonthPaidInterest([quitado], 11, 2026)).toBe(400);
+    expect(getLoanMonthPaidInterest([quitado], 10, 2026)).toBe(0);
+
+    // Quitação com a saída movida para janeiro: o juro acompanha o lançamento.
+    const entradas: Entry[] = [
+      {
+        id: 'e1',
+        name: 'Quitação',
+        amount: 1400,
+        dueDate: '2027-01-03',
+        isPaid: true,
+        type: 'debt',
+        createdAt: 1,
+        category: LOANS_CATEGORY,
+      },
+    ];
+    expect(getLoanMonthPaidInterest([quitado], 11, 2026, entradas)).toBe(0);
+    expect(getLoanMonthPaidInterest([quitado], 0, 2027, entradas)).toBe(400);
+  });
+
   it('não conta juros de empréstimo sem juros', () => {
     const semJuros = loan({
       id: 'sem',
@@ -684,5 +775,166 @@ describe('getLoanTotals com parcelas', () => {
     const single = loan({ id: 'unico', amount: 400, dueDate: '2026-11-01' });
     expect(getLoanTotals([single], '2026-11-10')).toEqual({ open: 400, overdue: 400 });
     expect(getLoanPaidAmount(single)).toBe(0);
+  });
+});
+
+describe('saídas de empréstimo lançadas no mês', () => {
+  function saida(overrides: Partial<Entry> & { id: string }): Entry {
+    return {
+      name: 'Parcela',
+      amount: 450,
+      dueDate: '2026-11-10',
+      isPaid: true,
+      type: 'debt',
+      createdAt: 1,
+      category: LOANS_CATEGORY,
+      ...overrides,
+    };
+  }
+
+  it('conta só os lançamentos de empréstimo do mês', () => {
+    const entries = [
+      saida({ id: 'e1' }),
+      saida({ id: 'e2', amount: 100, category: 'Mercado' }),
+      saida({ id: 'e3', amount: 300, dueDate: '2026-12-10' }),
+      saida({ id: 'e4', amount: 200, type: 'cash' }),
+    ];
+
+    expect(getLoanPostedAmount(entries, 10, 2026)).toBe(450);
+  });
+
+  it('soma o que está lançado e o que ainda vai vencer, sem contar duas vezes', () => {
+    const emprestimo = loan({
+      id: 'p',
+      amount: 900,
+      installmentsCount: 3,
+      installments: [
+        { number: 1, amount: 300, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 300, dueDate: '2026-11-10', paid: false },
+        { number: 3, amount: 300, dueDate: '2026-12-10', paid: false },
+      ],
+    });
+    const entries = [saida({ id: 'e1', amount: 300 })];
+
+    // Novembro: 300 já lançado + 300 da parcela em aberto do mês.
+    expect(getLoanMonthImpactPosted(entries, [emprestimo], 10, 2026, '2026-11-20')).toBe(600);
+    // Dezembro: só a parcela em aberto (nada lançado ainda).
+    expect(getLoanMonthImpactPosted(entries, [emprestimo], 11, 2026, '2026-11-20')).toBe(300);
+  });
+
+  it('não distorce as demais saídas quando a parcela é paga em outro mês', () => {
+    const emprestimo = loan({
+      id: 'q',
+      amount: 900,
+      installmentsCount: 2,
+      installments: [
+        { number: 1, amount: 450, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 450, dueDate: '2026-12-10', paid: true, entryId: 'e2' },
+      ],
+    });
+    // A parcela de dezembro foi paga em novembro: o dinheiro saiu em novembro.
+    const entries = [
+      saida({ id: 'e1' }),
+      saida({ id: 'e2', dueDate: '2026-11-25' }),
+      saida({ id: 'e3', amount: 200, category: 'Mercado' }),
+    ];
+
+    const totalNov = 450 + 450 + 200;
+    const impactoNov = getLoanMonthImpactPosted(entries, [emprestimo], 10, 2026, '2026-11-30');
+    expect(impactoNov).toBe(900);
+    // Demais saídas nunca ficam negativas: sobram os 200 de mercado.
+    expect(totalNov - impactoNov).toBe(200);
+    // Dezembro não ganha uma "parcela fantasma" que nunca foi lançada no mês.
+    expect(getLoanMonthImpactPosted(entries, [emprestimo], 11, 2026, '2026-11-30')).toBe(0);
+  });
+});
+
+describe('detachEntryFromLoan — saída excluída não deixa parcela órfã', () => {
+  it('devolve a parcela paga para pendente e reabre o empréstimo', () => {
+    const parcelado = loan({
+      id: 'orf',
+      amount: 1000,
+      paid: true,
+      installmentsCount: 2,
+      installments: [
+        {
+          number: 1,
+          amount: 500,
+          dueDate: '2026-11-10',
+          paid: true,
+          paidDate: '2026-11-10',
+          entryId: 'e1',
+        },
+        {
+          number: 2,
+          amount: 500,
+          dueDate: '2026-12-10',
+          paid: true,
+          paidDate: '2026-11-20',
+          entryId: 'e2',
+        },
+      ],
+    });
+
+    const next = detachEntryFromLoan(parcelado, 'e2');
+
+    expect(next).not.toBeNull();
+    expect(next!.paid).toBe(false);
+    expect(next!.installments?.[1]).toMatchObject({
+      paid: false,
+      paidDate: undefined,
+      entryId: undefined,
+    });
+    // A outra parcela continua paga e com o lançamento dela.
+    expect(next!.installments?.[0]).toMatchObject({ paid: true, entryId: 'e1' });
+    // Valor excluído volta a contar como pendente no mês do vencimento.
+    expect(getLoanMonthPendingAmount([next!], 11, 2026, '2026-11-15')).toBe(500);
+  });
+
+  it('desfaz a quitação quando a saída dela é excluída', () => {
+    const quitado = loan({
+      id: 'quit-orf',
+      amount: 1000,
+      paid: true,
+      installmentsCount: 2,
+      settlement: {
+        amount: 1200,
+        date: '2026-11-20',
+        entryId: 'q1',
+        cancelledNumbers: [1, 2],
+      },
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: false, cancelled: true },
+        { number: 2, amount: 500, dueDate: '2026-12-10', paid: false, cancelled: true },
+      ],
+    });
+
+    const next = detachEntryFromLoan(quitado, 'q1');
+
+    expect(next).not.toBeNull();
+    expect(next!.settlement).toBeUndefined();
+    expect(next!.installments?.every((i) => i.cancelled === false)).toBe(true);
+    expect(next!.paid).toBe(false);
+    expect(getOpenAmount(next!)).toBe(1000);
+  });
+
+  it('não mexe no empréstimo quando o lançamento é de outra coisa', () => {
+    const parcelado = loan({
+      id: 'sem-vinculo',
+      installmentsCount: 2,
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: true, entryId: 'e1' },
+        { number: 2, amount: 500, dueDate: '2026-12-10', paid: false },
+      ],
+    });
+
+    expect(detachEntryFromLoan(parcelado, 'outro-lancamento')).toBeNull();
+    // Parcela pendente com `entryId` antigo também não é considerada vínculo.
+    const comVinculoAntigo = loan({
+      id: 'pendente',
+      installmentsCount: 1,
+      installments: [{ number: 1, amount: 500, dueDate: '2026-11-10', paid: false, entryId: 'e1' }],
+    });
+    expect(detachEntryFromLoan(comVinculoAntigo, 'e1')).toBeNull();
   });
 });

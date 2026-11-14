@@ -1,4 +1,4 @@
-import { Check, ExternalLink, Pencil, Plus, Undo2 } from 'lucide-react';
+import { Check, ExternalLink, Pencil, Plus, Undo2 } from './icons';
 import type { WishlistItem } from '../types';
 import { EmptyState } from './EmptyState';
 import { formatCurrency, formatDate } from '../lib/format';

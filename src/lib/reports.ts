@@ -26,6 +26,13 @@ export type ReportsCardTotal = {
   limit: number;
 };
 
+export type ReportsLoans = {
+  /** Parcelas de empréstimo com vencimento no mês (pagas e em aberto). */
+  impact: number;
+  /** Juros das parcelas efetivamente pagas no mês, incluindo quitação. */
+  paidInterest: number;
+};
+
 export type ReportsCsvInput = {
   /** Rótulo do mês em pt-BR, ex.: "fevereiro de 2025" */
   monthLabel: string;
@@ -33,6 +40,8 @@ export type ReportsCsvInput = {
   categories: ReportsCategories;
   /** Faturas do mês por cartão; vazio omite a seção. */
   cards: ReportsCardTotal[];
+  /** Empréstimos do mês; ausente ou zerado omite a seção. */
+  loans?: ReportsLoans;
 };
 
 const money = (n: number) => n.toFixed(2);
@@ -61,6 +70,7 @@ export function buildReportsCsv({
   totals,
   categories,
   cards,
+  loans,
 }: ReportsCsvInput): string {
   const lines: string[] = [];
 
@@ -121,6 +131,19 @@ export function buildReportsCsv({
     );
   }
   lines.push('');
+
+  // Empréstimos do mês (opcional)
+  if (loans && (loans.impact > 0 || loans.paidInterest > 0)) {
+    lines.push(sectionTitle('Empréstimos do mês'));
+    lines.push(['Métrica', 'Valor'].map(escapeCsvCell).join(','));
+    if (loans.impact > 0) {
+      lines.push(['Parcelas no mês', money(loans.impact)].map(escapeCsvCell).join(','));
+    }
+    if (loans.paidInterest > 0) {
+      lines.push(['Juros pagos no mês', money(loans.paidInterest)].map(escapeCsvCell).join(','));
+    }
+    lines.push('');
+  }
 
   // Faturas do mês (opcional)
   if (cards.length > 0) {

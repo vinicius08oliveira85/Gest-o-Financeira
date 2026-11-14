@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { CheckCircle2, Circle, Calendar, CreditCard, Pencil, Trash2, Tag } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, CreditCard, Folder, Pencil, Trash2, Tag } from './icons';
 import { motion } from 'motion/react';
 import type { Entry } from '../types';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
@@ -25,6 +25,10 @@ type EntryItemProps = {
   onEdit: (entry: Entry) => void;
   onDeleteRequest: (id: string) => void;
   compact?: boolean;
+  /** Categoria filtrada na tela; o chip correspondente fica ativo (ícone Filled). */
+  selectedCategory?: string;
+  /** Torna o chip de categoria um filtro: clique aplica/limpa a categoria. */
+  onSelectCategory?: (category: string) => void;
 };
 
 function EntryItemInner({
@@ -34,6 +38,8 @@ function EntryItemInner({
   onEdit,
   onDeleteRequest,
   compact = false,
+  selectedCategory,
+  onSelectCategory,
 }: EntryItemProps) {
   const paymentDue = debtPaymentDueDate(entry);
   const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(paymentDue);
@@ -120,7 +126,32 @@ function EntryItemInner({
           >
             {entry.isPaid ? 'Finalizado' : isOverdue ? 'Atrasado' : 'Pendente'}
           </span>
-          {entry.category && <span className="neu-chip">{entry.category}</span>}
+          {entry.category &&
+            (onSelectCategory ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onSelectCategory(selectedCategory === entry.category ? 'all' : entry.category!)
+                }
+                aria-pressed={selectedCategory === entry.category}
+                title={
+                  selectedCategory === entry.category
+                    ? 'Remover filtro de categoria'
+                    : `Filtrar por ${entry.category}`
+                }
+                className={`neu-chip inline-flex items-center gap-1 transition-colors ${
+                  selectedCategory === entry.category ? 'neu-chip-active' : ''
+                }`}
+              >
+                <Folder size={11} filled={selectedCategory === entry.category} />
+                {entry.category}
+              </button>
+            ) : (
+              <span className="neu-chip inline-flex items-center gap-1">
+                <Folder size={11} />
+                {entry.category}
+              </span>
+            ))}
           {entry.installmentsCount && entry.installmentNumber && (
             <span className="neu-chip-dark">
               {entry.installmentNumber}/{entry.installmentsCount}

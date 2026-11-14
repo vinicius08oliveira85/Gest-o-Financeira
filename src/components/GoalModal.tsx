@@ -1,5 +1,5 @@
 ﻿import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X } from './icons';
 import type { Goal } from '../types';
 import { DateInput } from './DateInput';
 import { ModalShell } from './ModalShell';

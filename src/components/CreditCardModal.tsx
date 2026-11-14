@@ -1,5 +1,5 @@
 ﻿import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X } from './icons';
 import type { CreditCard } from '../types';
 import { ModalShell } from './ModalShell';
 import {

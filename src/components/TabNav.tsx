@@ -1,13 +1,5 @@
 ﻿import type { ComponentType } from 'react';
-import {
-  LayoutDashboard,
-  ListTodo,
-  BarChart3,
-  Target,
-  CreditCard,
-  Landmark,
-  Gift,
-} from 'lucide-react';
+import { LayoutDashboard, ListTodo, BarChart3, Target, CreditCard, Landmark, Gift } from './icons';
 
 export type TabId =
   | 'resumo'
@@ -21,7 +13,7 @@ export type TabId =
 const TABS: {
   id: TabId;
   label: string;
-  icon: ComponentType<{ size?: number; className?: string }>;
+  icon: ComponentType<{ size?: number; className?: string; filled?: boolean }>;
 }[] = [
   { id: 'resumo', label: 'Resumo', icon: LayoutDashboard },
   { id: 'lancamentos', label: 'Lançamentos', icon: ListTodo },
@@ -59,7 +51,8 @@ export function TabNav({ activeTab, onTabChange }: TabNavProps) {
           aria-label={label}
           title={label}
         >
-          <Icon size={18} className="shrink-0" />
+          {/* Aba ativa usa a variante Filled do Fluent, como no Windows 12. */}
+          <Icon size={18} className="shrink-0" filled={activeTab === id} />
           {/* Com 7 abas o rótulo não cabe na largura de um celular: fica só o
               ícone (com aria-label/title) e o texto volta a partir de `sm`. */}
           <span className="hidden sm:inline">{label}</span>

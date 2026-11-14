@@ -7,7 +7,7 @@ import {
   Pencil,
   CheckCircle2,
   Circle,
-} from 'lucide-react';
+} from './icons';
 import type { CardExpense, CreditCard, Entry } from '../types';
 import { findInvoiceEntryForCycle, getInvoiceDueDate } from '../lib/cardInvoice';
 import { formatCurrency } from '../lib/format';
