@@ -324,6 +324,38 @@ export function detachEntryFromLoan(loan: Loan, entryId: string): Loan | null {
 }
 
 /**
+ * Corrige dados antigos: parcelas (ou quitação) que ficaram pagas apontando para
+ * um lançamento que não existe mais. Cada vínculo quebrado é solto com
+ * `detachEntryFromLoan`, devolvendo o valor ao saldo em aberto; devolve só os
+ * empréstimos que mudaram, para quem chama persistir apenas esses.
+ */
+export function repairOrphanLoanLinks(loans: Loan[], entries: Entry[]): Loan[] {
+  const entryIds = new Set(entries.map((entry) => entry.id));
+  const repaired: Loan[] = [];
+
+  for (const loan of loans) {
+    const orphans = new Set<string>();
+    for (const installment of loan.installments ?? []) {
+      if (installment.paid && installment.entryId && !entryIds.has(installment.entryId)) {
+        orphans.add(installment.entryId);
+      }
+    }
+    if (loan.settlement?.entryId && !entryIds.has(loan.settlement.entryId)) {
+      orphans.add(loan.settlement.entryId);
+    }
+    if (orphans.size === 0) continue;
+
+    let current = loan;
+    for (const entryId of orphans) {
+      current = detachEntryFromLoan(current, entryId) ?? current;
+    }
+    if (current !== loan) repaired.push(current);
+  }
+
+  return repaired;
+}
+
+/**
  * Juros efetivamente pagos em um mês: a fatia de juros das parcelas pagas mais a
  * da quitação, no **mês da saída** — o mesmo em que o lançamento aparece no
  * Resumo. O mês vem do lançamento vinculado (`entryId`), então mover a data de

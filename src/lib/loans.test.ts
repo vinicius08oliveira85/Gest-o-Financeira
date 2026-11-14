@@ -27,6 +27,7 @@ import {
   getOpenAmount,
   isInstallmentLoan,
   monthsBetweenMonths,
+  repairOrphanLoanLinks,
   updateInstallmentAmount,
 } from './loans';
 import type { Entry, Loan, LoanInstallment } from '../types';
@@ -936,5 +937,85 @@ describe('detachEntryFromLoan — saída excluída não deixa parcela órfã', (
       installments: [{ number: 1, amount: 500, dueDate: '2026-11-10', paid: false, entryId: 'e1' }],
     });
     expect(detachEntryFromLoan(comVinculoAntigo, 'e1')).toBeNull();
+  });
+});
+
+describe('repairOrphanLoanLinks — limpeza única de vínculos quebrados', () => {
+  const entryPaid: Entry = {
+    id: 'e1',
+    name: 'Parcela 1',
+    amount: 500,
+    dueDate: '2026-11-10',
+    isPaid: true,
+    type: 'debt',
+    createdAt: 1,
+    category: LOANS_CATEGORY,
+  };
+
+  it('corrige só o empréstimo cuja saída sumiu', () => {
+    const saudaavel = loan({
+      id: 'ok',
+      paid: true,
+      installmentsCount: 1,
+      installments: [{ number: 1, amount: 500, dueDate: '2026-11-10', paid: true, entryId: 'e1' }],
+    });
+    const orfao = loan({
+      id: 'orf',
+      installmentsCount: 2,
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: true, entryId: 'sumiu' },
+        { number: 2, amount: 500, dueDate: '2026-12-10', paid: false },
+      ],
+    });
+
+    const repaired = repairOrphanLoanLinks([saudaavel, orfao], [entryPaid]);
+
+    expect(repaired).toHaveLength(1);
+    expect(repaired[0].id).toBe('orf');
+    expect(repaired[0].installments?.[0]).toMatchObject({
+      paid: false,
+      entryId: undefined,
+      paidDate: undefined,
+    });
+    // O valor volta a contar no mês do vencimento da parcela.
+    expect(getLoanMonthPendingAmount(repaired, 10, 2026, '2026-11-15')).toBe(500);
+  });
+
+  it('desfaz a quitação cuja saída sumiu', () => {
+    const quitado = loan({
+      id: 'quit',
+      paid: true,
+      installmentsCount: 2,
+      settlement: { amount: 1200, date: '2026-11-20', entryId: 'q-sumiu', cancelledNumbers: [1] },
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: false, cancelled: true },
+        { number: 2, amount: 500, dueDate: '2026-12-10', paid: false, cancelled: true },
+      ],
+    });
+
+    const repaired = repairOrphanLoanLinks([quitado], [entryPaid]);
+
+    expect(repaired).toHaveLength(1);
+    expect(repaired[0].settlement).toBeUndefined();
+    expect(repaired[0].installments?.[0].cancelled).toBe(false);
+    expect(getOpenAmount(repaired[0])).toBe(500);
+  });
+
+  it('não devolve nada quando os vínculos estão sadios', () => {
+    const sadio = loan({
+      id: 'sadio',
+      paid: true,
+      installments: [{ number: 1, amount: 500, dueDate: '2026-11-10', paid: true, entryId: 'e1' }],
+    });
+    // Parcela pendente com `entryId` antigo e parcela paga sem vínculo não são órfãs.
+    const outros = loan({
+      id: 'outros',
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: false, entryId: 'e1' },
+        { number: 2, amount: 500, dueDate: '2026-12-10', paid: true },
+      ],
+    });
+
+    expect(repairOrphanLoanLinks([sadio, outros], [entryPaid])).toEqual([]);
   });
 });

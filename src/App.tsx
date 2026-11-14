@@ -24,10 +24,16 @@ import {
   detachEntryFromLoan,
   getInstallmentsToCancel,
   monthKey,
+  repairOrphanLoanLinks,
   updateInstallmentAmount,
 } from './lib/loans';
 import { logError } from './lib/logger';
-import { DISMISSED_ALERTS_KEY, LOANS_CATEGORY, WISHLIST_CATEGORY } from './constants';
+import {
+  DISMISSED_ALERTS_KEY,
+  LOANS_CATEGORY,
+  LOANS_ORPHAN_REPAIR_KEY,
+  WISHLIST_CATEGORY,
+} from './constants';
 import type { CardExpense, CreditCard, Entry, Goal, Loan, WishlistItem } from './types';
 import type { TabId } from './components/TabNav';
 import { PeriodProvider } from './contexts/PeriodContext';
@@ -106,7 +112,7 @@ export default function App() {
   const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
 
   const { cards, upsertCard, deleteCard } = useCreditCards();
-  const { loans, upsertLoan, deleteLoan } = useLoans();
+  const { loans, upsertLoan, deleteLoan, isLoadingLoans } = useLoans();
   const [loanModalOpen, setLoanModalOpen] = useState(false);
   const [loanToEdit, setLoanToEdit] = useState<Loan | null>(null);
   const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
@@ -340,6 +346,47 @@ export default function App() {
       );
     }
   }, [entryToDelete, deleteEntry, showToast, addOrUpdateEntry, loans, upsertLoan]);
+
+  /**
+   * Limpeza única de dados antigos: parcelas pagas (ou quitação) apontando para
+   * um lançamento que não existe mais voltam a ficar pendentes. Espera os dois
+   * carregamentos terminarem — carregamento incompleto não pode ser confundido
+   * com exclusão — e grava uma marca para não repetir a cada abertura.
+   */
+  const orphanRepairDoneRef = useRef(false);
+  useEffect(() => {
+    if (orphanRepairDoneRef.current) return;
+    let alreadyDone = false;
+    try {
+      alreadyDone = localStorage.getItem(LOANS_ORPHAN_REPAIR_KEY) !== null;
+    } catch {
+      // Sem localStorage: cai na proteção por sessão abaixo.
+    }
+    if (alreadyDone) {
+      orphanRepairDoneRef.current = true;
+      return;
+    }
+    if (isLoading || isLoadingLoans) return;
+    // Lista vazia pode ser um carregamento que ainda não escreveu nada: sem
+    // lançamentos não dá para afirmar que o vínculo foi excluído.
+    if (entries.length === 0) return;
+
+    orphanRepairDoneRef.current = true;
+    try {
+      localStorage.setItem(LOANS_ORPHAN_REPAIR_KEY, '1');
+    } catch {
+      // A limpeza é idempotente: repetir não causa dano.
+    }
+
+    const repaired = repairOrphanLoanLinks(loans, entries);
+    if (repaired.length === 0) return;
+    for (const loan of repaired) upsertLoan(loan);
+    showToast(
+      repaired.length === 1
+        ? '1 empréstimo corrigido — a saída de uma parcela havia sido excluída'
+        : `${repaired.length} empréstimos corrigidos — as saídas de parcelas haviam sido excluídas`
+    );
+  }, [entries, loans, isLoading, isLoadingLoans, upsertLoan, showToast]);
 
   const handleSaveEntriesLocal = useCallback(() => {
     saveEntriesLocal();
