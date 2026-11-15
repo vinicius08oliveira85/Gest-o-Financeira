@@ -1019,3 +1019,34 @@ describe('repairOrphanLoanLinks — limpeza única de vínculos quebrados', () =
     expect(repairOrphanLoanLinks([sadio, outros], [entryPaid])).toEqual([]);
   });
 });
+
+describe('repairOrphanLoanLinks — idempotência para rodar a cada sync', () => {
+  it('não regrava nada quando o vínculo já foi corrigido', () => {
+    const orfao = loan({
+      id: 'orf-repetido',
+      installmentsCount: 2,
+      installments: [
+        { number: 1, amount: 500, dueDate: '2026-11-10', paid: true, entryId: 'sumiu' },
+        { number: 2, amount: 500, dueDate: '2026-12-10', paid: false },
+      ],
+    });
+    const entries: Entry[] = [
+      {
+        id: 'e1',
+        name: 'Outra conta',
+        amount: 50,
+        dueDate: '2026-11-05',
+        isPaid: true,
+        type: 'debt',
+        createdAt: 1,
+      },
+    ];
+
+    const [first] = repairOrphanLoanLinks([orfao], entries);
+    expect(first).toBeDefined();
+    expect(first!.installments?.[0].paid).toBe(false);
+
+    // Segunda passada (novo sync/render) já encontra tudo sadio.
+    expect(repairOrphanLoanLinks([first!], entries)).toEqual([]);
+  });
+});

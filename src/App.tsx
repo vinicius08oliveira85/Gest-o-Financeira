@@ -19,6 +19,7 @@ import {
   planInvoiceSync,
   preserveInvoiceState,
 } from './lib/cardInvoice';
+import { getOrphanCardExpenses, getOrphanCardIds } from './lib/cardExpenses';
 import { randomUUID } from './lib/uuid';
 import {
   detachEntryFromLoan,
@@ -29,9 +30,9 @@ import {
 } from './lib/loans';
 import { logError } from './lib/logger';
 import {
+  CARD_EXPENSES_ORPHAN_CLEANUP_KEY,
   DISMISSED_ALERTS_KEY,
   LOANS_CATEGORY,
-  LOANS_ORPHAN_REPAIR_KEY,
   WISHLIST_CATEGORY,
 } from './constants';
 import type { CardExpense, CreditCard, Entry, Goal, Loan, WishlistItem } from './types';
@@ -111,7 +112,7 @@ export default function App() {
   const [expenseToDelete, setExpenseToDelete] = useState<CardExpense | null>(null);
   const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
 
-  const { cards, upsertCard, deleteCard } = useCreditCards();
+  const { cards, upsertCard, deleteCard, isLoadingCards } = useCreditCards();
   const { loans, upsertLoan, deleteLoan, isLoadingLoans } = useLoans();
   const [loanModalOpen, setLoanModalOpen] = useState(false);
   const [loanToEdit, setLoanToEdit] = useState<Loan | null>(null);
@@ -126,6 +127,7 @@ export default function App() {
   const [wishlistToDelete, setWishlistToDelete] = useState<WishlistItem | null>(null);
   const {
     expenses: cardExpenses,
+    isLoadingExpenses,
     addExpense,
     updateExpense,
     deleteExpense,
@@ -348,45 +350,72 @@ export default function App() {
   }, [entryToDelete, deleteEntry, showToast, addOrUpdateEntry, loans, upsertLoan]);
 
   /**
-   * Limpeza única de dados antigos: parcelas pagas (ou quitação) apontando para
-   * um lançamento que não existe mais voltam a ficar pendentes. Espera os dois
-   * carregamentos terminarem — carregamento incompleto não pode ser confundido
-   * com exclusão — e grava uma marca para não repetir a cada abertura.
+   * Reconciliação dos vínculos de empréstimo: parcela paga (ou quitação) que
+   * aponta para um lançamento inexistente volta a pendente. Roda sempre que os
+   * lançamentos ou os empréstimos mudam depois do carregamento — não só uma vez —
+   * porque um pull da nuvem pode trazer a exclusão feita em outro dispositivo.
+   * É idempotente: quando não há vínculo quebrado não regrava nada.
    */
-  const orphanRepairDoneRef = useRef(false);
   useEffect(() => {
-    if (orphanRepairDoneRef.current) return;
-    let alreadyDone = false;
-    try {
-      alreadyDone = localStorage.getItem(LOANS_ORPHAN_REPAIR_KEY) !== null;
-    } catch {
-      // Sem localStorage: cai na proteção por sessão abaixo.
-    }
-    if (alreadyDone) {
-      orphanRepairDoneRef.current = true;
-      return;
-    }
     if (isLoading || isLoadingLoans) return;
     // Lista vazia pode ser um carregamento que ainda não escreveu nada: sem
     // lançamentos não dá para afirmar que o vínculo foi excluído.
     if (entries.length === 0) return;
 
-    orphanRepairDoneRef.current = true;
-    try {
-      localStorage.setItem(LOANS_ORPHAN_REPAIR_KEY, '1');
-    } catch {
-      // A limpeza é idempotente: repetir não causa dano.
-    }
-
     const repaired = repairOrphanLoanLinks(loans, entries);
     if (repaired.length === 0) return;
-    for (const loan of repaired) upsertLoan(loan);
+    for (const loan of repaired) {
+      upsertLoan(loan);
+      setLoanInstallmentsLoan((current) => (current?.id === loan.id ? loan : current));
+    }
     showToast(
       repaired.length === 1
         ? '1 empréstimo corrigido — a saída de uma parcela havia sido excluída'
         : `${repaired.length} empréstimos corrigidos — as saídas de parcelas haviam sido excluídas`
     );
   }, [entries, loans, isLoading, isLoadingLoans, upsertLoan, showToast]);
+
+  /**
+   * Limpeza única de gastos de cartões que já não existem (excluídos em outro
+   * dispositivo antes de a cascata de exclusão existir no servidor): sem isso
+   * eles continuam somando no gráfico de evolução e no CSV.
+   */
+  const orphanExpensesCleanupDoneRef = useRef(false);
+  useEffect(() => {
+    if (orphanExpensesCleanupDoneRef.current) return;
+    let alreadyDone = false;
+    try {
+      alreadyDone = localStorage.getItem(CARD_EXPENSES_ORPHAN_CLEANUP_KEY) !== null;
+    } catch {
+      // Sem localStorage: cai na proteção por sessão abaixo.
+    }
+    if (alreadyDone) {
+      orphanExpensesCleanupDoneRef.current = true;
+      return;
+    }
+    if (isLoadingCards || isLoadingExpenses) return;
+    // Sem nenhum cartão carregado não dá para distinguir "todos órfãos" de
+    // "cartões que ainda não chegaram": nesse caso a limpeza espera.
+    if (cards.length === 0) return;
+    if (cardExpenses.length === 0) return;
+
+    orphanExpensesCleanupDoneRef.current = true;
+    try {
+      localStorage.setItem(CARD_EXPENSES_ORPHAN_CLEANUP_KEY, '1');
+    } catch {
+      // A limpeza é idempotente: repetir não causa dano.
+    }
+
+    const orphanCardIds = getOrphanCardIds(cardExpenses, cards);
+    if (orphanCardIds.length === 0) return;
+    const removed = getOrphanCardExpenses(cardExpenses, cards).length;
+    for (const cardId of orphanCardIds) deleteExpensesByCard(cardId);
+    showToast(
+      removed === 1
+        ? '1 gasto de cartão excluído foi removido dos relatórios'
+        : `${removed} gastos de cartões excluídos foram removidos dos relatórios`
+    );
+  }, [cards, cardExpenses, isLoadingCards, isLoadingExpenses, deleteExpensesByCard, showToast]);
 
   const handleSaveEntriesLocal = useCallback(() => {
     saveEntriesLocal();

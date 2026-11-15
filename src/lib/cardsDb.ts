@@ -1,6 +1,11 @@
 import { Query } from 'appwrite';
 import { COLLECTIONS } from './appwrite';
-import { deleteDocumentById, listAllDocuments, saveDocument } from './appwriteDb';
+import {
+  deleteDocumentById,
+  deleteDocumentsMatching,
+  listAllDocuments,
+  saveDocument,
+} from './appwriteDb';
 import type { CreditCard } from '../types';
 import { randomUUID } from './uuid';
 
@@ -54,6 +59,18 @@ export async function upsertCard(
   return rowToCard({ ...doc, id: doc.$id });
 }
 
+/**
+ * Remove o cartão e o que só existe por causa dele, na ordem que permite repetir:
+ * primeiro os gastos do ciclo, depois as faturas registradas (`entries` com
+ * `card_id`) e só então o cartão. Sem essa cascata no servidor, excluir o cartão
+ * em outro dispositivo deixava gastos fantasmas nos relatórios e faturas
+ * apontando para um cartão inexistente.
+ */
 export async function deleteCard(id: string): Promise<void> {
+  await deleteDocumentsMatching(COLLECTIONS.cardExpenses, [Query.equal('card_id', id)]);
+  await deleteDocumentsMatching(COLLECTIONS.entries, [
+    Query.equal('card_id', id),
+    Query.equal('is_card_invoice', true),
+  ]);
   await deleteDocumentById(COLLECTIONS.creditCards, id);
 }

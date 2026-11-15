@@ -24,8 +24,8 @@ export const WISHLIST_CATEGORY = 'Lista de desejos';
 /** Categoria da saída criada ao pagar uma parcela ou quitar um empréstimo. */
 export const LOANS_CATEGORY = 'Empréstimos';
 
-/** Marca a limpeza única de parcelas pagas cujo lançamento foi excluído. */
-export const LOANS_ORPHAN_REPAIR_KEY = 'gestao-financeira-loans-orphan-repair-v1';
+/** Marca a limpeza única de gastos de cartão que já não existem. */
+export const CARD_EXPENSES_ORPHAN_CLEANUP_KEY = 'gestao-financeira-card-expenses-orphan-v1';
 
 /** Janela de meses escolhida no gráfico de evolução mensal (3 | 6 | 12). */
 export const TREND_MONTHS_KEY = 'gestao-financeira-trend-months';
