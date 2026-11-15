@@ -37,6 +37,7 @@ const noop = () => {};
 function ResumoHarness() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeTab, setActiveTab] = useState<TabId>('lancamentos');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const filteredEntries =
     selectedCategory === 'all'
       ? entries
@@ -79,8 +80,8 @@ function ResumoHarness() {
         filteredEntries={filteredEntries}
         entriesCount={entries.length}
         availableCategories={['Mercado', 'Transporte']}
-        viewMode="list"
-        setViewMode={noop}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
         entries={entries}
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -158,5 +159,53 @@ describe('Resumo — chip de categoria filtra a lista', () => {
     expect(screen.queryByText('Padaria')).toBeNull();
     // Com um único lançamento, o chip ativo é o dele.
     expect(screen.getAllByRole('button', { name: 'Transporte' })).toHaveLength(1);
+  });
+});
+
+describe('Resumo — seletor Lista/Calendário', () => {
+  it('troca para o calendário e volta para a lista', async () => {
+    render(<ResumoHarness />);
+
+    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Calendário' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    // Visão de lista: cada lançamento traz os botões de editar/excluir.
+    expect(screen.getAllByLabelText('Editar')).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Calendário' }));
+
+    // O calendário é carregado sob demanda e resume o mês visível.
+    expect(await screen.findByText('3 lançamentos')).toBeInTheDocument();
+    expect(screen.queryAllByLabelText('Editar')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Calendário' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
+
+    expect(screen.queryByText('3 lançamentos')).toBeNull();
+    expect(screen.getAllByLabelText('Editar')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('mantém o filtro de categoria ao trocar de visão', async () => {
+    render(<ResumoHarness />);
+
+    fireEvent.click(chipDaCategoria('Mercado'));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendário' }));
+
+    // O calendário respeita o filtro: só os dois lançamentos de Mercado.
+    expect(await screen.findByText('2 lançamentos')).toBeInTheDocument();
+    expect(screen.queryByText('Ônibus')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
+
+    expect(screen.getByText('Feira')).toBeInTheDocument();
+    expect(screen.getByText('Padaria')).toBeInTheDocument();
+    expect(screen.queryByText('Ônibus')).toBeNull();
   });
 });
