@@ -166,3 +166,38 @@ describe('ReportsPanel', () => {
     expect(content).toContain('Categorias (entradas)');
   });
 });
+
+describe('ReportsPanel — navegação para outras telas', () => {
+  const saida: Entry = {
+    id: 'r1',
+    name: 'Mercado do mês',
+    amount: 200,
+    dueDate: '2025-03-10',
+    isPaid: false,
+    type: 'debt',
+    createdAt: 1,
+    category: 'Mercado',
+  };
+
+  it('clicar na categoria abre a lista já filtrada', () => {
+    const onSelectCategory = vi.fn();
+    render(
+      <ReportsPanel entries={[saida]} month={2} year={2025} onSelectCategory={onSelectCategory} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mercado' }));
+
+    expect(onSelectCategory).toHaveBeenCalledWith('Mercado');
+  });
+
+  it('o resumo de empréstimos leva à aba de empréstimos', () => {
+    const onOpenLoans = vi.fn();
+    render(
+      <ReportsPanel entries={[]} month={2} year={2025} loans={[loan()]} onOpenLoans={onOpenLoans} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver empréstimos' }));
+
+    expect(onOpenLoans).toHaveBeenCalledTimes(1);
+  });
+});

@@ -381,6 +381,15 @@ export function CashFlowSection({
               prevSaldo={prevMonthTotals.saldo}
               cardSpending={cardSpendingMes}
               prevCardSpending={prevCardSpending}
+              onOpenEntradas={() => {
+                setFilter('cash');
+                onTabChange('lancamentos');
+              }}
+              onOpenSaidas={() => {
+                setFilter('debt');
+                onTabChange('lancamentos');
+              }}
+              onOpenCards={() => onTabChange('cartoes')}
             />
             <p className="info-bar">
               O saldo considera apenas lançamentos{' '}
@@ -416,6 +425,13 @@ export function CashFlowSection({
                 <p className="mt-1 text-2xs text-slate-500 dark:text-slate-400">
                   Parcelas do mês em aberto + saídas de empréstimo já lançadas.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => onTabChange('emprestimos')}
+                  className="mt-1 text-2xs font-medium text-amber-700 dark:text-amber-400 hover:underline"
+                >
+                  Ver empréstimos
+                </button>
               </div>
             )}
             {loans.length > 0 && (
@@ -510,6 +526,7 @@ export function CashFlowSection({
                 }}
                 compact
                 groupByDate
+                onOpenCardInvoice={() => onTabChange('cartoes')}
                 selectedCategory={selectedCategory}
                 onSelectCategory={setSelectedCategory}
                 filtered={entriesCount > 0 && filteredEntries.length === 0}
@@ -544,6 +561,12 @@ export function CashFlowSection({
               cards={cards}
               cardExpenses={cardExpenses}
               loans={loans}
+              onSelectCategory={(category) => {
+                setFilter('all');
+                setSelectedCategory(category);
+                onTabChange('lancamentos');
+              }}
+              onOpenLoans={() => onTabChange('emprestimos')}
             />
           </Suspense>
         )}

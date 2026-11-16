@@ -241,3 +241,36 @@ describe('useAlerts', () => {
     expect(loanAlerts[0].description).toContain('R$');
   });
 });
+
+describe('useAlerts — alvo do alerta', () => {
+  it('alerta de concentração leva à categoria já filtrada na lista de saídas', () => {
+    const month = 2;
+    const year = 2025;
+    const entries: Entry[] = [
+      entry('1', 'debt', 600, '2025-03-15', false, 'Aluguel'),
+      entry('2', 'debt', 400, '2025-03-10', false, 'Mercado'),
+    ];
+
+    const { result } = renderHook(() => useAlerts({ entries, month, year }));
+    const alert = result.current.alerts.find(
+      (a) => a.type === 'concentration' && a.title.includes('Aluguel')
+    );
+
+    expect(alert?.target).toEqual({ tab: 'lancamentos', filter: 'debt', category: 'Aluguel' });
+  });
+
+  it('alerta de vencimento próximo abre as saídas pendentes', () => {
+    const today = new Date();
+    const dueIn3Days = new Date(today);
+    dueIn3Days.setDate(today.getDate() + 3);
+    const dueDateStr = iso(dueIn3Days);
+    const entries: Entry[] = [entry('1', 'debt', 100, dueDateStr, false)];
+
+    const { result } = renderHook(() =>
+      useAlerts({ entries, month: dueIn3Days.getMonth(), year: dueIn3Days.getFullYear() })
+    );
+    const alert = result.current.alerts.find((a) => a.type === 'due-soon');
+
+    expect(alert?.target).toEqual({ tab: 'lancamentos', filter: 'pending' });
+  });
+});

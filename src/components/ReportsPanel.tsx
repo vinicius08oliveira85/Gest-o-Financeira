@@ -22,6 +22,10 @@ type ReportsPanelProps = {
   cards?: CreditCard[];
   cardExpenses?: CardExpense[];
   loans?: Loan[];
+  /** Abre a aba de lançamentos já filtrada pela categoria clicada. */
+  onSelectCategory?: (category: string) => void;
+  /** Abre a aba de empréstimos a partir do resumo do relatório. */
+  onOpenLoans?: () => void;
 };
 
 function formatCycleDate(d: Date): string {
@@ -43,6 +47,8 @@ export function ReportsPanel({
   cards = [],
   cardExpenses = [],
   loans = [],
+  onSelectCategory,
+  onOpenLoans,
 }: ReportsPanelProps) {
   const byPeriod = entries.filter((d) => {
     const date = parseDateLocal(d.dueDate);
@@ -341,6 +347,15 @@ export function ReportsPanel({
               Parcelas do mês em aberto + saídas de empréstimo já lançadas no mês (mesmo pagas em
               outro mês). Os juros pagos são a fatia de juros das parcelas já pagas no mês.
             </p>
+            {onOpenLoans && (
+              <button
+                type="button"
+                onClick={onOpenLoans}
+                className="self-start text-2xs font-medium text-amber-700 dark:text-amber-400 hover:underline"
+              >
+                Ver empréstimos
+              </button>
+            )}
           </div>
         )}
 
@@ -364,7 +379,18 @@ export function ReportsPanel({
               {categorySaidasEntries.map(([cat, value]) => (
                 <div key={`s-${cat}`} className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-                    <span className="truncate max-w-[140px]">{cat}</span>
+                    {onSelectCategory ? (
+                      <button
+                        type="button"
+                        onClick={() => onSelectCategory(cat)}
+                        title={`Ver lançamentos de ${cat}`}
+                        className="truncate max-w-[140px] text-left hover:text-slate-900 dark:hover:text-slate-100 hover:underline"
+                      >
+                        {cat}
+                      </button>
+                    ) : (
+                      <span className="truncate max-w-[140px]">{cat}</span>
+                    )}
                     <span className="font-medium text-slate-900 dark:text-slate-100">
                       {formatCurrency(value)}
                     </span>
@@ -395,7 +421,18 @@ export function ReportsPanel({
               {categoryEntradasEntries.map(([cat, value]) => (
                 <div key={`e-${cat}`} className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-                    <span className="truncate max-w-[140px]">{cat}</span>
+                    {onSelectCategory ? (
+                      <button
+                        type="button"
+                        onClick={() => onSelectCategory(cat)}
+                        title={`Ver lançamentos de ${cat}`}
+                        className="truncate max-w-[140px] text-left hover:text-slate-900 dark:hover:text-slate-100 hover:underline"
+                      >
+                        {cat}
+                      </button>
+                    ) : (
+                      <span className="truncate max-w-[140px]">{cat}</span>
+                    )}
                     <span className="font-medium text-slate-900 dark:text-slate-100">
                       {formatCurrency(value)}
                     </span>

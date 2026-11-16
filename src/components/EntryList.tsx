@@ -20,6 +20,8 @@ type EntryListProps = {
   /** Categoria filtrada na tela (destaque do chip) e ação de filtrar pelo chip. */
   selectedCategory?: string;
   onSelectCategory?: (category: string) => void;
+  /** Faturas de cartão: leva aos gastos do ciclo na aba de cartões. */
+  onOpenCardInvoice?: () => void;
 };
 
 function groupEntriesByDate(entries: Entry[]): Map<string, Entry[]> {
@@ -64,6 +66,7 @@ export function EntryList({
   onClearFilters,
   selectedCategory,
   onSelectCategory,
+  onOpenCardInvoice,
 }: EntryListProps) {
   const groupedByDate = useMemo(
     () => (groupByDate && entries.length > 0 ? groupEntriesByDate(entries) : null),
@@ -93,6 +96,7 @@ export function EntryList({
                         compact={compact}
                         selectedCategory={selectedCategory}
                         onSelectCategory={onSelectCategory}
+                        onOpenCardInvoice={onOpenCardInvoice}
                       />
                     ))}
                   </div>
@@ -112,6 +116,7 @@ export function EntryList({
                   compact={compact}
                   selectedCategory={selectedCategory}
                   onSelectCategory={onSelectCategory}
+                  onOpenCardInvoice={onOpenCardInvoice}
                 />
               ))}
             </div>

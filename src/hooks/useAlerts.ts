@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { CardExpense, CreditCard, Entry, Goal, Loan } from '../types';
+import type { CardExpense, CreditCard, Entry, FilterType, Goal, Loan } from '../types';
 import {
   ALERT_CONCENTRATION_RATIO,
   CARD_LIMIT_ALERT_RATIO,
@@ -16,11 +16,28 @@ export type AlertType =
   | 'card-limit'
   | 'loan-discount-ending';
 
+/**
+ * Para onde o alerta leva quando o usuário clica nele: a aba certa e, quando
+ * faz sentido, o contexto já aplicado (categoria, filtro, item). Sem isso a
+ * ação caía na aba genérica e o usuário tinha que refazer o caminho.
+ */
+export type AlertTarget = {
+  tab: 'lancamentos' | 'metas' | 'cartoes' | 'emprestimos';
+  /** Filtro de tipo/status aplicado na aba de lançamentos. */
+  filter?: FilterType;
+  /** Categoria a destacar e filtrar na lista. */
+  category?: string;
+  goalId?: string;
+  cardId?: string;
+  loanId?: string;
+};
+
 export type Alert = {
   id: string;
   type: AlertType;
   title: string;
   description: string;
+  target?: AlertTarget;
 };
 
 type UseAlertsParams = {
@@ -73,6 +90,7 @@ export function useAlerts({
             title: `Muitos gastos em "${category}"`,
             description:
               'Essa categoria representa uma parte relevante das saídas do mês. Vale a pena revisar se todos os gastos são realmente necessários.',
+            target: { tab: 'lancamentos', filter: 'debt', category },
           });
         }
       });
@@ -97,6 +115,7 @@ export function useAlerts({
         title: 'Lançamentos com vencimento próximo',
         description:
           'Você tem despesas a vencer nos próximos dias que ainda não foram marcadas como pagas.',
+        target: { tab: 'lancamentos', filter: 'pending' },
       });
     }
 
@@ -112,6 +131,7 @@ export function useAlerts({
         description: `Ainda faltam ${formatCurrency(getOpenAmount(loan))} para quitar${
           lastMonth ? ' e este é o último mês de desconto.' : ' antes do desconto acabar.'
         }`,
+        target: { tab: 'emprestimos', loanId: loan.id },
       });
     }
 
@@ -129,6 +149,7 @@ export function useAlerts({
           type: 'goal-deadline',
           title: `Meta "${goal.name}": data alvo passou`,
           description: `A data para atingir esta meta já passou. Ajuste a meta ou a data se necessário.`,
+          target: { tab: 'metas', goalId: goal.id },
         });
       } else if (diffDays === 0) {
         result.push({
@@ -136,6 +157,7 @@ export function useAlerts({
           type: 'goal-deadline',
           title: `Meta "${goal.name}": vence hoje`,
           description: `A data alvo desta meta é hoje. Confira seu progresso.`,
+          target: { tab: 'metas', goalId: goal.id },
         });
       } else if (diffDays <= GOAL_DEADLINE_ALERT_DAYS) {
         result.push({
@@ -143,6 +165,7 @@ export function useAlerts({
           type: 'goal-deadline',
           title: `Meta "${goal.name}": faltam ${diffDays} dias`,
           description: `A data alvo desta meta é em ${diffDays} dia(s). Confira seu progresso.`,
+          target: { tab: 'metas', goalId: goal.id },
         });
       }
     }
@@ -168,6 +191,7 @@ export function useAlerts({
             diffDays === 0
               ? 'Esta fatura de cartão vence hoje e ainda não foi paga.'
               : `Esta fatura de cartão vence em ${diffDays} dia(s). Não esqueça de pagar.`,
+          target: { tab: 'cartoes', cardId: entry.cardId },
         });
       }
     }
@@ -184,6 +208,7 @@ export function useAlerts({
           type: 'card-limit',
           title: `Cartão "${card.name}" acima de ${Math.round(CARD_LIMIT_ALERT_RATIO * 100)}% do limite`,
           description: `Você usou ${(ratio * 100).toFixed(0)}% do limite do cartão ${card.name} neste mês.`,
+          target: { tab: 'cartoes', cardId: card.id },
         });
       }
     }

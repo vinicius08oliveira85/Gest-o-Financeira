@@ -28,6 +28,10 @@ type DashboardCardsProps = {
   /** Gasto no cartão do mês (fatura) e do mês anterior */
   cardSpending?: number;
   prevCardSpending?: number;
+  /** Levam o usuário ao detalhe de cada número (aba e filtros já aplicados). */
+  onOpenEntradas?: () => void;
+  onOpenSaidas?: () => void;
+  onOpenCards?: () => void;
 };
 
 export function DashboardCards({
@@ -49,6 +53,9 @@ export function DashboardCards({
   prevSaldo,
   cardSpending,
   prevCardSpending,
+  onOpenEntradas,
+  onOpenSaidas,
+  onOpenCards,
 }: DashboardCardsProps) {
   const suffix = periodLabel ? ` ${periodLabel}` : '';
   return (
@@ -100,6 +107,15 @@ export function DashboardCards({
               </div>
             )}
           </div>
+        )}
+        {onOpenEntradas && (
+          <button
+            type="button"
+            onClick={onOpenEntradas}
+            className="mt-2 self-start text-3xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
+          >
+            Ver entradas
+          </button>
         )}
       </motion.div>
 
@@ -154,6 +170,15 @@ export function DashboardCards({
               </div>
             )}
           </div>
+        )}
+        {onOpenSaidas && (
+          <button
+            type="button"
+            onClick={onOpenSaidas}
+            className="mt-2 self-start text-3xs font-medium text-red-700 dark:text-red-400 hover:underline"
+          >
+            Ver saídas
+          </button>
         )}
       </motion.div>
 
@@ -237,6 +262,15 @@ export function DashboardCards({
                   <DeltaBadge current={cardSpending} previous={prevCardSpending} invert light />
                 </span>
               </div>
+            )}
+            {onOpenCards && (
+              <button
+                type="button"
+                onClick={onOpenCards}
+                className="mt-1 self-start text-3xs font-medium text-blue-200 hover:text-white hover:underline"
+              >
+                Ver cartões
+              </button>
             )}
           </div>
         )}

@@ -29,6 +29,8 @@ type EntryItemProps = {
   selectedCategory?: string;
   /** Torna o chip de categoria um filtro: clique aplica/limpa a categoria. */
   onSelectCategory?: (category: string) => void;
+  /** Para faturas: leva aos gastos do ciclo na aba de cartões. */
+  onOpenCardInvoice?: () => void;
 };
 
 function EntryItemInner({
@@ -40,6 +42,7 @@ function EntryItemInner({
   compact = false,
   selectedCategory,
   onSelectCategory,
+  onOpenCardInvoice,
 }: EntryItemProps) {
   const paymentDue = debtPaymentDueDate(entry);
   const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(paymentDue);
@@ -188,6 +191,17 @@ function EntryItemInner({
         </div>
 
         <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
+          {entry.isCardInvoice && onOpenCardInvoice && (
+            <button
+              type="button"
+              onClick={onOpenCardInvoice}
+              className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+              aria-label="Ver gastos do ciclo do cartão"
+              title="Ver gastos do ciclo do cartão"
+            >
+              <CreditCard size={18} className="sm:w-4 sm:h-4" />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onEdit(entry)}

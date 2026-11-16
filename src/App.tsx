@@ -95,6 +95,8 @@ const ModalForm = lazy(() =>
 export default function App() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('resumo');
+  /** Pedido de foco na busca; incrementa para disparar o efeito depois da troca de aba. */
+  const [focusSearchToken, setFocusSearchToken] = useState(0);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   const [pendingRecurringUpdate, setPendingRecurringUpdate] = useState<Entry | null>(null);
@@ -215,22 +217,33 @@ export default function App() {
     [alerts, dismissedAlertIds]
   );
 
-  const handleAlertAction = useCallback((alert: Alert) => {
-    switch (alert.type) {
-      case 'goal-deadline':
-        setActiveTab('metas');
-        break;
-      case 'card-invoice-due':
-      case 'card-limit':
-        setActiveTab('cartoes');
-        break;
-      case 'loan-discount-ending':
-        setActiveTab('emprestimos');
-        break;
-      default:
+  const handleAlertAction = useCallback(
+    (alert: Alert) => {
+      const target = alert.target;
+      if (!target) {
         setActiveTab('lancamentos');
-    }
-  }, []);
+        return;
+      }
+      setActiveTab(target.tab);
+      // Leva o contexto junto: a categoria já filtrada, o status em foco ou o
+      // modal do empréstimo aberto — em vez de só trocar de aba.
+      if (target.filter) setFilter(target.filter);
+      if (target.category) setSelectedCategory(target.category);
+      if (target.loanId) {
+        const loan = loans.find((item) => item.id === target.loanId);
+        if (loan) setLoanInstallmentsLoan(loan);
+      }
+    },
+    [loans, setFilter, setSelectedCategory]
+  );
+
+  // Foco na busca pedido pelo atalho "/" quando foi preciso trocar de aba antes.
+  useEffect(() => {
+    if (focusSearchToken === 0) return;
+    document
+      .querySelector<HTMLInputElement>('input[aria-label="Buscar por nome ou valor"]')
+      ?.focus();
+  }, [focusSearchToken, activeTab]);
 
   const handleDismissAlert = useCallback((id: string) => {
     setDismissedAlertIds((prev) => {
@@ -288,10 +301,17 @@ export default function App() {
     {
       key: '/',
       handler: () => {
-        const searchInput = document.querySelector(
+        // A busca só existe na aba Lançamentos: em outra aba, troca primeiro e
+        // pede o foco pelo token (o input ainda não está no DOM neste instante).
+        const searchInput = document.querySelector<HTMLInputElement>(
           'input[aria-label="Buscar por nome ou valor"]'
-        ) as HTMLInputElement | null;
-        searchInput?.focus();
+        );
+        if (searchInput) {
+          searchInput.focus();
+          return;
+        }
+        setActiveTab('lancamentos');
+        setFocusSearchToken((token) => token + 1);
       },
       description: 'Focar busca',
       preventDefault: true,

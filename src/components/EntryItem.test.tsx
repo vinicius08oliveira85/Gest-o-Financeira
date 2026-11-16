@@ -99,3 +99,32 @@ describe('EntryItem — chip de categoria', () => {
     expect(screen.getByText('Mercado')).toBeTruthy();
   });
 });
+
+describe('EntryItem — fatura de cartão', () => {
+  it('mostra o atalho para os gastos do ciclo só em faturas', () => {
+    const onOpenCardInvoice = vi.fn();
+    const fatura = entry({
+      id: 'fatura',
+      name: 'Fatura Nubank',
+      isCardInvoice: true,
+      invoicePaymentDueDate: '2026-11-20',
+      cardId: 'card-1',
+    });
+
+    const { rerender } = render(
+      <EntryItem entry={fatura} {...baseProps} onOpenCardInvoice={onOpenCardInvoice} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver gastos do ciclo do cartão' }));
+    expect(onOpenCardInvoice).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <EntryItem
+        entry={entry({ id: 'conta', name: 'Conta de luz' })}
+        {...baseProps}
+        onOpenCardInvoice={onOpenCardInvoice}
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Ver gastos do ciclo do cartão' })).toBeNull();
+  });
+});
