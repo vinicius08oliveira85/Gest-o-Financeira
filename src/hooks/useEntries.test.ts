@@ -502,3 +502,26 @@ describe('useEntries', () => {
     expect(result.current.filteredEntries.map((e) => e.id)).toEqual(['atual']);
   });
 });
+
+describe('useEntries — troca de mês', () => {
+  it('limpa busca, categoria e tipo ao navegar entre meses', async () => {
+    const { isCloudConfigured } = await import('../lib/appwrite');
+    vi.mocked(isCloudConfigured).mockReturnValue(false);
+    localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(mockEntries));
+
+    const { result } = renderHook(() => useEntries());
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 2000 });
+
+    act(() => result.current.setSelectedCategory('Contas'));
+    act(() => result.current.setSearchQuery('Saída'));
+    act(() => result.current.setFilter('debt'));
+
+    act(() => result.current.goToNextMonth());
+
+    // Trocar de mês zera busca, categoria e tipo: senão a lista do novo mês
+    // abria vazia (ou incompleta) sem o usuário entender o motivo.
+    expect(result.current.selectedCategory).toBe('all');
+    expect(result.current.searchQuery).toBe('');
+    expect(result.current.filter).toBe('all');
+  });
+});

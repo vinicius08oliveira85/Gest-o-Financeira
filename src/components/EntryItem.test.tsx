@@ -128,3 +128,22 @@ describe('EntryItem — fatura de cartão', () => {
     expect(screen.queryByRole('button', { name: 'Ver gastos do ciclo do cartão' })).toBeNull();
   });
 });
+
+describe('EntryItem — meta', () => {
+  it('saque da meta aparece como entrada, mesmo sendo type debt', () => {
+    render(
+      <EntryItem
+        entry={entry({
+          type: 'debt',
+          goalId: 'g1',
+          name: 'Resgate da meta',
+          dueDate: '2020-01-10',
+        })}
+        {...baseProps}
+      />
+    );
+
+    expect(screen.getByText('Entrada')).toBeInTheDocument();
+    expect(screen.queryByText('Atrasado')).toBeNull();
+  });
+});

@@ -7,6 +7,11 @@ type DashboardCardsProps = {
   totalEntradasLancadas: number;
   totalSaidasLancadas: number;
   saldo: number;
+  /** Saldo de todos os lançamentos finalizados, de todos os meses. */
+  saldoAcumulado?: number;
+  /** Posição antes do primeiro lançamento (0 quando não definida). */
+  saldoInicial?: number;
+  onEditSaldoInicial?: () => void;
   entradasCount: number;
   saidasCount: number;
   /** Parcelas de empréstimo em aberto somadas às saídas do mês (não são lançamentos). */
@@ -38,6 +43,9 @@ export function DashboardCards({
   totalEntradasLancadas,
   totalSaidasLancadas,
   saldo,
+  saldoAcumulado,
+  saldoInicial,
+  onEditSaldoInicial,
   entradasCount,
   saidasCount,
   saidasParcelas = 0,
@@ -225,6 +233,31 @@ export function DashboardCards({
             </div>
           </div>
         )}
+        {saldoAcumulado !== undefined && (
+          <div className="mt-1.5 border-t border-white/10 pt-1.5">
+            <div
+              className="flex items-center justify-between text-3xs"
+              title="Saldo inicial + todas as entradas finalizadas menos todas as saídas finalizadas"
+            >
+              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" />
+                {saldoInicial ? 'Saldo atual' : 'Acumulado (todos os meses)'}
+              </span>
+              <span className="font-medium text-white">
+                {formatCurrency(saldoAcumulado + (saldoInicial ?? 0))}
+              </span>
+            </div>
+            {onEditSaldoInicial && (
+              <button
+                type="button"
+                onClick={onEditSaldoInicial}
+                className="mt-1 text-3xs font-medium text-blue-200 hover:text-white hover:underline"
+              >
+                {saldoInicial ? 'Ajustar saldo inicial' : 'Definir saldo inicial'}
+              </button>
+            )}
+          </div>
+        )}
         {totalLimiteDisponivel !== undefined && (
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-3xs">
@@ -239,18 +272,7 @@ export function DashboardCards({
                 {formatCurrency(totalLimiteDisponivel)}
               </span>
             </div>
-            <div className="flex items-center justify-between text-3xs">
-              <span
-                className="text-slate-600 dark:text-slate-400 flex items-center gap-1"
-                title="Saldo finalizado do mês + limite disponível dos cartões"
-              >
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" />
-                Total disponível
-              </span>
-              <span className="font-medium text-white">
-                {formatCurrency(saldo + totalLimiteDisponivel)}
-              </span>
-            </div>
+
             {cardSpending !== undefined && prevCardSpending !== undefined && (
               <div className="flex items-center justify-between text-3xs">
                 <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">

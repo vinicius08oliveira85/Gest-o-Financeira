@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Entry } from '../types';
 import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
+import { isEntryInflow as isEntrada, isEntryOutflow as isSaida } from '../lib/entryClassification';
 import { chipClass } from '../lib/neu';
 import { EmptyState } from './EmptyState';
 
@@ -32,17 +33,9 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'paid', label: 'Finalizados' },
 ];
 
-/** Depósito na meta (cash+goalId) conta como saída; saque (debt+goalId) como entrada. */
-function isEntrada(e: Entry): boolean {
-  return e.goalId ? e.type === 'debt' : e.type === 'cash';
-}
-function isSaida(e: Entry): boolean {
-  return e.goalId ? e.type === 'cash' : e.type === 'debt';
-}
-
 /** Atraso considera o vencimento do pagamento em faturas de cartão (não o fechamento). */
 function isOverdue(e: Entry): boolean {
-  if (e.type !== 'debt' || e.isPaid) return false;
+  if (!isSaida(e) || e.isPaid) return false;
   const due = e.isCardInvoice ? (e.invoicePaymentDueDate ?? e.dueDate) : e.dueDate;
   return due < todayLocalISO();
 }

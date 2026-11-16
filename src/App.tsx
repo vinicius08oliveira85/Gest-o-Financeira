@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { MotionConfig } from 'motion/react';
 import { useEntries } from './hooks/useEntries';
+import { useInitialBalance } from './hooks/useInitialBalance';
 import { useEntryForm } from './hooks/useEntryForm';
 import { useGoals } from './hooks/useGoals';
 import { useCreditCards } from './hooks/useCreditCards';
@@ -95,6 +96,7 @@ const ModalForm = lazy(() =>
 export default function App() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('resumo');
+  const { initialBalance, setInitialBalance } = useInitialBalance();
   /** Pedido de foco na busca; incrementa para disparar o efeito depois da troca de aba. */
   const [focusSearchToken, setFocusSearchToken] = useState(0);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -158,6 +160,7 @@ export default function App() {
     totalEntradasLancadasMes,
     totalSaidasLancadasMes,
     saldoMes,
+    saldo: saldoAcumulado,
     entradasCountMes,
     saidasCountMes,
     totalEntradasFinalizadasMes,
@@ -830,6 +833,9 @@ export default function App() {
               totalEntradasLancadasMes={totalEntradasLancadasMes}
               totalSaidasLancadasMes={totalSaidasLancadasMes}
               saldoMes={saldoMes}
+              saldoAcumulado={saldoAcumulado}
+              saldoInicial={initialBalance}
+              onSaldoInicialChange={setInitialBalance}
               saldoProjetadoMes={totalEntradasLancadasMes - totalSaidasLancadasMes}
               entradasCountMes={entradasCountMes}
               saidasCountMes={saidasCountMes}

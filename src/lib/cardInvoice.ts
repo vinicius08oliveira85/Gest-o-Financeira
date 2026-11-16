@@ -164,6 +164,41 @@ export function findInvoiceEntriesForCard(entries: Entry[], cardId: string): Ent
   return entries.filter((e) => e.isCardInvoice && e.cardId === cardId);
 }
 
+/**
+ * Limite do cartão usado/ disponível.
+ *
+ * Um ciclo cuja fatura já foi paga liberou o limite: aqueles gastos não podem
+ * continuar ocupando espaço. A conta antiga era `limite - todos os gastos +
+ * faturas pagas`, o que passava do limite quando um gasto de ciclo pago era
+ * excluído (o total de gastos caía mas a fatura paga continuava sendo somada).
+ *
+ * Usa centavos para não acumular erro de ponto flutuante.
+ */
+export function getCardLimitUsage(
+  card: CreditCard,
+  expenses: CardExpense[],
+  entries: Entry[]
+): { used: number; available: number } {
+  const usedCents = expenses
+    .filter((expense) => {
+      if (expense.cardId !== card.id) return false;
+      const invoice = findInvoiceEntryForCardCycle(
+        entries,
+        card.id,
+        expense.billingMonth,
+        expense.billingYear
+      );
+      return !invoice?.isPaid;
+    })
+    .reduce((sum, expense) => sum + Math.round(expense.amount * 100), 0);
+
+  const limitCents = Math.max(0, Math.round(card.limitAmount * 100));
+  return {
+    used: usedCents / 100,
+    available: Math.max(0, limitCents - usedCents) / 100,
+  };
+}
+
 export type InvoiceSyncAction =
   | { type: 'update'; entry: Entry; amount: number }
   | { type: 'delete'; entry: Entry };
@@ -213,6 +248,11 @@ export function planInvoiceSync(
     const invoice = findInvoiceEntryForCardCycle(invoices, cycle.cardId, cycle.month, cycle.year);
     if (!invoice) continue;
     if (cycle.cents === Math.round(invoice.amount * 100)) continue;
+    // Fatura paga é mês fechado: reescrever o valor ao editar/excluir um gasto
+    // antigo mudava o saldo de um mês que o usuário já considerava pago. O
+    // mesmo critério já valia para excluir. A atualização continua disponível
+    // como ação explícita em Cartões (o botão da fatura preserva o pagamento).
+    if (invoice.isPaid) continue;
     actions.push({ type: 'update', entry: invoice, amount: cycle.cents / 100 });
   }
 

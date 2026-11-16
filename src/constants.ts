@@ -30,5 +30,8 @@ export const CARD_EXPENSES_ORPHAN_CLEANUP_KEY = 'gestao-financeira-card-expenses
 /** Janela de meses escolhida no gráfico de evolução mensal (3 | 6 | 12). */
 export const TREND_MONTHS_KEY = 'gestao-financeira-trend-months';
 
+/** Saldo inicial (posição antes do primeiro lançamento), por dispositivo. */
+export const INITIAL_BALANCE_STORAGE_KEY = 'gestao-financeira-initial-balance';
+
 /** Limiar (0–1) acima do qual o uso do limite do cartão gera alerta. */
 export const CARD_LIMIT_ALERT_RATIO = 0.8;

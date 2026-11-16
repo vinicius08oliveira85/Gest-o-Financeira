@@ -3,6 +3,7 @@ import { CheckCircle2, Circle, Calendar, CreditCard, Folder, Pencil, Trash2, Tag
 import { motion } from 'motion/react';
 import type { Entry } from '../types';
 import { formatCurrency, formatDate, todayLocalISO } from '../lib/format';
+import { isEntryInflow, isEntryOutflow } from '../lib/entryClassification';
 
 function isOverdueByDate(dueDateStr: string): boolean {
   // Data local do dispositivo (não UTC): com toISOString, entre 00h e 03h no
@@ -45,7 +46,8 @@ function EntryItemInner({
   onOpenCardInvoice,
 }: EntryItemProps) {
   const paymentDue = debtPaymentDueDate(entry);
-  const isOverdue = entry.type === 'debt' && !entry.isPaid && isOverdueByDate(paymentDue);
+  // Saque de meta é `debt` mas ENTRA no caixa: atraso só faz sentido em saída.
+  const isOverdue = isEntryOutflow(entry) && !entry.isPaid && isOverdueByDate(paymentDue);
 
   return (
     <motion.div
@@ -88,7 +90,7 @@ function EntryItemInner({
           >
             {entry.name}
           </h3>
-          {entry.type === 'cash' && <span className="neu-chip-cash">Entrada</span>}
+          {isEntryInflow(entry) && <span className="neu-chip-cash">Entrada</span>}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
           <span className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1 flex-wrap">
@@ -180,12 +182,12 @@ function EntryItemInner({
                 ? 'text-amber-800 dark:text-amber-400'
                 : entry.isPaid
                   ? 'text-slate-600 dark:text-slate-400'
-                  : entry.type === 'cash'
+                  : isEntryInflow(entry)
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-red-600 dark:text-red-400'
             }`}
           >
-            {entry.type === 'cash' ? '+' : '-'}
+            {isEntryInflow(entry) ? '+' : '-'}
             {formatCurrency(entry.amount)}
           </div>
         </div>

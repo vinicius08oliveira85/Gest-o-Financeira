@@ -6,6 +6,7 @@ import {
   buildInstallmentCardExpenses,
   findInvoiceEntriesForCard,
   findInvoiceEntryForCycle,
+  getCardLimitUsage,
   planInvoiceSync,
   preserveInvoiceState,
 } from './cardInvoice';
@@ -239,13 +240,22 @@ describe('planInvoiceSync', () => {
     expect(actions).toEqual([{ type: 'update', entry: inv, amount: 500 }]);
   });
 
-  it('mantém o pagamento e a data de criação ao atualizar uma fatura paga', () => {
+  it('não reescreve automaticamente o valor de uma fatura já paga', () => {
+    // Mês fechado: editar um gasto antigo não pode mudar o saldo já pago.
     const inv = invoice({ isPaid: true, paidDate: '2026-12-01' });
-    const actions = planInvoiceSync([inv], [expense(500)], [expense(600)]);
+    expect(planInvoiceSync([inv], [expense(500)], [expense(600)])).toEqual([]);
+  });
 
-    expect(actions[0]).toMatchObject({ type: 'update', amount: 500 });
-    expect(actions[0].entry.isPaid).toBe(true);
-    expect(actions[0].entry.paidDate).toBe('2026-12-01');
+  it('atualização explícita da fatura paga preserva pagamento e data de criação', () => {
+    const existing = invoice({ isPaid: true, paidDate: '2026-12-01' });
+    const next = buildInvoiceEntry(invoiceCard, 10, 2026, 500, existing.id);
+
+    const merged = preserveInvoiceState(next, existing);
+
+    expect(merged.amount).toBe(500);
+    expect(merged.isPaid).toBe(true);
+    expect(merged.paidDate).toBe('2026-12-01');
+    expect(merged.createdAt).toBe(existing.createdAt);
   });
 
   it('acompanha a exclusão de uma parcela do gasto parcelado', () => {
@@ -323,5 +333,59 @@ describe('findInvoiceEntriesForCard', () => {
 
   it('sem faturas registradas, devolve lista vazia', () => {
     expect(findInvoiceEntriesForCard([], 'c1')).toEqual([]);
+  });
+});
+
+describe('getCardLimitUsage', () => {
+  const expense = (overrides: Partial<CardExpense> = {}): CardExpense => ({
+    id: 'x1',
+    cardId: 'c1',
+    name: 'Compra',
+    amount: 1000,
+    date: '2025-03-10',
+    billingMonth: 2,
+    billingYear: 2025,
+    createdAt: 1,
+    ...overrides,
+  });
+  const invoice = (overrides: Partial<Entry> = {}): Entry => ({
+    id: 'inv-1',
+    name: 'Fatura Visa',
+    amount: 1000,
+    dueDate: '2025-04-05',
+    invoicePaymentDueDate: '2025-04-05',
+    isPaid: false,
+    type: 'debt',
+    createdAt: 1,
+    cardId: 'c1',
+    isCardInvoice: true,
+    ...overrides,
+  });
+
+  it('gastos de um ciclo com fatura paga liberam o limite', () => {
+    expect(getCardLimitUsage(card, [expense()], [invoice({ isPaid: true })])).toEqual({
+      used: 0,
+      available: 5000,
+    });
+  });
+
+  it('gastos sem fatura paga ocupam limite e não passam do teto', () => {
+    expect(getCardLimitUsage(card, [expense({ amount: 6000 })], [])).toEqual({
+      used: 6000,
+      available: 0,
+    });
+  });
+
+  it('considera ciclos em aberto de meses diferentes e só o cartão informado', () => {
+    const usage = getCardLimitUsage(
+      card,
+      [
+        expense({ amount: 1000 }),
+        expense({ id: 'x2', amount: 500, billingMonth: 3 }),
+        expense({ id: 'x3', cardId: 'outro', amount: 999 }),
+      ],
+      [invoice()]
+    );
+    expect(usage).toEqual({ used: 1500, available: 3500 });
   });
 });

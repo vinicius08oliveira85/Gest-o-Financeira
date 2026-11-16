@@ -18,6 +18,8 @@ import {
 import { propagateEntryInstallmentUpdate } from '../lib/installments';
 import { readStored, writeStored } from '../lib/storage';
 import { mergeUnconfirmed } from '../lib/recovery';
+import { isEntryInflow, isEntryOutflow } from '../lib/entryClassification';
+import { getEntryTotals } from '../lib/monthTotals';
 
 /** Espera após a última alteração antes de gravar automaticamente no Appwrite. */
 const AUTO_SYNC_DEBOUNCE_MS = 1500;
@@ -442,8 +444,10 @@ export function useEntries() {
       let result = base;
       if (filter === 'pending') result = result.filter((d) => !d.isPaid);
       else if (filter === 'paid') result = result.filter((d) => d.isPaid);
-      else if (filter === 'debt') result = result.filter((d) => d.type === 'debt');
-      else if (filter === 'cash') result = result.filter((d) => d.type === 'cash');
+      // "Saídas"/"Entradas" seguem a classificação do Resumo (com a inversão das
+      // metas), não o `type` cru: senão um saque de meta some do filtro de entradas.
+      else if (filter === 'debt') result = result.filter(isEntryOutflow);
+      else if (filter === 'cash') result = result.filter(isEntryInflow);
 
       if (selectedCategory !== 'all') {
         result = result.filter((d) => d.category === selectedCategory);
@@ -499,102 +503,25 @@ export function useEntries() {
     [entries, currentMonth, currentYear]
   );
 
-  // Mesma inversão de metas da visão mensal: depósito na meta (cash+goalId) abate
-  // do caixa → conta como saída; saque da meta (debt+goalId) volta → conta como entrada.
-  const totalEntradasLancadas = useMemo(
-    () =>
-      entries
-        .filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash'))
-        .reduce((acc, d) => acc + d.amount, 0),
-    [entries]
-  );
+  // Totais calculados pelo helper único (mesma classificação de metas em todas
+  // as telas). Antes cada total era um reduce próprio aqui, no Resumo e nos
+  // Relatórios — e qualquer ajuste de regra precisava ser repetido nos três.
+  const allTotals = useMemo(() => getEntryTotals(entries), [entries]);
+  const monthTotals = useMemo(() => getEntryTotals(entriesDoMes), [entriesDoMes]);
 
-  const totalSaidasLancadas = useMemo(
-    () =>
-      entries
-        .filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt'))
-        .reduce((acc, d) => acc + d.amount, 0),
-    [entries]
-  );
+  const totalEntradasLancadas = allTotals.entradas;
+  const totalSaidasLancadas = allTotals.saidas;
+  const saldo = allTotals.saldo;
 
-  const saldo = useMemo(() => {
-    const entradasFinalizadas = entries
-      .filter((d) => d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
-      .reduce((acc, d) => acc + d.amount, 0);
-    const saidasFinalizadas = entries
-      .filter((d) => d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
-      .reduce((acc, d) => acc + d.amount, 0);
-    return entradasFinalizadas - saidasFinalizadas;
-  }, [entries]);
-
-  // Depósito na meta (cash+goalId) abate do caixa → conta como saída do mês
-  // Saque da meta  (debt+goalId) retorna ao caixa → conta como entrada do mês
-  const totalEntradasLancadasMes = useMemo(
-    () =>
-      entriesDoMes
-        .filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash'))
-        .reduce((acc, d) => acc + d.amount, 0),
-    [entriesDoMes]
-  );
-
-  const totalSaidasLancadasMes = useMemo(
-    () =>
-      entriesDoMes
-        .filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt'))
-        .reduce((acc, d) => acc + d.amount, 0),
-    [entriesDoMes]
-  );
-
-  const saldoMes = useMemo(() => {
-    const entradasFinalizadas = entriesDoMes
-      .filter((d) => d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
-      .reduce((acc, d) => acc + d.amount, 0);
-    const saidasFinalizadas = entriesDoMes
-      .filter((d) => d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
-      .reduce((acc, d) => acc + d.amount, 0);
-    return entradasFinalizadas - saidasFinalizadas;
-  }, [entriesDoMes]);
-
-  const entradasCountMes = useMemo(
-    () => entriesDoMes.filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash')).length,
-    [entriesDoMes]
-  );
-  const saidasCountMes = useMemo(
-    () => entriesDoMes.filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt')).length,
-    [entriesDoMes]
-  );
-
-  const totalEntradasFinalizadasMes = useMemo(
-    () =>
-      entriesDoMes
-        .filter((d) => d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
-        .reduce((acc, d) => acc + d.amount, 0),
-    [entriesDoMes]
-  );
-
-  const totalEntradasPendentesMes = useMemo(
-    () =>
-      entriesDoMes
-        .filter((d) => !d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
-        .reduce((acc, d) => acc + d.amount, 0),
-    [entriesDoMes]
-  );
-
-  const totalSaidasFinalizadasMes = useMemo(
-    () =>
-      entriesDoMes
-        .filter((d) => d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
-        .reduce((acc, d) => acc + d.amount, 0),
-    [entriesDoMes]
-  );
-
-  const totalSaidasPendentesMes = useMemo(
-    () =>
-      entriesDoMes
-        .filter((d) => !d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
-        .reduce((acc, d) => acc + d.amount, 0),
-    [entriesDoMes]
-  );
+  const totalEntradasLancadasMes = monthTotals.entradas;
+  const totalSaidasLancadasMes = monthTotals.saidas;
+  const saldoMes = monthTotals.saldo;
+  const totalEntradasFinalizadasMes = monthTotals.entradasFinalizadas;
+  const totalEntradasPendentesMes = monthTotals.entradasPendentes;
+  const totalSaidasFinalizadasMes = monthTotals.saidasFinalizadas;
+  const totalSaidasPendentesMes = monthTotals.saidasPendentes;
+  const entradasCountMes = useMemo(() => entriesDoMes.filter(isEntryInflow).length, [entriesDoMes]);
+  const saidasCountMes = useMemo(() => entriesDoMes.filter(isEntryOutflow).length, [entriesDoMes]);
 
   const getSaldoForMonth = useCallback(
     (month: number, year: number) => {

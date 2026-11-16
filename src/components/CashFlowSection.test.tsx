@@ -55,6 +55,9 @@ function ResumoHarness() {
         totalEntradasLancadasMes={0}
         totalSaidasLancadasMes={300}
         saldoMes={-300}
+        saldoAcumulado={-1200}
+        saldoInicial={0}
+        onSaldoInicialChange={() => {}}
         entradasCountMes={0}
         saidasCountMes={entries.length}
         totalEntradasFinalizadasMes={0}

@@ -7,6 +7,7 @@ import {
   getLoanMonthPaidInterest,
   getLoanMonthPendingAmount,
 } from '../lib/loans';
+import { getMonthTotals } from '../lib/monthTotals';
 import { buildMonthlyTrend, buildTrendCsv } from '../lib/monthlyTrend';
 import { buildReportsCsv } from '../lib/reports';
 import { chipClass } from '../lib/neu';
@@ -59,59 +60,38 @@ export function ReportsPanel({
   const isEntrada = (d: (typeof byPeriod)[0]) => (d.goalId ? d.type === 'debt' : d.type === 'cash');
   const isSaida = (d: (typeof byPeriod)[0]) => (d.goalId ? d.type === 'cash' : d.type === 'debt');
 
-  const totalByType = byPeriod.reduce(
-    (acc, d) => {
-      if (isEntrada(d)) acc.entradas += d.amount;
-      else acc.saidas += d.amount;
-      return acc;
-    },
-    { entradas: 0, saidas: 0 }
-  );
+  // Totais do mês pelo helper único (mesma regra do Resumo).
+  const totals = getMonthTotals(entries, month, year);
 
   // Parcelas de empréstimo em aberto no mês são saídas do mês: entram como
   // pendentes porque as pagas já estão em `entries` (evita contar duas vezes).
   const loanPending = getLoanMonthPendingAmount(loans, month, year, todayLocalISO());
-  totalByType.saidas += loanPending;
+  const saidasComEmprestimos = totals.saidas + loanPending;
 
   // Peso do empréstimo nas saídas do mês casando com o que está lançado: uma
   // parcela paga em outro mês não pode inflar o mês do vencimento.
   const loanImpact = getLoanMonthImpactPosted(entries, loans, month, year, todayLocalISO());
-  const loanShareSaidas = totalByType.saidas > 0 ? (loanImpact / totalByType.saidas) * 100 : 0;
-  const outrasSaidas = Math.max(0, Math.round((totalByType.saidas - loanImpact) * 100) / 100);
+  const loanShareSaidas = saidasComEmprestimos > 0 ? (loanImpact / saidasComEmprestimos) * 100 : 0;
+  const outrasSaidas = Math.max(0, Math.round((saidasComEmprestimos - loanImpact) * 100) / 100);
   // Juros que saíram do caixa no mês (parcelas pagas + quitação), não o juro
   // contratado: é o custo do empréstimo que já foi efetivamente pago.
   const loanPaidInterest = getLoanMonthPaidInterest(loans, month, year, entries);
 
-  const totalEntradasFinalizadas = byPeriod
-    .filter((d) => d.isPaid && isEntrada(d))
-    .reduce((acc, d) => acc + d.amount, 0);
-  const totalSaidasFinalizadas = byPeriod
-    .filter((d) => d.isPaid && isSaida(d))
-    .reduce((acc, d) => acc + d.amount, 0);
-  const saldoDoMes = totalEntradasFinalizadas - totalSaidasFinalizadas;
+  const totalEntradasFinalizadas = totals.entradasFinalizadas;
+  const totalSaidasFinalizadas = totals.saidasFinalizadas;
+  const saldoDoMes = totals.saldo;
   // Os KPIs de total incluem pendentes; o saldo não. Mostrar o split deixa a
   // conta reconciliável (entradas − saídas ≠ saldo quando há pendentes).
-  const totalEntradasPendentes = totalByType.entradas - totalEntradasFinalizadas;
-  const totalSaidasPendentes = totalByType.saidas - totalSaidasFinalizadas;
+  const totalEntradasPendentes = totals.entradasPendentes;
+  const totalSaidasPendentes = totals.saidasPendentes + loanPending;
 
   const prevDate = new Date(year, month - 1, 1);
-  const prevByPeriod = entries.filter((d) => {
-    const date = parseDateLocal(d.dueDate);
-    return date.getMonth() === prevDate.getMonth() && date.getFullYear() === prevDate.getFullYear();
-  });
-  const prevTotalEntradas = prevByPeriod
-    .filter((d) => isEntrada(d))
-    .reduce((acc, d) => acc + d.amount, 0);
+  const prevTotals = getMonthTotals(entries, prevDate.getMonth(), prevDate.getFullYear());
+  const prevTotalEntradas = prevTotals.entradas;
   const prevTotalSaidas =
-    prevByPeriod.filter((d) => isSaida(d)).reduce((acc, d) => acc + d.amount, 0) +
+    prevTotals.saidas +
     getLoanMonthPendingAmount(loans, prevDate.getMonth(), prevDate.getFullYear(), todayLocalISO());
-  const prevEntradasFinalizadas = prevByPeriod
-    .filter((d) => d.isPaid && isEntrada(d))
-    .reduce((acc, d) => acc + d.amount, 0);
-  const prevSaidasFinalizadas = prevByPeriod
-    .filter((d) => d.isPaid && isSaida(d))
-    .reduce((acc, d) => acc + d.amount, 0);
-  const prevSaldo = prevEntradasFinalizadas - prevSaidasFinalizadas;
+  const prevSaldo = prevTotals.saldo;
 
   const totalByCategorySaidas = byPeriod.reduce<Record<string, number>>((acc, d) => {
     if (!d.category || !isSaida(d)) return acc;
@@ -175,8 +155,8 @@ export function ReportsPanel({
       buildReportsCsv({
         monthLabel,
         totals: {
-          entradas: totalByType.entradas,
-          saidas: totalByType.saidas,
+          entradas: totals.entradas,
+          saidas: saidasComEmprestimos,
           saldo: saldoDoMes,
           prevEntradas: prevTotalEntradas,
           prevSaidas: prevTotalSaidas,
@@ -228,9 +208,9 @@ export function ReportsPanel({
             Total entradas
           </p>
           <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
-            {formatCurrency(totalByType.entradas)}
+            {formatCurrency(totals.entradas)}
           </p>
-          <DeltaBadge current={totalByType.entradas} previous={prevTotalEntradas} />
+          <DeltaBadge current={totals.entradas} previous={prevTotalEntradas} />
           <p className="text-3xs text-slate-600 dark:text-slate-400 mt-0.5">
             {formatCurrency(totalEntradasFinalizadas)} finalizadas ·{' '}
             {formatCurrency(totalEntradasPendentes)} pendentes
@@ -241,9 +221,9 @@ export function ReportsPanel({
             Total saídas
           </p>
           <p className="text-lg font-semibold text-red-600 dark:text-red-400 mt-0.5">
-            {formatCurrency(totalByType.saidas)}
+            {formatCurrency(saidasComEmprestimos)}
           </p>
-          <DeltaBadge current={totalByType.saidas} previous={prevTotalSaidas} invert />
+          <DeltaBadge current={saidasComEmprestimos} previous={prevTotalSaidas} invert />
           <p className="text-3xs text-slate-600 dark:text-slate-400 mt-0.5">
             {formatCurrency(totalSaidasFinalizadas)} finalizadas ·{' '}
             {formatCurrency(totalSaidasPendentes)} pendentes
@@ -272,7 +252,7 @@ export function ReportsPanel({
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
               <span>Entradas</span>
               <span className="font-semibold text-emerald-600">
-                {formatCurrency(totalByType.entradas)}
+                {formatCurrency(totals.entradas)}
               </span>
             </div>
             <div className="h-2 neu-progress-track">
@@ -280,18 +260,16 @@ export function ReportsPanel({
                 className="h-full bg-emerald-500 transition-all"
                 style={{
                   width:
-                    totalByType.entradas + totalByType.saidas === 0
+                    totals.entradas + saidasComEmprestimos === 0
                       ? '0%'
-                      : `${
-                          (totalByType.entradas / (totalByType.entradas + totalByType.saidas)) * 100
-                        }%`,
+                      : `${(totals.entradas / (totals.entradas + saidasComEmprestimos)) * 100}%`,
                 }}
               />
             </div>
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
               <span>Saídas</span>
               <span className="font-semibold text-red-600 dark:text-red-400">
-                {formatCurrency(totalByType.saidas)}
+                {formatCurrency(saidasComEmprestimos)}
               </span>
             </div>
             <div className="h-2 neu-progress-track">
@@ -299,10 +277,10 @@ export function ReportsPanel({
                 className="h-full bg-red-500 transition-all"
                 style={{
                   width:
-                    totalByType.entradas + totalByType.saidas === 0
+                    totals.entradas + saidasComEmprestimos === 0
                       ? '0%'
                       : `${
-                          (totalByType.saidas / (totalByType.entradas + totalByType.saidas)) * 100
+                          (saidasComEmprestimos / (totals.entradas + saidasComEmprestimos)) * 100
                         }%`,
                 }}
               />

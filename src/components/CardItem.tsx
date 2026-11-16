@@ -9,13 +9,15 @@ import {
   Circle,
 } from './icons';
 import type { CardExpense, CreditCard, Entry } from '../types';
-import { findInvoiceEntryForCycle, getInvoiceDueDate } from '../lib/cardInvoice';
+import { findInvoiceEntryForCycle, getCardLimitUsage, getInvoiceDueDate } from '../lib/cardInvoice';
 import { formatCurrency } from '../lib/format';
 
 type InvoiceSummary = {
   month: number;
   year: number;
   total: number;
+  /** Valor gravado no lançamento da fatura (0 quando ainda não registrada). */
+  amount: number;
   hasEntry: boolean;
   isPaid: boolean;
 };
@@ -67,6 +69,7 @@ export function CardItem({
         month,
         year,
         total,
+        amount: invoiceEntry?.amount ?? 0,
         hasEntry: invoiceEntry != null,
         isPaid: invoiceEntry?.isPaid ?? false,
       });
@@ -79,6 +82,10 @@ export function CardItem({
   const usageRatio = card.limitAmount > 0 ? currentTotal / card.limitAmount : 0;
   const progressColor =
     usageRatio >= 0.9 ? 'bg-red-500' : usageRatio >= 0.7 ? 'bg-amber-500' : 'bg-emerald-500';
+
+  // Limite livre considera todos os ciclos em aberto (não só a fatura atual):
+  // fatura anterior não paga também ocupa limite.
+  const limitUsage = getCardLimitUsage(card, expenses, invoiceEntries);
 
   const currentExpenses = expenses.filter(
     (e) => e.billingMonth === currentMonth && e.billingYear === currentYear
@@ -142,6 +149,10 @@ export function CardItem({
             de {formatCurrency(card.limitAmount)}
           </span>
         </div>
+        <div className="flex justify-between text-2xs mt-0.5 text-slate-600 dark:text-slate-400">
+          <span>Limite disponível</span>
+          <span className="font-medium">{formatCurrency(limitUsage.available)}</span>
+        </div>
       </div>
 
       {/* Actions */}
@@ -180,6 +191,18 @@ export function CardItem({
           </button>
         )}
       </div>
+
+      {/* Fatura paga é mês fechado: o valor não é reescrito sozinho. Mostra a
+          diferença para o usuário decidir atualizar (botão da fatura). */}
+      {currentInvoice?.isPaid &&
+        currentInvoice.hasEntry &&
+        Math.abs(currentInvoice.amount - currentTotal) > 0.005 && (
+          <p className="card-pad pt-0 text-2xs text-amber-700 dark:text-amber-400">
+            Fatura paga em {formatCurrency(currentInvoice.amount)} difere dos gastos do ciclo (
+            {formatCurrency(currentTotal)}). Não alteramos meses fechados automaticamente — use o
+            botão “Paga” para atualizar, se precisar.
+          </p>
+        )}
 
       {/* Expenses list */}
       {showExpenses && (

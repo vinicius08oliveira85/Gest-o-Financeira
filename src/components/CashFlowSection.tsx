@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useMemo } from 'react';
+﻿import { lazy, Suspense, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from './icons';
 import type {
   CardExpense,
@@ -11,7 +11,7 @@ import type {
 } from '../types';
 import type { Alert } from '../hooks/useAlerts';
 import { usePeriod } from '../contexts/PeriodContext';
-import { formatCurrency, parseDateLocal, todayLocalISO } from '../lib/format';
+import { formatCurrency, todayLocalISO } from '../lib/format';
 import { DashboardCards } from './DashboardCards';
 import { GoalsCard } from './GoalsCard';
 import { FilterBar } from './FilterBar';
@@ -24,6 +24,9 @@ import { ViewModeToggle } from './ViewModeToggle';
 import { CardsSection } from './CardsSection';
 import { LoansSection } from './LoansSection';
 import { WishlistSection } from './WishlistSection';
+import { getCardLimitUsage } from '../lib/cardInvoice';
+import { InitialBalanceModal } from './InitialBalanceModal';
+import { getMonthTotals } from '../lib/monthTotals';
 import {
   getLoanInterest,
   getLoanItemsForMonth,
@@ -44,6 +47,11 @@ type CashFlowSectionProps = {
   totalEntradasLancadasMes: number;
   totalSaidasLancadasMes: number;
   saldoMes: number;
+  /** Saldo de todos os lançamentos finalizados, de todos os meses. */
+  saldoAcumulado: number;
+  /** Posição inicial (antes do primeiro lançamento), guardada no dispositivo. */
+  saldoInicial: number;
+  onSaldoInicialChange: (value: number) => void;
   entradasCountMes: number;
   saidasCountMes: number;
   totalEntradasFinalizadasMes: number;
@@ -109,10 +117,24 @@ type CashFlowSectionProps = {
   onToggleWishlistPurchased: (item: WishlistItem, purchased: boolean) => void;
 };
 
+/** Título da página por aba: antes todas mostravam "Fluxo de Caixa". */
+const TAB_TITLES: Record<TabId, string> = {
+  resumo: 'Fluxo de Caixa',
+  lancamentos: 'Lançamentos',
+  relatorios: 'Relatórios',
+  metas: 'Metas',
+  cartoes: 'Cartões',
+  emprestimos: 'Empréstimos',
+  desejos: 'Lista de desejos',
+};
+
 export function CashFlowSection({
   totalEntradasLancadasMes,
   totalSaidasLancadasMes,
   saldoMes,
+  saldoAcumulado,
+  saldoInicial,
+  onSaldoInicialChange,
   entradasCountMes,
   saidasCountMes,
   totalEntradasFinalizadasMes,
@@ -226,43 +248,21 @@ export function CashFlowSection({
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }, [currentMonth, currentYear]);
 
+  // Soma do limite realmente livre (gastos de ciclos já pagos liberam espaço) e
+  // nunca acima do limite de cada cartão — a conta anterior podia ultrapassar.
   const totalLimiteDisponivel = useMemo(
     () =>
-      cards.reduce((sum, card) => {
-        const totalGasto = cardExpenses
-          .filter((e) => e.cardId === card.id)
-          .reduce((s, e) => s + e.amount, 0);
-        const totalFaturasPagas = entries
-          .filter((e) => e.cardId === card.id && e.isCardInvoice && e.isPaid)
-          .reduce((s, e) => s + e.amount, 0);
-        return sum + Math.max(0, card.limitAmount - totalGasto + totalFaturasPagas);
-      }, 0),
+      cards.reduce(
+        (sum, card) => sum + getCardLimitUsage(card, cardExpenses, entries).available,
+        0
+      ),
     [cards, cardExpenses, entries]
   );
 
-  // Totais do mês anterior (mesma lógica de metas do mês atual) para o comparativo
+  // Totais do mês anterior pelo helper único (mesma regra do mês atual).
   const prevMonthTotals = useMemo(() => {
     const prevDate = new Date(currentYear, currentMonth - 1, 1);
-    const prevEntries = entries.filter((d) => {
-      const date = parseDateLocal(d.dueDate);
-      return (
-        date.getMonth() === prevDate.getMonth() && date.getFullYear() === prevDate.getFullYear()
-      );
-    });
-    const entradas = prevEntries
-      .filter((d) => (d.goalId ? d.type === 'debt' : d.type === 'cash'))
-      .reduce((acc, d) => acc + d.amount, 0);
-    const saidas = prevEntries
-      .filter((d) => (d.goalId ? d.type === 'cash' : d.type === 'debt'))
-      .reduce((acc, d) => acc + d.amount, 0);
-    const saldo =
-      prevEntries
-        .filter((d) => d.isPaid && (d.goalId ? d.type === 'debt' : d.type === 'cash'))
-        .reduce((acc, d) => acc + d.amount, 0) -
-      prevEntries
-        .filter((d) => d.isPaid && (d.goalId ? d.type === 'cash' : d.type === 'debt'))
-        .reduce((acc, d) => acc + d.amount, 0);
-    return { entradas, saidas, saldo };
+    return getMonthTotals(entries, prevDate.getMonth(), prevDate.getFullYear());
   }, [entries, currentMonth, currentYear]);
 
   // Parcelas de empréstimo do mês anterior que ainda não viraram lançamento:
@@ -296,11 +296,13 @@ export function CashFlowSection({
       .reduce((sum, e) => sum + e.amount, 0);
   }, [cardExpenses, currentMonth, currentYear]);
 
+  const [isInitialBalanceOpen, setIsInitialBalanceOpen] = useState(false);
+
   return (
     <div className="app-container page-stack">
       <section className="section-stack">
         <div className="page-title-row">
-          <h1 className="page-title">Fluxo de Caixa</h1>
+          <h1 className="page-title">{TAB_TITLES[activeTab]}</h1>
 
           <div className="toolbar-row">
             <button
@@ -364,6 +366,9 @@ export function CashFlowSection({
               totalEntradasLancadas={totalEntradasLancadasMes}
               totalSaidasLancadas={saidasComEmprestimos}
               saldo={saldoMes}
+              saldoAcumulado={saldoAcumulado}
+              saldoInicial={saldoInicial}
+              onEditSaldoInicial={() => setIsInitialBalanceOpen(true)}
               entradasCount={entradasCountMes}
               saidasCount={saidasCountMes}
               saidasParcelas={loanPendingMes > 0 ? loanItemsMes : 0}
@@ -648,6 +653,13 @@ export function CashFlowSection({
           </section>
         )}
       </section>
+
+      <InitialBalanceModal
+        open={isInitialBalanceOpen}
+        initialBalance={saldoInicial}
+        onSave={onSaldoInicialChange}
+        onClose={() => setIsInitialBalanceOpen(false)}
+      />
     </div>
   );
 }
