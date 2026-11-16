@@ -389,3 +389,40 @@ describe('getCardLimitUsage', () => {
     expect(usage).toEqual({ used: 1500, available: 3500 });
   });
 });
+
+describe('getCardLimitUsage — ciclo pago com gasto posterior', () => {
+  const expense = (amount: number): CardExpense => ({
+    id: 'x1',
+    cardId: 'c1',
+    name: 'Compra',
+    amount,
+    date: '2025-03-10',
+    billingMonth: 2,
+    billingYear: 2025,
+    createdAt: 1,
+  });
+  const paidInvoice = (amount: number): Entry => ({
+    id: 'inv-1',
+    name: 'Fatura Visa',
+    amount,
+    dueDate: '2025-04-05',
+    invoicePaymentDueDate: '2025-04-05',
+    isPaid: true,
+    type: 'debt',
+    createdAt: 1,
+    cardId: 'c1',
+    isCardInvoice: true,
+  });
+
+  it('gasto que entrou no ciclo depois do pagamento continua ocupando limite', () => {
+    // Fatura paga de 1000 num ciclo que fechou em 1200: 200 seguem em aberto.
+    const usage = getCardLimitUsage(card, [expense(1200)], [paidInvoice(1000)]);
+    expect(usage.used).toBeCloseTo(200, 2);
+    expect(usage.available).toBeCloseTo(4800, 2);
+  });
+
+  it('pagar mais do que o ciclo não gera limite extra', () => {
+    const usage = getCardLimitUsage(card, [expense(1000)], [paidInvoice(1200)]);
+    expect(usage).toEqual({ used: 0, available: 5000 });
+  });
+});

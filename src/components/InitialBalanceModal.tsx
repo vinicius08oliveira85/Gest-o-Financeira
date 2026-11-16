@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from './icons';
 import { ModalShell } from './ModalShell';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import {
   formatCurrencyForInput,
   maskCurrencyInput,
@@ -23,6 +24,18 @@ type Props = {
 export function InitialBalanceModal({ open, initialBalance, onSave, onClose }: Props) {
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(contentRef, open);
+
+  // Mesmo comportamento dos outros modais: Escape fecha sem salvar.
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -47,7 +60,12 @@ export function InitialBalanceModal({ open, initialBalance, onSave, onClose }: P
   }
 
   return (
-    <ModalShell open={open} onClose={onClose} aria-labelledby={MODAL_TITLE_ID}>
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      contentRef={contentRef}
+      aria-labelledby={MODAL_TITLE_ID}
+    >
       <div className="neu-modal-header">
         <div>
           <h2

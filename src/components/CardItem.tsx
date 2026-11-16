@@ -219,8 +219,10 @@ export function CardItem({
         Math.abs(currentInvoice.amount - currentTotal) > 0.005 && (
           <p className="card-pad pt-0 text-2xs text-amber-700 dark:text-amber-400">
             Fatura paga em {formatCurrency(currentInvoice.amount)} difere dos gastos do ciclo (
-            {formatCurrency(currentTotal)}). Não alteramos meses fechados automaticamente — use o
-            botão “Paga” para atualizar, se precisar.
+            {formatCurrency(currentTotal)}). Não alteramos meses fechados automaticamente.{' '}
+            {currentTotal > 0
+              ? 'Use o botão “Paga” para atualizar, se precisar.'
+              : 'Os gastos deste ciclo foram removidos; a fatura paga permanece como histórico.'}
           </p>
         )}
 

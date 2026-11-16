@@ -179,18 +179,33 @@ export function getCardLimitUsage(
   expenses: CardExpense[],
   entries: Entry[]
 ): { used: number; available: number } {
-  const usedCents = expenses
-    .filter((expense) => {
-      if (expense.cardId !== card.id) return false;
-      const invoice = findInvoiceEntryForCardCycle(
-        entries,
-        card.id,
-        expense.billingMonth,
-        expense.billingYear
-      );
-      return !invoice?.isPaid;
-    })
-    .reduce((sum, expense) => sum + Math.round(expense.amount * 100), 0);
+  // Soma por ciclo (mês/ano da fatura) em centavos.
+  const byCycle = new Map<string, { month: number; year: number; cents: number }>();
+  for (const expense of expenses) {
+    if (expense.cardId !== card.id) continue;
+    const key = `${expense.billingYear}-${expense.billingMonth}`;
+    const found = byCycle.get(key);
+    if (found) found.cents += Math.round(expense.amount * 100);
+    else
+      byCycle.set(key, {
+        month: expense.billingMonth,
+        year: expense.billingYear,
+        cents: Math.round(expense.amount * 100),
+      });
+  }
+
+  let usedCents = 0;
+  for (const cycle of byCycle.values()) {
+    const invoice = findInvoiceEntryForCardCycle(entries, card.id, cycle.month, cycle.year);
+    if (!invoice?.isPaid) {
+      usedCents += cycle.cents;
+      continue;
+    }
+    // Fatura paga libera o limite do que ela cobriu. Se um gasto entrou no ciclo
+    // depois do pagamento (ou foi editado para cima), a diferença continua
+    // ocupando limite — antes o ciclo pago liberava tudo e o limite inflava.
+    usedCents += Math.max(0, cycle.cents - Math.round(invoice.amount * 100));
+  }
 
   const limitCents = Math.max(0, Math.round(card.limitAmount * 100));
   return {
