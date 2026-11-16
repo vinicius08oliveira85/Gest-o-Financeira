@@ -49,6 +49,16 @@ function EntryItemInner({
   // Saque de meta é `debt` mas ENTRA no caixa: atraso só faz sentido em saída.
   const isOverdue = isEntryOutflow(entry) && !entry.isPaid && isOverdueByDate(paymentDue);
 
+  // Valor na mesma linha do título, à direita: antes ele caía numa linha própria
+  // e a linha ficava com ~125px de altura e um vazio grande até os ícones.
+  const amountTone = entry.goalId
+    ? 'text-amber-800 dark:text-amber-400'
+    : entry.isPaid
+      ? 'text-slate-600 dark:text-slate-400'
+      : isEntryInflow(entry)
+        ? 'text-emerald-600 dark:text-emerald-400'
+        : 'text-red-600 dark:text-red-400';
+
   return (
     <motion.div
       layout
@@ -57,170 +67,167 @@ function EntryItemInner({
       // apareciam muitos segundos depois, deixando um espaço vazio na lista.
       initial={false}
       exit={{ opacity: 0, x: 20 }}
-      className={`group neu-list-item flex flex-wrap sm:flex-nowrap items-center ${
-        compact ? 'px-3 py-2 sm:px-4 sm:py-2.5 text-sm' : 'p-3 sm:p-4'
+      className={`group neu-list-item relative flex flex-col ${
+        compact ? 'px-3 py-2 sm:px-4 sm:py-2.5 text-sm' : 'px-3 py-2.5 sm:p-4'
       }`}
     >
-      <button
-        type="button"
-        onClick={() => onTogglePaid(entry.id)}
-        title={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (abate no saldo)'}
-        aria-label={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (marcar como pago)'}
-        className={`mr-3 transition-all duration-150 self-start mt-1 sm:self-center sm:mt-0 tap-scale ${
-          entry.isPaid
-            ? 'text-emerald-500'
-            : 'text-slate-300 dark:text-slate-400 hover:text-slate-400 dark:hover:text-slate-400'
-        }`}
-      >
-        {entry.isPaid ? (
-          <CheckCircle2 size={compact ? 18 : 22} />
-        ) : (
-          <Circle size={compact ? 18 : 22} />
-        )}
-      </button>
+      <div className="flex items-start gap-2.5 sm:gap-3">
+        <button
+          type="button"
+          onClick={() => onTogglePaid(entry.id)}
+          title={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (abate no saldo)'}
+          aria-label={entry.isPaid ? 'Desfazer finalização' : 'Finalizar (marcar como pago)'}
+          className={`mt-0.5 shrink-0 transition-all duration-150 tap-scale ${
+            entry.isPaid
+              ? 'text-emerald-500'
+              : 'text-slate-300 dark:text-slate-400 hover:text-slate-400 dark:hover:text-slate-400'
+          }`}
+        >
+          {entry.isPaid ? (
+            <CheckCircle2 size={compact ? 18 : 22} />
+          ) : (
+            <Circle size={compact ? 18 : 22} />
+          )}
+        </button>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h3
-            className={`font-medium truncate ${
-              entry.isPaid
-                ? 'text-slate-600 dark:text-slate-400 line-through'
-                : 'text-slate-900 dark:text-slate-100'
-            }`}
-          >
-            {entry.name}
-          </h3>
-          {isEntryInflow(entry) && <span className="neu-chip-cash">Entrada</span>}
-        </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-          <span className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1 flex-wrap">
-            <Calendar size={12} />
-            {entry.isCardInvoice ? (
-              entry.invoicePaymentDueDate && entry.dueDate !== entry.invoicePaymentDueDate ? (
-                <>
-                  Vence em {formatDate(entry.invoicePaymentDueDate)}
-                  <span className="text-slate-600 dark:text-slate-400">
-                    · Fecha em {formatDate(entry.dueDate)}
-                  </span>
-                </>
-              ) : (
-                <>Vence em {formatDate(entry.invoicePaymentDueDate ?? entry.dueDate)}</>
-              )
-            ) : (
-              <>
-                {entry.type === 'debt' ? 'Vence em' : 'Data:'} {formatDate(entry.dueDate)}
-              </>
-            )}
-          </span>
-          {entry.isPaid && entry.paidDate && (
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 size={12} />
-              Pago em {formatDate(entry.paidDate)}
-            </span>
-          )}
-          {entry.isCardInvoice && cardName && (
-            <span className="neu-chip-dark inline-flex items-center gap-1 whitespace-nowrap">
-              <CreditCard size={12} />
-              {cardName}
-            </span>
-          )}
-          <span
-            className={
-              entry.isPaid ? 'neu-chip-success' : isOverdue ? 'neu-chip-danger' : 'neu-chip-pending'
-            }
-          >
-            {entry.isPaid ? 'Finalizado' : isOverdue ? 'Atrasado' : 'Pendente'}
-          </span>
-          {entry.category &&
-            (onSelectCategory ? (
-              <button
-                type="button"
-                onClick={() =>
-                  onSelectCategory(selectedCategory === entry.category ? 'all' : entry.category!)
-                }
-                aria-pressed={selectedCategory === entry.category}
-                title={
-                  selectedCategory === entry.category
-                    ? 'Remover filtro de categoria'
-                    : `Filtrar por ${entry.category}`
-                }
-                className={`neu-chip inline-flex items-center gap-1 transition-colors ${
-                  selectedCategory === entry.category ? 'neu-chip-active' : ''
-                }`}
-              >
-                <Folder size={11} filled={selectedCategory === entry.category} />
-                {entry.category}
-              </button>
-            ) : (
-              <span className="neu-chip inline-flex items-center gap-1">
-                <Folder size={11} />
-                {entry.category}
-              </span>
-            ))}
-          {entry.installmentsCount && entry.installmentNumber && (
-            <span className="neu-chip-dark">
-              {entry.installmentNumber}/{entry.installmentsCount}
-            </span>
-          )}
-          {entry.tag && entry.tag !== (entry.isCardInvoice ? cardName : undefined) && (
-            <span
-              className="text-xs text-slate-600 dark:text-slate-400 truncate inline-flex items-center gap-1 max-w-[120px] sm:max-w-[140px] lg:max-w-[180px]"
-              title={entry.tag}
+        {/* `sm:pr-28` reserva a coluna de ações, que fica sobreposta à direita. */}
+        <div className="flex-1 min-w-0 sm:pr-28">
+          <div className="flex items-baseline gap-2">
+            <h3
+              className={`min-w-0 truncate font-medium ${
+                entry.isPaid
+                  ? 'text-slate-600 dark:text-slate-400 line-through'
+                  : 'text-slate-900 dark:text-slate-100'
+              }`}
             >
-              <Tag size={12} className="shrink-0 text-slate-600 dark:text-slate-400" />
-              {entry.tag}
+              {entry.name}
+            </h3>
+            {isEntryInflow(entry) && <span className="neu-chip-cash shrink-0">Entrada</span>}
+            <span className={`ml-auto shrink-0 pl-2 font-semibold tabular-nums ${amountTone}`}>
+              {isEntryInflow(entry) ? '+' : '-'}
+              {formatCurrency(entry.amount)}
             </span>
-          )}
+          </div>
+
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+            <span className="flex items-center gap-1 flex-wrap">
+              <Calendar size={12} />
+              {entry.isCardInvoice ? (
+                entry.invoicePaymentDueDate && entry.dueDate !== entry.invoicePaymentDueDate ? (
+                  <>
+                    Vence em {formatDate(entry.invoicePaymentDueDate)}
+                    <span className="text-slate-600 dark:text-slate-400">
+                      · Fecha em {formatDate(entry.dueDate)}
+                    </span>
+                  </>
+                ) : (
+                  <>Vence em {formatDate(entry.invoicePaymentDueDate ?? entry.dueDate)}</>
+                )
+              ) : (
+                <>
+                  {entry.type === 'debt' ? 'Vence em' : 'Data:'} {formatDate(entry.dueDate)}
+                </>
+              )}
+            </span>
+            {entry.isPaid && entry.paidDate && (
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 size={12} />
+                Pago em {formatDate(entry.paidDate)}
+              </span>
+            )}
+            {/* Cartão como texto simples: antes era mais um badge escuro, somando
+                quatro estilos diferentes de chip na mesma linha. */}
+            {entry.isCardInvoice && cardName && (
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <CreditCard size={12} />
+                {cardName}
+              </span>
+            )}
+            <span
+              className={
+                entry.isPaid
+                  ? 'neu-chip-success'
+                  : isOverdue
+                    ? 'neu-chip-danger'
+                    : 'neu-chip-pending'
+              }
+            >
+              {entry.isPaid ? 'Finalizado' : isOverdue ? 'Atrasado' : 'Pendente'}
+            </span>
+            {entry.category &&
+              (onSelectCategory ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onSelectCategory(selectedCategory === entry.category ? 'all' : entry.category!)
+                  }
+                  aria-pressed={selectedCategory === entry.category}
+                  title={
+                    selectedCategory === entry.category
+                      ? 'Remover filtro de categoria'
+                      : `Filtrar por ${entry.category}`
+                  }
+                  className={`neu-chip inline-flex items-center gap-1 transition-colors ${
+                    selectedCategory === entry.category ? 'neu-chip-active' : ''
+                  }`}
+                >
+                  <Folder size={11} filled={selectedCategory === entry.category} />
+                  {entry.category}
+                </button>
+              ) : (
+                <span className="neu-chip inline-flex items-center gap-1">
+                  <Folder size={11} />
+                  {entry.category}
+                </span>
+              ))}
+            {entry.installmentsCount && entry.installmentNumber && (
+              <span className="neu-chip-dark">
+                {entry.installmentNumber}/{entry.installmentsCount}
+              </span>
+            )}
+            {entry.tag && entry.tag !== (entry.isCardInvoice ? cardName : undefined) && (
+              <span
+                className="text-xs truncate inline-flex items-center gap-1 max-w-[120px] sm:max-w-[140px] lg:max-w-[180px]"
+                title={entry.tag}
+              >
+                <Tag size={12} className="shrink-0" />
+                {entry.tag}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="w-full sm:w-auto flex justify-between items-center mt-2 sm:mt-0">
-        <div className="text-right sm:mr-3 pl-8 sm:pl-0">
-          <div
-            className={`font-semibold ${
-              entry.goalId
-                ? 'text-amber-800 dark:text-amber-400'
-                : entry.isPaid
-                  ? 'text-slate-600 dark:text-slate-400'
-                  : isEntryInflow(entry)
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-red-600 dark:text-red-400'
-            }`}
-          >
-            {isEntryInflow(entry) ? '+' : '-'}
-            {formatCurrency(entry.amount)}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 transition-all">
-          {entry.isCardInvoice && onOpenCardInvoice && (
-            <button
-              type="button"
-              onClick={() => onOpenCardInvoice(entry.cardId)}
-              className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
-              aria-label="Ver gastos do ciclo do cartão"
-              title="Ver gastos do ciclo do cartão"
-            >
-              <CreditCard size={18} className="sm:w-4 sm:h-4" />
-            </button>
-          )}
+      {/* Ações: alinhadas à direita e com largura fixa a partir de `sm`, para
+          editar/excluir não "andarem" de linha quando há o botão do cartão. */}
+      <div className="mt-1 flex items-center justify-end gap-0.5 transition-all sm:absolute sm:right-3 sm:top-1/2 sm:mt-0 sm:w-[6.5rem] sm:-translate-y-1/2 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 sm:focus-within:opacity-100">
+        {entry.isCardInvoice && onOpenCardInvoice && (
           <button
             type="button"
-            onClick={() => onEdit(entry)}
+            onClick={() => onOpenCardInvoice(entry.cardId)}
             className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
-            aria-label="Editar"
+            aria-label="Ver gastos do ciclo do cartão"
+            title="Ver gastos do ciclo do cartão"
           >
-            <Pencil size={18} className="sm:w-4 sm:h-4" />
+            <CreditCard size={18} className="sm:w-4 sm:h-4" />
           </button>
-          <button
-            type="button"
-            onClick={() => onDeleteRequest(entry.id)}
-            className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400"
-            aria-label="Excluir"
-          >
-            <Trash2 size={18} className="sm:w-4 sm:h-4" />
-          </button>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={() => onEdit(entry)}
+          className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          aria-label="Editar"
+        >
+          <Pencil size={18} className="sm:w-4 sm:h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeleteRequest(entry.id)}
+          className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+          aria-label="Excluir"
+        >
+          <Trash2 size={18} className="sm:w-4 sm:h-4" />
+        </button>
       </div>
     </motion.div>
   );

@@ -40,7 +40,7 @@ export function AlertsPanel({ alerts, onDismiss, onAction }: AlertsPanelProps) {
             key={alert.id}
             // `flex`: sem isso o botão de dispensar caía numa linha própria, à
             // esquerda, embaixo do texto do alerta.
-            className={`neu-list-item flex items-start gap-2 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 ${
+            className={`neu-list-item relative flex items-start gap-2 px-3 py-2 pr-10 text-xs text-slate-700 dark:text-slate-300 ${
               onAction ? 'transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/60' : ''
             }`}
           >
@@ -64,6 +64,7 @@ export function AlertsPanel({ alerts, onDismiss, onAction }: AlertsPanelProps) {
                 <ChevronRight
                   size={14}
                   className="mt-1 shrink-0 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors"
+                  title="Abrir"
                   aria-hidden
                 />
               </button>
@@ -86,8 +87,9 @@ export function AlertsPanel({ alerts, onDismiss, onAction }: AlertsPanelProps) {
               <button
                 type="button"
                 onClick={() => onDismiss(alert.id)}
-                className="neu-modal-close shrink-0"
+                className="neu-modal-close absolute right-1 top-1 !h-7 !w-7"
                 aria-label="Dispensar alerta"
+                title="Dispensar alerta"
               >
                 <X size={16} />
               </button>

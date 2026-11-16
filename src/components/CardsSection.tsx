@@ -41,7 +41,11 @@ export function CardsSection({
         </h2>
         {/* Com a lista vazia o botão duplicava a ação do EmptyState logo abaixo. */}
         {cards.length > 0 && (
-          <button type="button" onClick={onNewCard} className="neu-btn-primary btn-action">
+          <button
+            type="button"
+            onClick={onNewCard}
+            className="neu-btn btn-action text-slate-700 dark:text-slate-200"
+          >
             <Plus size={16} />
             Novo cartão
           </button>

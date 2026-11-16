@@ -183,7 +183,7 @@ export function CardItem({
           className="neu-btn flex-1 flex items-center justify-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 rounded-xl py-2"
         >
           <Plus size={15} />
-          Gasto
+          Novo gasto
         </button>
         <button
           type="button"
@@ -191,13 +191,19 @@ export function CardItem({
           className="neu-btn flex-1 flex items-center justify-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 rounded-xl py-2"
         >
           <ListChecks size={15} />
-          {showExpenses ? 'Ocultar' : 'Gastos'}
+          {showExpenses ? 'Ocultar gastos' : 'Ver gastos'}
         </button>
         {currentTotal > 0 && (
           <button
             type="button"
             onClick={() => onRegisterInvoice(card, currentMonth, currentYear, currentTotal)}
-            className="neu-btn-primary flex-1 flex items-center justify-center gap-1.5 text-sm font-medium rounded-xl py-2"
+            // Só a fatura em aberto é a ação primária do cartão; com a fatura já
+            // registrada/paga ela vira secundária, para não haver vários verdes.
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-medium ${
+              currentInvoice?.isPaid || currentInvoice?.hasEntry
+                ? 'neu-btn text-slate-700 dark:text-slate-200'
+                : 'neu-btn-primary'
+            }`}
             title={
               currentInvoice?.isPaid
                 ? 'Fatura já paga no fluxo de caixa — clique para atualizar o valor'

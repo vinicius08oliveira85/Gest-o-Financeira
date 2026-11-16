@@ -32,9 +32,11 @@ export function DeltaBadge({
     <span
       className={`inline-flex items-center gap-0.5 text-2xs font-semibold ${cls} ${className}`}
       title="Comparado ao mês anterior"
+      aria-label={`${Math.abs(pct).toFixed(1)}% em relação ao mês anterior`}
     >
       {isUp ? <TrendingUp size={11} aria-hidden /> : <TrendingDown size={11} aria-hidden />}
       {Math.abs(pct).toFixed(1)}%
+      <span className="hidden font-normal opacity-80 lg:inline">vs. mês ant.</span>
     </span>
   );
 }

@@ -75,7 +75,7 @@ export function MainLayout({
         </div>
       </header>
 
-      <main className="flex-1 pb-28 md:pb-0">
+      <main className="flex-1 pb-8">
         {isLoading ? (
           <div className="app-container page-stack">
             <LoadingSkeleton />

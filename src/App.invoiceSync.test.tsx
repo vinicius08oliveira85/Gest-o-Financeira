@@ -76,7 +76,7 @@ async function registerInvoiceAndOpenDecember() {
 async function deleteOnlyExpenseOfNovember() {
   fireEvent.click(screen.getByRole('button', { name: 'Mês anterior' }));
   fireEvent.click(screen.getByRole('button', { name: 'Cartões' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Gastos' }, { timeout: 3000 }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Ver gastos' }, { timeout: 3000 }));
   fireEvent.click(await screen.findByTitle('Editar gasto'));
   fireEvent.click(await screen.findByRole('button', { name: 'Excluir gasto' }, { timeout: 3000 }));
   fireEvent.click(await screen.findByRole('button', { name: 'Excluir' }, { timeout: 3000 }));

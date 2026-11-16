@@ -9,7 +9,6 @@ export { AlertsPanel } from './AlertsPanel';
 export { GuidedTooltip } from './GuidedTooltip';
 export { EntryList } from './EntryList';
 export { FilterBar } from './FilterBar';
-export { FloatingActionButton } from './FloatingActionButton';
 export { Header } from './Header';
 export { LoadingSkeleton } from './LoadingSkeleton';
 export { EmptyState } from './EmptyState';

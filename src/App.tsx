@@ -39,13 +39,7 @@ import {
 import type { CardExpense, CreditCard, Entry, Goal, Loan, WishlistItem } from './types';
 import type { TabId } from './components/TabNav';
 import { PeriodProvider } from './contexts/PeriodContext';
-import {
-  MainLayout,
-  CashFlowSection,
-  FloatingActionButton,
-  ErrorBoundary,
-  Toast,
-} from './components';
+import { MainLayout, CashFlowSection, ErrorBoundary, Toast } from './components';
 const ConfirmDeleteModal = lazy(() =>
   import('./components/ConfirmDeleteModal').then((m) => ({ default: m.ConfirmDeleteModal }))
 );
@@ -1007,8 +1001,6 @@ export default function App() {
           onClose={form.closeForm}
         />
       </Suspense>
-
-      <FloatingActionButton onClick={() => handleOpenForm()} />
 
       <Suspense fallback={null}>
         {entryToDelete &&

@@ -24,15 +24,10 @@ type DashboardCardsProps = {
   saldoProjetado?: number;
   /** Ex.: "do mês" para indicar que os valores são do período selecionado */
   periodLabel?: string;
-  /** Soma do limite disponível em todos os cartões de crédito no período */
-  totalLimiteDisponivel?: number;
   /** Totais do mês anterior (para o comparativo ▲/▼) */
   prevEntradasLancadas?: number;
   prevSaidasLancadas?: number;
   prevSaldo?: number;
-  /** Gasto no cartão do mês (fatura) e do mês anterior */
-  cardSpending?: number;
-  prevCardSpending?: number;
   /** Levam o usuário ao detalhe de cada número (aba e filtros já aplicados). */
   onOpenEntradas?: () => void;
   onOpenSaidas?: () => void;
@@ -55,12 +50,9 @@ export function DashboardCards({
   totalSaidasPendentes,
   saldoProjetado,
   periodLabel,
-  totalLimiteDisponivel,
   prevEntradasLancadas,
   prevSaidasLancadas,
   prevSaldo,
-  cardSpending,
-  prevCardSpending,
   onOpenEntradas,
   onOpenSaidas,
   onOpenCards,
@@ -74,8 +66,8 @@ export function DashboardCards({
         className="neu-surface card-pad rounded-xl flex flex-col h-full"
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-            Total Entradas{suffix}
+          <span className="text-xs font-semibold whitespace-nowrap text-slate-600 dark:text-slate-400">
+            Entradas{suffix}
           </span>
           <div className="neu-icon-badge-emerald p-1.5">
             <ArrowUpRight className="text-emerald-500 w-4 h-4" />
@@ -134,8 +126,8 @@ export function DashboardCards({
         className="neu-surface card-pad rounded-xl flex flex-col h-full"
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-            Total Saídas{suffix}
+          <span className="text-xs font-semibold whitespace-nowrap text-slate-600 dark:text-slate-400">
+            Saídas{suffix}
           </span>
           <div className="neu-icon-badge-red p-1.5">
             <TrendingDown className="text-red-500 w-4 h-4" />
@@ -199,17 +191,17 @@ export function DashboardCards({
         }`}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+          <span className="text-xs font-semibold whitespace-nowrap text-white/70">
             Saldo{suffix}
           </span>
-          <div className="neu-inset-sm p-1.5 rounded-full">
+          <div className="rounded-full bg-white/15 p-1.5">
             <DollarSign className="text-white w-4 h-4" />
           </div>
         </div>
         <div className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-white">
           {formatCurrency(saldo)}
         </div>
-        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-white/70">
           <span>Só entradas e saídas finalizadas</span>
           {prevSaldo !== undefined && <DeltaBadge current={saldo} previous={prevSaldo} light />}
         </div>
@@ -217,7 +209,7 @@ export function DashboardCards({
           <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
             <div className="flex items-center justify-between text-3xs">
               <span
-                className="text-slate-600 dark:text-slate-400 flex items-center gap-1"
+                className="flex items-center gap-1 text-white/70"
                 title="Todas as entradas e saídas do mês, finalizadas ou não"
               >
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400" />
@@ -239,7 +231,7 @@ export function DashboardCards({
               className="flex items-center justify-between text-3xs"
               title="Saldo inicial + todas as entradas finalizadas menos todas as saídas finalizadas"
             >
-              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
+              <span className="flex items-center gap-1 text-white/70">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" />
                 {saldoInicial ? 'Saldo atual' : 'Acumulado (todos os meses)'}
               </span>
@@ -258,43 +250,14 @@ export function DashboardCards({
             )}
           </div>
         )}
-        {totalLimiteDisponivel !== undefined && (
-          <div className="mt-1.5 space-y-0.5 border-t border-white/10 pt-1.5">
-            <div className="flex items-center justify-between text-3xs">
-              <span
-                className="text-slate-600 dark:text-slate-400 flex items-center gap-1"
-                title="Limite dos cartões menos o que já foi gasto e ainda não foi pago"
-              >
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />
-                Limite cartões
-              </span>
-              <span className="font-medium text-blue-300">
-                {formatCurrency(totalLimiteDisponivel)}
-              </span>
-            </div>
-
-            {cardSpending !== undefined && prevCardSpending !== undefined && (
-              <div className="flex items-center justify-between text-3xs">
-                <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
-                  Gastos no cartão (mês)
-                </span>
-                <span className="inline-flex items-center gap-1.5 font-medium text-white">
-                  {formatCurrency(cardSpending)}
-                  <DeltaBadge current={cardSpending} previous={prevCardSpending} invert light />
-                </span>
-              </div>
-            )}
-            {onOpenCards && (
-              <button
-                type="button"
-                onClick={onOpenCards}
-                className="mt-1 self-start rounded text-2xs font-medium text-blue-200 hover:text-white hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-              >
-                Ver cartões
-              </button>
-            )}
-          </div>
+        {onOpenCards && (
+          <button
+            type="button"
+            onClick={onOpenCards}
+            className="mt-2 self-start rounded text-2xs font-medium text-blue-200 hover:text-white hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            Ver cartões
+          </button>
         )}
       </motion.div>
     </div>

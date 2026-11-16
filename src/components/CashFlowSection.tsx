@@ -24,7 +24,6 @@ import { ViewModeToggle } from './ViewModeToggle';
 import { CardsSection } from './CardsSection';
 import { LoansSection } from './LoansSection';
 import { WishlistSection } from './WishlistSection';
-import { getCardLimitUsage } from '../lib/cardInvoice';
 import { InitialBalanceModal } from './InitialBalanceModal';
 import { getMonthTotals } from '../lib/monthTotals';
 import {
@@ -248,17 +247,6 @@ export function CashFlowSection({
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }, [currentMonth, currentYear]);
 
-  // Soma do limite realmente livre (gastos de ciclos já pagos liberam espaço) e
-  // nunca acima do limite de cada cartão — a conta anterior podia ultrapassar.
-  const totalLimiteDisponivel = useMemo(
-    () =>
-      cards.reduce(
-        (sum, card) => sum + getCardLimitUsage(card, cardExpenses, entries).available,
-        0
-      ),
-    [cards, cardExpenses, entries]
-  );
-
   // Totais do mês anterior pelo helper único (mesma regra do mês atual).
   const prevMonthTotals = useMemo(() => {
     const prevDate = new Date(currentYear, currentMonth - 1, 1);
@@ -277,24 +265,6 @@ export function CashFlowSection({
       todayLocalISO()
     );
   }, [loans, currentMonth, currentYear]);
-
-  // Gasto no cartão do mês (fatura) e do mês anterior, para o comparativo do Resumo
-  const cardSpendingMes = useMemo(
-    () =>
-      cardExpenses
-        .filter((e) => e.billingMonth === currentMonth && e.billingYear === currentYear)
-        .reduce((sum, e) => sum + e.amount, 0),
-    [cardExpenses, currentMonth, currentYear]
-  );
-
-  const prevCardSpending = useMemo(() => {
-    const prevDate = new Date(currentYear, currentMonth - 1, 1);
-    return cardExpenses
-      .filter(
-        (e) => e.billingMonth === prevDate.getMonth() && e.billingYear === prevDate.getFullYear()
-      )
-      .reduce((sum, e) => sum + e.amount, 0);
-  }, [cardExpenses, currentMonth, currentYear]);
 
   const [isInitialBalanceOpen, setIsInitialBalanceOpen] = useState(false);
   /** Cartão a abrir em Cartões (vindo da linha da fatura ou de um alerta). */
@@ -378,7 +348,6 @@ export function CashFlowSection({
               totalEntradasPendentes={totalEntradasPendentesMes}
               totalSaidasFinalizadas={totalSaidasFinalizadasMes}
               totalSaidasPendentes={totalSaidasPendentesMes + loanPendingMes}
-              totalLimiteDisponivel={cards.length > 0 ? totalLimiteDisponivel : undefined}
               saldoProjetado={saldoProjetadoMes - loanPendingMes}
               periodLabel="do mês"
               prevEntradasLancadas={prevMonthTotals.entradas}
@@ -386,8 +355,6 @@ export function CashFlowSection({
                 Math.round((prevMonthTotals.saidas + prevLoanPending) * 100) / 100
               }
               prevSaldo={prevMonthTotals.saldo}
-              cardSpending={cardSpendingMes}
-              prevCardSpending={prevCardSpending}
               onOpenEntradas={() => {
                 setFilter('cash');
                 onTabChange('lancamentos');
