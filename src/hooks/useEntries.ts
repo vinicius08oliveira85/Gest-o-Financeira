@@ -13,6 +13,7 @@ import {
 import {
   generateMissingRecurringCopies,
   copyDueDateForMonth,
+  dedupeRecurringCopies,
   recurringSlotKey,
 } from '../lib/recurringEntries';
 import { propagateEntryInstallmentUpdate } from '../lib/installments';
@@ -114,6 +115,18 @@ export function useEntries() {
     dirtyEntryVersionsRef.current.delete(id);
   }, []);
 
+  /**
+   * Some com cópias recorrentes duplicadas do mesmo mês (geradas por versões
+   * antigas, com id aleatório) e agenda a exclusão das extras no servidor.
+   * Depois do id determinístico isso não deve mais acontecer; a limpeza cobre
+   * o que já foi gravado.
+   */
+  const dedupeRecurring = useCallback((list: Entry[]): Entry[] => {
+    const { entries: clean, removedIds } = dedupeRecurringCopies(list);
+    for (const id of removedIds) deletedEntryIdsRef.current.add(id);
+    return clean;
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -121,7 +134,8 @@ export function useEntries() {
      * Aplica a lista vinda do servidor sem descartar o que o utilizador alterou
      * enquanto a leitura estava em curso (a lista local já está na tela).
      */
-    const applyServerEntries = (data: Entry[]) => {
+    const applyServerEntries = (incoming: Entry[]) => {
+      const data = dedupeRecurring(incoming);
       const pending = dirtyEntryIdsRef.current;
       if (pending.size === 0) {
         setEntries(data);
@@ -231,8 +245,8 @@ export function useEntries() {
     if (!isCloudConfigured() || syncInFlightRef.current) return;
     syncInFlightRef.current = true;
     try {
-      const data = await fetchMergedWithRecurringRespectSuppressed(
-        suppressedRecurringSlotsRef.current
+      const data = dedupeRecurring(
+        await fetchMergedWithRecurringRespectSuppressed(suppressedRecurringSlotsRef.current)
       );
       setEntries(data);
       dirtyEntryIdsRef.current.clear();
@@ -292,8 +306,8 @@ export function useEntries() {
     try {
       const presentIds = localSnapshot.map((e) => e.id);
       await syncEntriesDelta(presentIds, changedEntries, deletedIds);
-      const merged = await fetchMergedWithRecurringRespectSuppressed(
-        suppressedRecurringSlotsRef.current
+      const merged = dedupeRecurring(
+        await fetchMergedWithRecurringRespectSuppressed(suppressedRecurringSlotsRef.current)
       );
 
       // Mantém a versão local do que mudou durante o push e adota a revisão do

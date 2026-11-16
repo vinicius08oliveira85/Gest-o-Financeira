@@ -468,7 +468,15 @@ export default function App() {
     }
   }, [pullEntriesFromCloud, showToast]);
 
-  const handleRegisterInvoice = useCallback(
+  const [paidInvoiceUpdate, setPaidInvoiceUpdate] = useState<{
+    card: CreditCard;
+    month: number;
+    year: number;
+    total: number;
+    previousAmount: number;
+  } | null>(null);
+
+  const applyInvoiceRegistration = useCallback(
     (card: CreditCard, month: number, year: number, total: number) => {
       const existing = findInvoiceEntryForCycle(
         entries,
@@ -482,9 +490,41 @@ export default function App() {
       // Re-registrar a fatura não pode zerar o status de pagamento já registrado
       // nem reescrever a data de criação (usada na ordenação/paginação do Appwrite).
       addOrUpdateEntry(preserveInvoiceState(entry, existing), existing != null);
-      showToast('Fatura registrada no fluxo de caixa');
+      showToast(
+        existing ? 'Fatura atualizada no fluxo de caixa' : 'Fatura registrada no fluxo de caixa'
+      );
     },
     [entries, addOrUpdateEntry, showToast]
+  );
+
+  /**
+   * Fatura já paga com valor diferente do ciclo: pedir confirmação explícita,
+   * porque a atualização reescreve o saldo de um mês fechado. Sem diferença (ou
+   * fatura em aberto) registra direto.
+   */
+  const handleRegisterInvoice = useCallback(
+    (card: CreditCard, month: number, year: number, total: number) => {
+      const existing = findInvoiceEntryForCycle(
+        entries,
+        card.id,
+        month,
+        year,
+        card.closingDay,
+        card.dueDay
+      );
+      if (existing?.isPaid && Math.abs(existing.amount - total) > 0.005) {
+        setPaidInvoiceUpdate({
+          card,
+          month,
+          year,
+          total,
+          previousAmount: existing.amount,
+        });
+        return;
+      }
+      applyInvoiceRegistration(card, month, year, total);
+    },
+    [entries, applyInvoiceRegistration]
   );
 
   /**
@@ -1109,6 +1149,33 @@ export default function App() {
             }
           }}
           onClose={() => setGoalToDelete(null)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ConfirmDeleteModal
+          open={paidInvoiceUpdate !== null}
+          title="Atualizar fatura paga?"
+          message={
+            paidInvoiceUpdate
+              ? `A fatura deste ciclo já foi paga com ${formatCurrency(
+                  paidInvoiceUpdate.previousAmount
+                )}. Atualizar para ${formatCurrency(
+                  paidInvoiceUpdate.total
+                )} muda o saldo de um mês já fechado no seu histórico.`
+              : ''
+          }
+          confirmLabel="Atualizar"
+          onConfirm={() => {
+            if (!paidInvoiceUpdate) return;
+            applyInvoiceRegistration(
+              paidInvoiceUpdate.card,
+              paidInvoiceUpdate.month,
+              paidInvoiceUpdate.year,
+              paidInvoiceUpdate.total
+            );
+          }}
+          onClose={() => setPaidInvoiceUpdate(null)}
         />
       </Suspense>
 

@@ -57,7 +57,7 @@ export function AlertsPanel({ alerts, onDismiss, onAction }: AlertsPanelProps) {
                   <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
                     {alert.title}
                   </p>
-                  <p className="text-3xs leading-snug text-slate-600 dark:text-slate-400">
+                  <p className="text-2xs leading-snug text-slate-600 dark:text-slate-400">
                     {alert.description}
                   </p>
                 </div>
@@ -76,7 +76,7 @@ export function AlertsPanel({ alerts, onDismiss, onAction }: AlertsPanelProps) {
                   <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
                     {alert.title}
                   </p>
-                  <p className="text-3xs leading-snug text-slate-600 dark:text-slate-400">
+                  <p className="text-2xs leading-snug text-slate-600 dark:text-slate-400">
                     {alert.description}
                   </p>
                 </div>
