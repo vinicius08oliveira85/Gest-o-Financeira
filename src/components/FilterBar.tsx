@@ -1,4 +1,4 @@
-﻿import { Search, ChevronDown, SlidersHorizontal, X, Check } from './icons';
+﻿import { Search, ChevronDown, SlidersHorizontal, X, Check, Folder } from './icons';
 import type { FilterType } from '../types';
 import { NeuSelect } from './NeuSelect';
 
@@ -27,6 +27,8 @@ type FilterBarProps = {
   categories: string[];
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
+  /** Abre o CRUD de categorias. */
+  onManageCategories?: () => void;
 };
 
 export function FilterBar({
@@ -43,6 +45,7 @@ export function FilterBar({
   categories,
   selectedCategory,
   onCategoryChange,
+  onManageCategories,
 }: FilterBarProps) {
   return (
     <div className="section-stack">
@@ -142,6 +145,17 @@ export function FilterBar({
                 ...categories.map((cat) => ({ value: cat, label: cat })),
               ]}
             />
+            {onManageCategories && (
+              <button
+                type="button"
+                onClick={onManageCategories}
+                className="neu-btn inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium text-slate-700 dark:text-slate-200"
+                title="Gerenciar categorias"
+              >
+                <Folder size={12} />
+                Gerenciar
+              </button>
+            )}
           </div>
         </div>
       </details>

@@ -33,5 +33,8 @@ export const TREND_MONTHS_KEY = 'gestao-financeira-trend-months';
 /** Saldo inicial (posição antes do primeiro lançamento), por dispositivo. */
 export const INITIAL_BALANCE_STORAGE_KEY = 'gestao-financeira-initial-balance';
 
+/** Categorias mantidas pelo usuário (lista de nomes sugeridos). */
+export const CATEGORIES_STORAGE_KEY = 'gestao-financeira-categories';
+
 /** Limiar (0–1) acima do qual o uso do limite do cartão gera alerta. */
 export const CARD_LIMIT_ALERT_RATIO = 0.8;

@@ -30,6 +30,8 @@ import {
   updateInstallmentAmount,
 } from './lib/loans';
 import { logError } from './lib/logger';
+import { mergeCategoryOptions, normalizeCategoryName } from './lib/categories';
+import { useCategories } from './hooks/useCategories';
 import {
   CARD_EXPENSES_ORPHAN_CLEANUP_KEY,
   DISMISSED_ALERTS_KEY,
@@ -51,6 +53,10 @@ const DeleteRecurringModal = lazy(() =>
 );
 const MetaMovementModal = lazy(() =>
   import('./components/MetaMovementModal').then((m) => ({ default: m.MetaMovementModal }))
+);
+
+const CategoriesModal = lazy(() =>
+  import('./components/CategoriesModal').then((m) => ({ default: m.CategoriesModal }))
 );
 
 const GoalModal = lazy(() =>
@@ -108,6 +114,7 @@ export default function App() {
   const [expenseModalCard, setExpenseModalCard] = useState<CreditCard | null>(null);
   const [expenseToEdit, setExpenseToEdit] = useState<CardExpense | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<CardExpense | null>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<CreditCard | null>(null);
 
   const { cards, upsertCard, deleteCard, isLoadingCards } = useCreditCards();
@@ -173,7 +180,6 @@ export default function App() {
     deleteEntry,
     updateRecurringApplyToAll,
     deleteRecurringModel,
-    availableCategories,
     syncEntriesNow,
     getMetaBalanceForGoal,
     saveEntriesLocal,
@@ -182,6 +188,76 @@ export default function App() {
     isSyncing,
     entriesSyncAvailable,
   } = useEntries();
+
+  const categoriesApi = useCategories();
+  const {
+    categories: storedCategories,
+    addCategory,
+    renameCategory,
+    removeCategory,
+  } = categoriesApi;
+
+  /** Quantos lançamentos/gastos usam cada categoria (para avisar antes de excluir). */
+  const categoryUsage = useMemo(() => {
+    const usage: Record<string, number> = {};
+    for (const entry of entries) {
+      if (entry.category) usage[entry.category] = (usage[entry.category] ?? 0) + 1;
+    }
+    for (const expense of cardExpenses) {
+      if (expense.category) usage[expense.category] = (usage[expense.category] ?? 0) + 1;
+    }
+    return usage;
+  }, [entries, cardExpenses]);
+
+  /**
+   * Opções dos seletores: a lista do CRUD + categorias que já existem nos dados
+   * (texto livre digitado antes de existir gerenciamento).
+   */
+  const categoryOptions = useMemo(
+    () => mergeCategoryOptions(storedCategories, Object.keys(categoryUsage)),
+    [storedCategories, categoryUsage]
+  );
+
+  const handleAddCategory = useCallback((name: string) => addCategory(name).error, [addCategory]);
+
+  const handleRenameCategory = useCallback(
+    (from: string, to: string) => {
+      const error = renameCategory(from, to).error;
+      if (error) return error;
+      const next = normalizeCategoryName(to);
+      for (const entry of entries) {
+        if (entry.category === from) {
+          addOrUpdateEntry({ ...entry, category: next }, true);
+        }
+      }
+      for (const expense of cardExpenses) {
+        if (expense.category === from) {
+          void updateExpense({ ...expense, category: next });
+        }
+      }
+      setSelectedCategory((prev) => (prev === from ? next : prev));
+      return null;
+    },
+    [renameCategory, entries, cardExpenses, addOrUpdateEntry, updateExpense, setSelectedCategory]
+  );
+
+  const handleDeleteCategory = useCallback(
+    (name: string) => {
+      removeCategory(name);
+      for (const entry of entries) {
+        if (entry.category === name) {
+          addOrUpdateEntry({ ...entry, category: undefined }, true);
+        }
+      }
+      for (const expense of cardExpenses) {
+        if (expense.category === name) {
+          void updateExpense({ ...expense, category: undefined });
+        }
+      }
+      setSelectedCategory((prev) => (prev === name ? 'all' : prev));
+    },
+    [removeCategory, entries, cardExpenses, addOrUpdateEntry, updateExpense, setSelectedCategory]
+  );
 
   const { goals, upsertGoal, deleteGoal, isLoadingGoals } = useGoals();
   const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
@@ -901,7 +977,8 @@ export default function App() {
               setSelectedCategory={setSelectedCategory}
               filteredEntries={filteredEntries}
               entriesCount={entriesDoMes.length}
-              availableCategories={availableCategories}
+              availableCategories={categoryOptions}
+              onManageCategories={() => setCategoriesOpen(true)}
               viewMode={viewMode}
               setViewMode={setViewMode}
               entries={entries}
@@ -993,7 +1070,7 @@ export default function App() {
           setRecurrenceCount={form.setRecurrenceCount}
           formErrors={form.formErrors}
           onClearError={(field) => form.setFormErrors((prev) => ({ ...prev, [field]: false }))}
-          availableCategories={availableCategories}
+          availableCategories={categoryOptions}
           isPaid={form.editingEntry?.isPaid ?? false}
           paidDate={form.paidDate}
           setPaidDate={form.setPaidDate}
@@ -1310,6 +1387,7 @@ export default function App() {
             card={expenseModalCard}
             expense={expenseToEdit}
             onRequestDelete={(expense) => setExpenseToDelete(expense)}
+            availableCategories={categoryOptions}
             onSave={(partial) => {
               const onError = () => showToast('Não foi possível salvar o gasto');
               if (expenseToEdit) {
@@ -1355,6 +1433,18 @@ export default function App() {
         }}
         onClose={() => setExpenseToDelete(null)}
       />
+
+      <Suspense fallback={null}>
+        <CategoriesModal
+          open={categoriesOpen}
+          categories={categoryOptions}
+          usage={categoryUsage}
+          onAdd={handleAddCategory}
+          onRename={handleRenameCategory}
+          onDelete={handleDeleteCategory}
+          onClose={() => setCategoriesOpen(false)}
+        />
+      </Suspense>
 
       <Toast message={toastMessage} action={toastAction} onDismiss={dismissToast} />
     </ErrorBoundary>

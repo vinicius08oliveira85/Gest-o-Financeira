@@ -79,6 +79,8 @@ type CashFlowSectionProps = {
   /** Total de lançamentos do mês selecionado, antes dos filtros. */
   entriesCount: number;
   availableCategories: string[];
+  /** Abre o CRUD de categorias (lista de sugestões). */
+  onManageCategories?: () => void;
   viewMode: 'list' | 'calendar';
   setViewMode: (v: 'list' | 'calendar') => void;
   entries: Entry[];
@@ -160,6 +162,7 @@ export function CashFlowSection({
   filteredEntries,
   entriesCount,
   availableCategories,
+  onManageCategories,
   viewMode,
   setViewMode,
   entries,
@@ -477,6 +480,7 @@ export function CashFlowSection({
                 categories={availableCategories}
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
+                onManageCategories={onManageCategories}
               />
               <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
             </div>

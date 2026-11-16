@@ -21,10 +21,20 @@ type Props = {
   onSave: (expense: Omit<CardExpense, 'id' | 'createdAt'>) => void;
   /** Exclui o gasto (no parcelado, só a parcela aberta no modal). */
   onRequestDelete?: (expense: CardExpense) => void;
+  /** Categorias já conhecidas, como sugestão no campo. */
+  availableCategories?: string[];
   onClose: () => void;
 };
 
-export function CardExpenseModal({ open, card, expense, onSave, onRequestDelete, onClose }: Props) {
+export function CardExpenseModal({
+  open,
+  card,
+  expense,
+  onSave,
+  onRequestDelete,
+  availableCategories = [],
+  onClose,
+}: Props) {
   const today = todayLocalISO();
 
   const [name, setName] = React.useState('');
@@ -260,11 +270,19 @@ export function CardExpenseModal({ open, card, expense, onSave, onRequestDelete,
             <input
               id="ce-category"
               type="text"
+              list="ce-category-list"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="Opcional"
               className={inputClass}
             />
+            {availableCategories.length > 0 && (
+              <datalist id="ce-category-list">
+                {availableCategories.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
+            )}
           </div>
           <div>
             <label htmlFor="ce-tag" className={labelClass}>
