@@ -734,6 +734,9 @@ export default function App() {
    */
   const handleToggleWishlistPurchased = useCallback(
     (item: WishlistItem, purchased: boolean) => {
+      // Idempotente: um clique duplo (ou estado já sincronizado) não pode gerar
+      // duas saídas nem apagar uma saída que não existe mais.
+      if (item.purchased === purchased) return;
       const payload = {
         id: item.id,
         name: item.name,

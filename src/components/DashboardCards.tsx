@@ -120,7 +120,7 @@ export function DashboardCards({
           <button
             type="button"
             onClick={onOpenEntradas}
-            className="mt-2 self-start text-3xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
+            className="mt-2 self-start rounded text-2xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
             Ver entradas
           </button>
@@ -183,7 +183,7 @@ export function DashboardCards({
           <button
             type="button"
             onClick={onOpenSaidas}
-            className="mt-2 self-start text-3xs font-medium text-red-700 dark:text-red-400 hover:underline"
+            className="mt-2 self-start rounded text-2xs font-medium text-red-700 dark:text-red-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
             Ver saídas
           </button>
@@ -251,7 +251,7 @@ export function DashboardCards({
               <button
                 type="button"
                 onClick={onEditSaldoInicial}
-                className="mt-1 text-3xs font-medium text-blue-200 hover:text-white hover:underline"
+                className="mt-1 rounded text-2xs font-medium text-blue-200 hover:text-white hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 {saldoInicial ? 'Ajustar saldo inicial' : 'Definir saldo inicial'}
               </button>
@@ -289,7 +289,7 @@ export function DashboardCards({
               <button
                 type="button"
                 onClick={onOpenCards}
-                className="mt-1 self-start text-3xs font-medium text-blue-200 hover:text-white hover:underline"
+                className="mt-1 self-start rounded text-2xs font-medium text-blue-200 hover:text-white hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 Ver cartões
               </button>

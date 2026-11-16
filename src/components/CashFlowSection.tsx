@@ -297,6 +297,8 @@ export function CashFlowSection({
   }, [cardExpenses, currentMonth, currentYear]);
 
   const [isInitialBalanceOpen, setIsInitialBalanceOpen] = useState(false);
+  /** Cartão a abrir em Cartões (vindo da linha da fatura ou de um alerta). */
+  const [focusCardId, setFocusCardId] = useState<string | null>(null);
 
   return (
     <div className="app-container page-stack">
@@ -531,7 +533,10 @@ export function CashFlowSection({
                 }}
                 compact
                 groupByDate
-                onOpenCardInvoice={() => onTabChange('cartoes')}
+                onOpenCardInvoice={(cardId) => {
+                  setFocusCardId(cardId ?? null);
+                  onTabChange('cartoes');
+                }}
                 selectedCategory={selectedCategory}
                 onSelectCategory={setSelectedCategory}
                 filtered={entriesCount > 0 && filteredEntries.length === 0}
@@ -625,6 +630,8 @@ export function CashFlowSection({
               onAddExpense={onAddExpense}
               onEditExpense={onEditExpense}
               onRegisterInvoice={onRegisterInvoice}
+              focusCardId={focusCardId}
+              onFocusConsumed={() => setFocusCardId(null)}
             />
           </section>
         )}

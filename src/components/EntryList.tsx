@@ -20,8 +20,8 @@ type EntryListProps = {
   /** Categoria filtrada na tela (destaque do chip) e ação de filtrar pelo chip. */
   selectedCategory?: string;
   onSelectCategory?: (category: string) => void;
-  /** Faturas de cartão: leva aos gastos do ciclo na aba de cartões. */
-  onOpenCardInvoice?: () => void;
+  /** Faturas de cartão: abre o cartão e o ciclo na aba de cartões. */
+  onOpenCardInvoice?: (cardId?: string) => void;
 };
 
 function groupEntriesByDate(entries: Entry[]): Map<string, Entry[]> {

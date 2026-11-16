@@ -82,3 +82,28 @@ describe('CardsSection · registrar fatura', () => {
     expect(screen.queryByRole('button', { name: 'Atualizar' })).toBeNull();
   });
 });
+
+describe('CardsSection — deep-link do cartão', () => {
+  it('abre os gastos do cartão e consome o foco quando vem de outra tela', () => {
+    const onFocusConsumed = vi.fn();
+    render(
+      <CardsSection
+        cards={[card]}
+        expenses={[expense]}
+        invoiceEntries={[]}
+        currentMonth={10}
+        currentYear={2026}
+        onNewCard={vi.fn()}
+        onEditCard={vi.fn()}
+        onAddExpense={vi.fn()}
+        onEditExpense={vi.fn()}
+        onRegisterInvoice={vi.fn()}
+        focusCardId={card.id}
+        onFocusConsumed={onFocusConsumed}
+      />
+    );
+
+    expect(screen.getByText('Mercado')).toBeInTheDocument();
+    expect(onFocusConsumed).toHaveBeenCalled();
+  });
+});

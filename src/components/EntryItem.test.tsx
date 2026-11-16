@@ -117,6 +117,8 @@ describe('EntryItem — fatura de cartão', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Ver gastos do ciclo do cartão' }));
     expect(onOpenCardInvoice).toHaveBeenCalledTimes(1);
+    // Leva o cartão junto, para a aba Cartões abrir o cartão certo.
+    expect(onOpenCardInvoice).toHaveBeenCalledWith('card-1');
 
     rerender(
       <EntryItem

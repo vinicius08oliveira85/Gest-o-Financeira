@@ -30,8 +30,8 @@ type EntryItemProps = {
   selectedCategory?: string;
   /** Torna o chip de categoria um filtro: clique aplica/limpa a categoria. */
   onSelectCategory?: (category: string) => void;
-  /** Para faturas: leva aos gastos do ciclo na aba de cartões. */
-  onOpenCardInvoice?: () => void;
+  /** Para faturas: abre o cartão e o ciclo na aba de cartões. */
+  onOpenCardInvoice?: (cardId?: string) => void;
 };
 
 function EntryItemInner({
@@ -192,11 +192,11 @@ function EntryItemInner({
           </div>
         </div>
 
-        <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
+        <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 transition-all">
           {entry.isCardInvoice && onOpenCardInvoice && (
             <button
               type="button"
-              onClick={onOpenCardInvoice}
+              onClick={() => onOpenCardInvoice(entry.cardId)}
               className="p-2.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-2 rounded-lg neu-btn tap-scale text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
               aria-label="Ver gastos do ciclo do cartão"
               title="Ver gastos do ciclo do cartão"

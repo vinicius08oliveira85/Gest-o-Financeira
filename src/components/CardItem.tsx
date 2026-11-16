@@ -32,6 +32,9 @@ type Props = {
   onAddExpense: (card: CreditCard) => void;
   onEditExpense: (expense: CardExpense) => void;
   onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
+  /** Aberto a partir de outra tela (fatura/alerta): mostra os gastos e rola até aqui. */
+  focused?: boolean;
+  onFocusConsumed?: () => void;
 };
 
 export function CardItem({
@@ -44,8 +47,20 @@ export function CardItem({
   onAddExpense,
   onEditExpense,
   onRegisterInvoice,
+  focused = false,
+  onFocusConsumed,
 }: Props) {
   const [showExpenses, setShowExpenses] = useState(false);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+
+  // Deep-link de outra tela: abre a lista de gastos e traz o cartão para a vista.
+  React.useEffect(() => {
+    if (!focused) return;
+    setShowExpenses(true);
+    // `scrollIntoView` não existe em jsdom/ambientes sem layout.
+    rootRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    onFocusConsumed?.();
+  }, [focused, onFocusConsumed]);
 
   // Mês atual e os dois anteriores (o atual é o primeiro da lista)
   const invoices = React.useMemo<InvoiceSummary[]>(() => {
@@ -98,7 +113,12 @@ export function CardItem({
   });
 
   return (
-    <div className="neu-surface rounded-2xl overflow-hidden">
+    <div
+      ref={rootRef}
+      className={`neu-surface rounded-2xl overflow-hidden ${
+        focused ? 'ring-2 ring-blue-400/70' : ''
+      }`}
+    >
       {/* Card Header */}
       <div
         className="card-pad flex items-center justify-between"

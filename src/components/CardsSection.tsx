@@ -14,6 +14,9 @@ type Props = {
   onAddExpense: (card: CreditCard) => void;
   onEditExpense: (expense: CardExpense) => void;
   onRegisterInvoice: (card: CreditCard, month: number, year: number, total: number) => void;
+  /** Cartão a abrir/rolar (vindo da fatura em Lançamentos ou de um alerta). */
+  focusCardId?: string | null;
+  onFocusConsumed?: () => void;
 };
 
 export function CardsSection({
@@ -27,6 +30,8 @@ export function CardsSection({
   onAddExpense,
   onEditExpense,
   onRegisterInvoice,
+  focusCardId,
+  onFocusConsumed,
 }: Props) {
   return (
     <div className="section-stack">
@@ -62,6 +67,8 @@ export function CardsSection({
                 onAddExpense={onAddExpense}
                 onEditExpense={onEditExpense}
                 onRegisterInvoice={onRegisterInvoice}
+                focused={focusCardId === card.id}
+                onFocusConsumed={onFocusConsumed}
               />
             );
           })}
